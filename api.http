@@ -1,0 +1,15 @@
+### para traer todas las peliculas
+
+GET http://localhost:8089/movies HTTP/1.1
+
+### traeremos las peliculas por id
+
+GET http://localhost:8089/movies/222 HTTP/1.1
+
+### para filtrar las peliculas por genero
+
+GET http://localhost:8089/movies?genre=action HTTP/1.1
+
+## para crear una pelicula
+
+POST http://localhost:8089/movies HTTP/1.1
