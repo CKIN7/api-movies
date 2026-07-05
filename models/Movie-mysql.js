@@ -1,5 +1,6 @@
 const mysql = require('mysql2');
 const crypto = require('crypto');
+const AppError = require('../utils/AppError');
 
 const connection = mysql.createConnection({
     host: 'localhost',
@@ -13,18 +14,16 @@ class MovieModel {
     
     static async getMovies({genre} = {}) {
         try {
-        const [rows] = await connection.promise().query('SELECT d* FROM movies');
-        console.log(rows)
+        const [rows] = await connection.promise().query('SELECT * FROM movies');
+        
         // if (genre) {
         // movieFiltered = await data.movies.filter(movie => movie.genre.toLocaleLowerCase() === genre.toLocaleLowerCase())
         // return movieFiltered;
         // }
         // return movieFiltered;
         } catch (error) {
-        console.error('Error en getMovies:', error.message);
-        throw new Error('Error al obtener películas');
-error.statusCode = 500;
-throw error;
+        console.error('Error en getMovies:', error.message); // msg para depurar
+        throw new AppError('Pelicula no encontrada (msg personalizado con status code para el cliente)', 500);
         }
         
     }
