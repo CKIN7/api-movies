@@ -16,11 +16,16 @@ class MovieModel {
         try {
         const [rows] = await connection.promise().query('SELECT * FROM movies');
         
-        // if (genre) {
-        // movieFiltered = await data.movies.filter(movie => movie.genre.toLocaleLowerCase() === genre.toLocaleLowerCase())
-        // return movieFiltered;
-        // }
-        // return movieFiltered;
+        if(genre){
+            const [rows] = await connection.promise().query(
+            'SELECT title,year,director,rating,duration,plot,poster,genre_name FROM movies JOIN movie_genres ON movies.id = movie_genres.movie_id JOIN genres ON movie_genres.genre_id = genres.id_genre')
+            let movieFiltered = rows.filter(movie => movie.genre_name?.toLocaleLowerCase() === genre.toLocaleLowerCase())
+            console.log(movieFiltered);
+            
+            return movieFiltered;
+        }
+        return rows;
+
         } catch (error) {
         console.error('Error en getMovies:', error.message); // msg para depurar
         throw new AppError('Pelicula no encontrada (msg personalizado con status code para el cliente)', 500);
