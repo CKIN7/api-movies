@@ -43,13 +43,23 @@ class MovieModel {
 
     static async createMovie({result}){
 
-      const newMovie = {
-        ...result.data,
-        id: crypto.randomUUID() }
+        try {
+        
+        await connection.promise().beginTransaction();
+        const {title,year,director,rating,duration,plot,poster} = result.data
+        const values = [title, year, director, rating, duration, plot, poster]
+        await connection.promise().query
+      ('INSERT INTO movies(title,year,director,rating,duration,plot,poster) VALUES(?,?,?,?,?,?,?)',values);
+        
+      
+        await connection.promise().commit();
+        } catch (error) {
+            await connection.promise().rollback()
+            throw new AppError('Ocurrio un problema al crear la pelicula', 500);
+        }
+     
 
-    data.movies.push(newMovie);
-    
-    return newMovie
+      
     }
 
     static async updateMovie({id, result}){
