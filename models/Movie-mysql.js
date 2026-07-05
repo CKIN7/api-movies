@@ -14,13 +14,12 @@ class MovieModel {
     
     static async getMovies({genre} = {}) {
         try {
-        const [rows] = await connection.promise().query('SELECT * FROM movies');
+        const [rows] = await connection.promise().query('SELECT id,title,year,director,rating,duration,plot,poster,genre_name FROM movies JOIN movie_genres ON movies.id = movie_genres.movie_id JOIN genres ON movie_genres.genre_id = genres.id_genre');
         
         if(genre){
             const [rows] = await connection.promise().query(
-            'SELECT title,year,director,rating,duration,plot,poster,genre_name FROM movies JOIN movie_genres ON movies.id = movie_genres.movie_id JOIN genres ON movie_genres.genre_id = genres.id_genre')
+            'SELECT id,title,year,director,rating,duration,plot,poster,genre_name FROM movies JOIN movie_genres ON movies.id = movie_genres.movie_id JOIN genres ON movie_genres.genre_id = genres.id_genre')
             let movieFiltered = rows.filter(movie => movie.genre_name?.toLocaleLowerCase() === genre.toLocaleLowerCase())
-            console.log(movieFiltered);
             
             return movieFiltered;
         }
@@ -35,9 +34,10 @@ class MovieModel {
 
     static async getMovieById(id){
         const movieId = Number(id)
-
-        const movie = data.movies.find(movie => movie.id === movieId);
-
+        const [rows] = await connection.promise()
+        .query('SELECT id,title,year,director,rating,duration,plot,poster,genre_name FROM movies JOIN movie_genres ON movies.id = movie_genres.movie_id JOIN genres ON movie_genres.genre_id = genres.id_genre')
+        const movie = rows.find(movie => movie.id === movieId)
+        
         return movie;
     }
 
