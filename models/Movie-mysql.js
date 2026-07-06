@@ -14,11 +14,16 @@ class MovieModel {
     
     static async getMovies({genre} = {}) {
         try {
-        const [rows] = await connection.promise().query('SELECT id,title,year,director,rating,duration,plot,poster,genre_name FROM movies JOIN movie_genres ON movies.id = movie_genres.movie_id JOIN genres ON movie_genres.genre_id = genres.id_genre');
+        const [rows] = await connection.promise()
+        .query(`SELECT id,title,year,director,rating,duration,plot,poster,genre_name FROM movies 
+        JOIN movie_genres ON movies.id = movie_genres.movie_id 
+        JOIN genres ON movie_genres.genre_id = genres.id_genre`);
         
         if(genre){
-            const [rows] = await connection.promise().query(
-            'SELECT id,title,year,director,rating,duration,plot,poster,genre_name FROM movies JOIN movie_genres ON movies.id = movie_genres.movie_id JOIN genres ON movie_genres.genre_id = genres.id_genre')
+            const [rows] = await connection.promise()
+            .query(`SELECT id,title,year,director,rating,duration,plot,poster,genre_name FROM movies 
+            JOIN movie_genres ON movies.id = movie_genres.movie_id 
+            JOIN genres ON movie_genres.genre_id = genres.id_genre`)
             let movieFiltered = rows.filter(movie => movie.genre_name?.toLocaleLowerCase() === genre.toLocaleLowerCase())
             
             return movieFiltered;
@@ -35,7 +40,8 @@ class MovieModel {
     static async getMovieById(id){
         const movieId = Number(id)
         const [rows] = await connection.promise()
-        .query('SELECT id,title,year,director,rating,duration,plot,poster,genre_name FROM movies JOIN movie_genres ON movies.id = movie_genres.movie_id JOIN genres ON movie_genres.genre_id = genres.id_genre')
+        .query(`SELECT id,title,year,director,rating,duration,plot,poster,genre_name FROM movies 
+        JOIN movie_genres ON movies.id = movie_genres.movie_id JOIN genres ON movie_genres.genre_id = genres.id_genre`)
         const movie = rows.find(movie => movie.id === movieId)
         
         return movie;
@@ -44,17 +50,33 @@ class MovieModel {
     static async createMovie({result}){
 
         try {
-        
+
         await connection.promise().beginTransaction();
         const {title,year,director,rating,duration,plot,poster} = result.data
         const values = [title, year, director, rating, duration, plot, poster]
-        await connection.promise().query
-      ('INSERT INTO movies(title,year,director,rating,duration,plot,poster) VALUES(?,?,?,?,?,?,?)',values);
+        const [movieResult] = await connection.promise()
+        .query('INSERT INTO movies(title,year,director,rating,duration,plot,poster) VALUES(?,?,?,?,?,?,?)',values);
         
-      
+        const movieId = movieResult.insertId; //recuperamos y guardamos el id incremental de la DB
+
+        const [genreRows] = await connection.promise().query('SELECT id_genre FROM genres WHERE genre_name = ?', [result.data.genre]);
+            console.log(genreRows);
+            
+        let genreId;
+        if (genreRows.length > 0) {
+        genreId = genreRows[0].id_genre;
+        } else {
+        const [genreResult] = await connection.promise().query('INSERT INTO genres(genre_name) VALUES(?)', [result.data.genre])
+        genreId = genreResult.insertId;
+        }
+        
+        await connection.promise().query('INSERT INTO movie_genres(movie_id, genre_id) VALUES(?, ?)', [movieId, genreId])
+
         await connection.promise().commit();
         } catch (error) {
             await connection.promise().rollback()
+            console.log(error);
+            
             throw new AppError('Ocurrio un problema al crear la pelicula', 500);
         }
      
