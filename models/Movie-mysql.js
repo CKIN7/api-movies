@@ -14,20 +14,21 @@ class MovieModel {
     
     static async getMovies({genre} = {}) {
         try {
-        const [rows] = await connection.promise()
-        .query(`SELECT id,title,year,director_name as director,rating,duration,plot,poster,genre_name FROM movies
+        const query = `
+        SELECT id,title,year,director_name as director,rating,duration,plot,poster,
+        GROUP_CONCAT(genre_name ORDER BY genre_name SEPARATOR ', ') AS genres FROM movies
         JOIN directors AS d ON movies.id_director = d.director_id
         JOIN movie_genres ON movies.id = movie_genres.movie_id 
-        JOIN genres ON movie_genres.genre_id = genres.id_genre`);
+        JOIN genres ON movie_genres.genre_id = genres.id_genre
+        GROUP BY movies.id`           
+        const [rows] = await connection.promise()
+        .query(query);
         
         if(genre){
             const [rows] = await connection.promise()
-            .query(`SELECT id,title,year,director_name as director,rating,duration,plot,poster,genre_name FROM movies
-            JOIN directors AS d ON movies.id_director = d.director_id
-            JOIN movie_genres ON movies.id = movie_genres.movie_id 
-            JOIN genres ON movie_genres.genre_id = genres.id_genre`)
-            let movieFiltered = rows.filter(movie => movie.genre_name?.toLocaleLowerCase() === genre.toLocaleLowerCase())
-            
+            .query(query);
+            const movieFiltered = rows.filter(movie => movie.genres?.toLocaleLowerCase().includes(genre.toLocaleLowerCase())
+            );
             return movieFiltered;
         }
         return rows;
@@ -122,7 +123,7 @@ class MovieModel {
         try {
           await connection.promise().beginTransaction()
           
-          
+
           
         } 
         catch (error) {
