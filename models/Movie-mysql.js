@@ -134,17 +134,23 @@ class MovieModel {
         try {
           await connection.promise().beginTransaction()
           
-          // check if director exists in directors table before update
-          const [directorRows] = await connection.promise().query('SELECT director_id FROM directors WHERE director_name = ?',[result.data.director])
-          let director_id;
-          if(directorRows.length > 0) {
-            director_id = directorRows[0].insertId
-          } else {
-            const [directorResult] = await connection.promise().query('INSERT INTO directors(director_name) VALUES(?)',[result.data.director])
-            director_id = directorResult.insertId;
+          // Actualizar director si viene
+          if(result.data.director){
+              // check if director exists in directors table before update
+              const [directorRows] = await connection.promise().query('SELECT director_id FROM directors WHERE director_name = ?',[result.data.director])
+              let director_id;
+              if(directorRows.length > 0) {
+                director_id = directorRows[0].insertId
+              } else {
+                const [directorResult] = await connection.promise().query('INSERT INTO directors(director_name) VALUES(?)',[result.data.director])
+                director_id = directorResult.insertId;
+              }
+              
+              await connection.promise().query('UPDATE movies SET id_director = ? WHERE id = ? ',[director_id,id])
+
           }
+
           
-          await connection.promise().query('UPDATE movies SET id_director = ? WHERE id = ? ',[director_id,id])
           
         } 
         catch (error) {
