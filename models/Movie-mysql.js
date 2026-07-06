@@ -45,11 +45,16 @@ class MovieModel {
         try {
          const movieId = Number(id)
          const [rows] = await connection.promise()
-         .query(`SELECT id,title,year,director_name as director,rating,duration,plot,poster,genre_name FROM movies 
+         .query(`SELECT id,title,year,director_name as director,rating,duration,plot,poster,
+         GROUP_CONCAT(genre_name ORDER BY genre_name SEPARATOR ', ') AS genres 
+         FROM movies 
          JOIN directors AS d ON movies.id_director = d.director_id
-         JOIN movie_genres ON movies.id = movie_genres.movie_id JOIN genres ON movie_genres.genre_id = genres.id_genre`)
-         const movie = rows.find(movie => movie.id === movieId)
-         return movie;
+         JOIN movie_genres ON movies.id = movie_genres.movie_id 
+         JOIN genres g ON movie_genres.genre_id = g.id_genre
+         WHERE movies.id = ?
+         GROUP BY movies.id
+         `,[movieId]);
+         return rows[0] || null;
          
         } catch (error) {
          console.error('Error en getMovies:', error.message); // msg para depurar
