@@ -15,13 +15,15 @@ class MovieModel {
     static async getMovies({genre} = {}) {
         try {
         const [rows] = await connection.promise()
-        .query(`SELECT id,title,year,director,rating,duration,plot,poster,genre_name FROM movies 
+        .query(`SELECT id,title,year,director_name as director,rating,duration,plot,poster,genre_name FROM movies
+        JOIN directors AS d ON movies.id_director = d.director_id
         JOIN movie_genres ON movies.id = movie_genres.movie_id 
         JOIN genres ON movie_genres.genre_id = genres.id_genre`);
         
         if(genre){
             const [rows] = await connection.promise()
-            .query(`SELECT id,title,year,director,rating,duration,plot,poster,genre_name FROM movies 
+            .query(`SELECT id,title,year,director_name as director,rating,duration,plot,poster,genre_name FROM movies
+            JOIN directors AS d ON movies.id_director = d.director_id
             JOIN movie_genres ON movies.id = movie_genres.movie_id 
             JOIN genres ON movie_genres.genre_id = genres.id_genre`)
             let movieFiltered = rows.filter(movie => movie.genre_name?.toLocaleLowerCase() === genre.toLocaleLowerCase())
@@ -38,13 +40,21 @@ class MovieModel {
     }
 
     static async getMovieById(id){
-        const movieId = Number(id)
-        const [rows] = await connection.promise()
-        .query(`SELECT id,title,year,director,rating,duration,plot,poster,genre_name FROM movies 
-        JOIN movie_genres ON movies.id = movie_genres.movie_id JOIN genres ON movie_genres.genre_id = genres.id_genre`)
-        const movie = rows.find(movie => movie.id === movieId)
+
+        try {
+         const movieId = Number(id)
+         const [rows] = await connection.promise()
+         .query(`SELECT id,title,year,director_name as director,rating,duration,plot,poster,genre_name FROM movies 
+         JOIN directors AS d ON movies.id_director = d.director_id
+         JOIN movie_genres ON movies.id = movie_genres.movie_id JOIN genres ON movie_genres.genre_id = genres.id_genre`)
+         const movie = rows.find(movie => movie.id === movieId)
+         return movie;
+         
+        } catch (error) {
+         console.error('Error en getMovies:', error.message); // msg para depurar
+         throw new AppError('Pelicula no encontrada (msg personalizado con status code para el cliente)', 500);
+        }
         
-        return movie;
     }
 
     static async createMovie({result}){
@@ -55,7 +65,7 @@ class MovieModel {
         const {title,year,director,rating,duration,plot,poster} = result.data
         const values = [title, year, director, rating, duration, plot, poster]
         const [movieResult] = await connection.promise()
-        .query('INSERT INTO movies(title,year,director,rating,duration,plot,poster) VALUES(?,?,?,?,?,?,?)',values);
+        .query('INSERT INTO movies(title,year,director_name,rating,duration,plot,poster) VALUES(?,?,?,?,?,?,?)',values);
         
         const movieId = movieResult.insertId; //recuperamos y guardamos el id incremental de la DB
 
