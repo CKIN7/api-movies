@@ -86,8 +86,13 @@ class MovieModel {
         const movieId = movieResult.insertId; //recuperamos y guardamos el id incremental de la DB
         
         // check if genre exists in genres table before insert
-        const [genreRows] = await connection.promise().query('SELECT id_genre FROM genres WHERE genre_name = ?', [result.data.genre]);
-            console.log(genreRows);
+        const genres = result.data.genre //now is an array
+
+        for (const genreName of genres) {
+            const [genreRows] = await connection.promise().query(
+                'SELECT id_genre FROM genres WHERE genre_name = ?',
+                [genreName]
+            );
             
         let genreId;
         if (genreRows.length > 0) {
@@ -99,6 +104,7 @@ class MovieModel {
         
         await connection.promise().query('INSERT INTO movie_genres(movie_id, genre_id) VALUES(?, ?)', [movieId, genreId])
 
+        }
         await connection.promise().commit();
         } catch (error) {
             await connection.promise().rollback()
@@ -110,7 +116,7 @@ class MovieModel {
 
       
     }
-
+    
     static async updateMovie({id, result}){
     //     const movieIndex = data.movies.findIndex(movie => movie.id === parseInt(id))
     //     if(movieIndex === -1) return null
