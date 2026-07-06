@@ -106,14 +106,29 @@ class MovieModel {
     }
 
     static async updateMovie({id, result}){
-        const movieIndex = data.movies.findIndex(movie => movie.id === parseInt(id))
-        if(movieIndex === -1) return null
+    //     const movieIndex = data.movies.findIndex(movie => movie.id === parseInt(id))
+    //     if(movieIndex === -1) return null
         
-       const updateMovie = {
-        ...data.movies[movieIndex],
-        ...result.data }
-        data.movies[movieIndex] = updateMovie;
-        return updateMovie
+    //    const updateMovie = {
+    //     ...data.movies[movieIndex],
+    //     ...result.data }
+    //     data.movies[movieIndex] = updateMovie;
+    //     return updateMovie
+        // verificar si la pelicula existe en la db con el id si no, devolvemos null para el controlador
+        const [rows] = await connection.promise().query('SELECT id FROM movies WHERE id = ?',[id]);
+        console.log('no hay movies'); //depurando
+        if(rows.length === 0) return null
+        
+        try {
+          await connection.promise().beginTransaction()
+          
+          
+          
+        } 
+        catch (error) {
+            
+        }
+
 
     }
 
