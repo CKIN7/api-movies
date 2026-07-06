@@ -62,13 +62,24 @@ class MovieModel {
         try {
 
         await connection.promise().beginTransaction();
+        // check if director exists in directors table before insert
+        const [directorRows] = await connection.promise().query('SELECT director_id FROM directors WHERE director_name = ?', [result.data.director])
+        let directorId;
+        if(directorRows.length > 0){
+            directorId = directorRows[0].director_id
+        } else{
+            const [directorResult] = await connection.promise().query('INSERT INTO directors(director_name) VALUES(?)',[result.data.director])
+            directorId = directorResult.insertId;
+        }
+        
         const {title,year,director,rating,duration,plot,poster} = result.data
-        const values = [title, year, director, rating, duration, plot, poster]
+        const values = [title, year, rating, duration, plot, poster, directorId]
         const [movieResult] = await connection.promise()
-        .query('INSERT INTO movies(title,year,director_name,rating,duration,plot,poster) VALUES(?,?,?,?,?,?,?)',values);
+        .query('INSERT INTO movies(title,year,rating,duration,plot,poster, id_director) VALUES(?,?,?,?,?,?,?)',values);
         
         const movieId = movieResult.insertId; //recuperamos y guardamos el id incremental de la DB
-
+        
+        // check if genre exists in genres table before insert
         const [genreRows] = await connection.promise().query('SELECT id_genre FROM genres WHERE genre_name = ?', [result.data.genre]);
             console.log(genreRows);
             
