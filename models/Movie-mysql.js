@@ -98,11 +98,11 @@ class MovieModel {
         if (genreRows.length > 0) {
         genreId = genreRows[0].id_genre;
         } else {
-        const [genreResult] = await connection.promise().query('INSERT INTO genres(genre_name) VALUES(?)', [result.data.genre])
+        const [genreResult] = await connection.promise().query('INSERT INTO genres(genre_name) VALUES(?)', [genreName]);
         genreId = genreResult.insertId;
         }
         
-        await connection.promise().query('INSERT INTO movie_genres(movie_id, genre_id) VALUES(?, ?)', [movieId, genreId])
+        await connection.promise().query('INSERT INTO movie_genres(movie_id, genre_id) VALUES(?, ?)', [movieId, genreId]);
 
         }
         await connection.promise().commit();
@@ -118,21 +118,13 @@ class MovieModel {
     }
     
     static async updateMovie({id, result}){
-    //     const movieIndex = data.movies.findIndex(movie => movie.id === parseInt(id))
-    //     if(movieIndex === -1) return null
-        
-    //    const updateMovie = {
-    //     ...data.movies[movieIndex],
-    //     ...result.data }
-    //     data.movies[movieIndex] = updateMovie;
-    //     return updateMovie
-        // verificar si la pelicula existe en la db con el id si no, devolvemos null para el controlador
-        const [rows] = await connection.promise().query('SELECT id FROM movies WHERE id = ?',[id]);
-        console.log('no hay movies'); //depurando
-        if(rows.length === 0) return null
-        
+
         try {
-          await connection.promise().beginTransaction()
+        
+         const [rows] = await connection.promise().query('SELECT id FROM movies WHERE id = ?',[id]);
+         if(rows.length === 0) return null
+          
+        await connection.promise().beginTransaction()
           
           // Actualizar director si viene
           if(result.data.director){
@@ -140,7 +132,7 @@ class MovieModel {
               const [directorRows] = await connection.promise().query('SELECT director_id FROM directors WHERE director_name = ?',[result.data.director])
               let director_id;
               if(directorRows.length > 0) {
-                director_id = directorRows[0].insertId
+                director_id = directorRows[0].director_id
               } else {
                 const [directorResult] = await connection.promise().query('INSERT INTO directors(director_name) VALUES(?)',[result.data.director])
                 director_id = directorResult.insertId;
@@ -159,12 +151,12 @@ class MovieModel {
                 fields.push(`${key} = ?`)
                 values.push(result.data[key])
               }
-
+            }
               if (fields.length > 0) {
                 values.push(id);
                 await connection.promise().query(`UPDATE movies SET ${fields.join(', ')} WHERE id = ?`,values)
               }
-          }
+          
 
           if(result.data.genre){
             await connection.promise().query('DELETE FROM movie_genres WHERE movie_id = ?', [id])
@@ -174,24 +166,28 @@ class MovieModel {
               
               let genre_id;
               if(genreRows.length > 0){
-                genre_id = genreRows[0].insertId;
+                genre_id = genreRows[0].id_genre;
               } else{
-                const [genreResult] = await connection.promise().query('INSERT INTO genres(genre_name) VALUES(?)',[result.data.genre]);
+                const [genreResult] = await connection.promise().query('INSERT INTO genres(genre_name) VALUES(?)',[genreName]);
                 genre_id = genreResult.insertId;
               }
 
               await connection.promise().query('INSERT INTO movie_genres(movie_id, genre_id) VALUES(?,?)',[id,genre_id]);
             }
 
-            await connection.promise().commit();
-
-            return await MovieModel.getMovieById(id);
+            
           }
           
+          await connection.promise().commit();
+
+          return await MovieModel.getMovieById(id);
           
         } 
         catch (error) {
+            await connection.promise().rollback()
+            console.log(error);
             
+            throw new AppError('Ocurrio un problema al crear la pelicula', 500);
         }
 
 
