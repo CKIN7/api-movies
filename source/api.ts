@@ -2,7 +2,9 @@ import express from 'express'
 import moviesRouter from './routes/movieRoutes'
 import AppError from './utils/AppError'
 import type { Request, Response, NextFunction } from 'express'
+import dotenv from 'dotenv'
 
+dotenv.config();
 const app = express()
 
 app.disable('x-powered-by')
