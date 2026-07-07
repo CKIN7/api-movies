@@ -150,6 +150,43 @@ class MovieModel {
 
           }
 
+          //Actualizar campos basicos
+          const fields = [];
+          const values = [];
+
+          for (const key of ['title', 'year', 'rating', 'duration', 'plot', 'poster']) {
+              if (result.data[key] !== undefined) {
+                fields.push(`${key} = ?`)
+                values.push(result.data[key])
+              }
+
+              if (fields.length > 0) {
+                values.push(id);
+                await connection.promise().query(`UPDATE movies SET ${fields.join(', ')} WHERE id = ?`,values)
+              }
+          }
+
+          if(result.data.genre){
+            await connection.promise().query('DELETE FROM movie_genres WHERE movie_id = ?', [id])
+
+            for (const genreName of result.data.genre) {
+                const [genreRows] = await connection.promise().query('SELECT id_genre FROM genres WHERE genre_name = ?', [genreName]);
+              
+              let genre_id;
+              if(genreRows.length > 0){
+                genre_id = genreRows[0].insertId;
+              } else{
+                const [genreResult] = await connection.promise().query('INSERT INTO genres(genre_name) VALUES(?)',[result.data.genre]);
+                genre_id = genreResult.insertId;
+              }
+
+              await connection.promise().query('INSERT INTO movie_genres(movie_id, genre_id) VALUES(?,?)',[id,genre_id]);
+            }
+
+            await connection.promise().commit();
+
+            return await MovieModel.getMovieById(id);
+          }
           
           
         } 
