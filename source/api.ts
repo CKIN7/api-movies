@@ -1,5 +1,6 @@
 import express from 'express'
 import moviesRouter from './routes/movieRoutes'
+import AppError from './utils/AppError'
 import type { Request, Response, NextFunction } from 'express'
 
 const app = express()
@@ -10,7 +11,8 @@ app.use(express.json())
 app.use('/movies', moviesRouter)
 
 app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
-    res.status((err as any).statusCode || 500).json({ error: err.message })
+    const statusCode = err instanceof AppError ? err.statusCode : 500
+    res.status(statusCode).json({ error: err.message })
 })
 
 app.use((req: Request, resp: Response) => {
