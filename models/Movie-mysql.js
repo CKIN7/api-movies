@@ -12,25 +12,45 @@ const connection = mysql.createConnection({
 
 class MovieModel {
     
-    static async getMovies({genre} = {}) {
+    static async getMovies({genre, year} = {}) {
         try {
-        const query = `
-        SELECT id,title,year,director_name as director,rating,duration,plot,poster,
-        GROUP_CONCAT(genre_name ORDER BY genre_name SEPARATOR ', ') AS genres FROM movies
-        JOIN directors AS d ON movies.id_director = d.director_id
-        JOIN movie_genres ON movies.id = movie_genres.movie_id 
-        JOIN genres ON movie_genres.genre_id = genres.id_genre
-        GROUP BY movies.id`           
-        const [rows] = await connection.promise()
-        .query(query);
+        let query = `
+        SELECT m.id, m.title, m.year, d.director_name as director, m.rating, m.duration, m.plot, m.poster,
+        GROUP_CONCAT(genre_name ORDER BY genre_name SEPARATOR ', ') AS genres 
+        FROM movies m
+        JOIN directors d ON m.id_director = d.director_id
+        JOIN movie_genres mg ON m.id = mg.movie_id 
+        JOIN genres g ON mg.genre_id = g.id_genre
+        `;
         
-        if(genre){
-            const [rows] = await connection.promise()
-            .query(query);
-            const movieFiltered = rows.filter(movie => movie.genres?.toLocaleLowerCase().includes(genre.toLocaleLowerCase())
-            );
-            return movieFiltered;
+        const params = [];        // (ej: [2024, "Drama"])
+        const conditions = [];    // (ej: ["m.year = ?", "subquery"])
+        
+        if(year){
+          conditions.push('m.year = ?');
+          params.push(year);
         }
+
+        if(genre){
+            conditions.push(`
+               m.id IN (
+                    SELECT mg2.movie_id
+                    FROM movie_genres mg2
+                    JOIN genres g2 ON mg2.genre_id = g2.id_genre
+                    WHERE g2.genre_name = ?
+                )
+              `)
+              params.push(genre);
+        }
+
+        if(conditions.length > 0){
+          query += ' WHERE ' + conditions.join(' AND ');
+
+        }
+
+        query += ` GROUP BY m.id`;
+
+        const [rows] = await connection.promise().query(query, params); //falta
         return rows;
 
         } catch (error) {

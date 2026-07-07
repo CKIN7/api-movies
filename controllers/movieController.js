@@ -9,9 +9,9 @@ class MovieController {
     console.log(req.url);
     console.log('------------------');
 
-    const { genre } = req.query;
+    const { genre, year } = req.query;
 
-    let movieFiltered = await MovieModel.getMovies({genre})
+    let movieFiltered = await MovieModel.getMovies({genre, year})
 
     resp.json(movieFiltered)
 }
