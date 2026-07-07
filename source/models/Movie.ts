@@ -1,7 +1,27 @@
 import _data from '../movies.json'
 import crypto from 'crypto'
-import { MovieRecord, MoviesData, MovieInput } from '../types/movie'
+import { MovieInput } from '../types/movie'
 
+ interface MovieRecord {
+    id: number
+    title: string
+    year: number
+    genre: string
+    director: string
+    rating: number
+    duration: number
+    cast: string[]
+    plot: string
+    poster: string
+    available: boolean
+}
+
+ interface MoviesData {
+    movies: MovieRecord[]
+    total: number
+    page: number
+    totalPages: number
+}
 const data = _data as MoviesData
 
 class MovieModel {
