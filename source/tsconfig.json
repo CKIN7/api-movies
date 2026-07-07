@@ -8,7 +8,8 @@
     "resolveJsonModule": true,      // para movies.json
     "outDir": "./dist",
     "rootDir": ".",
-    "strict": true,                 // o false si prefieres gradual
+    "strict": true,
+    "types": ["node", "jest"],
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "declaration": true,
