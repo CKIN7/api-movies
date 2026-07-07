@@ -194,11 +194,26 @@ class MovieModel {
     }
 
     static async deleteMovie(id){
-        const movieIndex = data.movies.findIndex(movie => movie.id === parseInt(id))
-        if(movieIndex === -1) return null
+        
+        try {
+         const [rows] = await connection.promise().query('SELECT id FROM movies WHERE id = ?',[id]);
+         if (rows.length === 0) return null;
 
-        data.movies.splice(movieIndex, 1)
-        return true
+         await connection.promise().beginTransaction();
+
+         await connection.promise().query('DELETE FROM movie_genres WHERE movie_id = ?', [id]);
+         await connection.promise().query('DELETE FROM movies WHERE id = ?', [id]);
+
+         await connection.promise().commit();
+         return true;
+
+        } catch (error) {
+          await connection.promise().rollback();
+          console.log(error);
+          throw new AppError('Ocurrio un problema al crear la pelicula', 500);
+        }
+        
+        
     }
 }
 
