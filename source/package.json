@@ -1,0 +1,21 @@
+{
+  "name": "api-movies-mvc",
+  "version": "1.0.0",
+  "type": "commonjs",
+  "scripts": {
+    "dev": "tsx watch api.ts",
+    "build": "tsc",
+    "start": "node dist/api.js"
+  },
+  "dependencies": {
+    "express": "^5.2.1",
+    "mysql2": "^3.22.5",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "typescript": "^5.7",
+    "@types/node": "^22",
+    "@types/express": "^5",
+    "tsx": "^4.19"
+  }
+}
