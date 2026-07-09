@@ -1,0 +1,85 @@
+import request from 'supertest'
+import { createApp } from '../api'
+import MovieModel from '../models/Movie-mysql'
+
+describe('GET /movies?title= (controlador)', () => {
+    function createMockModel() {
+        return {
+            getMovies: jest.fn().mockName('getMovies'),
+            getMovieById: jest.fn().mockName('getMovieById'),
+            createMovie: jest.fn().mockName('createMovie'),
+            updateMovie: jest.fn().mockName('updateMovie'),
+            deleteMovie: jest.fn().mockName('deleteMovie')
+        }
+    }
+
+    afterEach(() => {
+        jest.restoreAllMocks()
+    })
+
+    test('debe pasar title al modelo cuando está en query', async () => {
+        const model = createMockModel()
+        model.getMovies.mockResolvedValue([])
+
+        const app = createApp(model as any)
+        await request(app).get('/movies?title=incept')
+
+        expect(model.getMovies).toHaveBeenCalledWith({ title: 'incept' })
+    })
+
+    test('debe pasar title junto con genre y year', async () => {
+        const model = createMockModel()
+        model.getMovies.mockResolvedValue([])
+
+        const app = createApp(model as any)
+        await request(app).get('/movies?title=dark&genre=action&year=2008')
+
+        expect(model.getMovies).toHaveBeenCalledWith({ title: 'dark', genre: 'action', year: '2008' })
+    })
+
+    test('no debe pasar title si no está en query', async () => {
+        const model = createMockModel()
+        model.getMovies.mockResolvedValue([])
+
+        const app = createApp(model as any)
+        await request(app).get('/movies')
+
+        expect(model.getMovies).toHaveBeenCalledWith({})
+    })
+})
+
+describe('MovieModel - getMovies con title (modelo)', () => {
+    function createMockConnection() {
+        const query = jest.fn()
+        const beginTransaction = jest.fn()
+        const commit = jest.fn()
+        const rollback = jest.fn()
+        return { query, beginTransaction, commit, rollback } as any
+    }
+
+    test('debe incluir LIKE en la query cuando se filtra por title', async () => {
+        const conn = createMockConnection()
+        const model = new MovieModel(conn)
+        conn.query.mockResolvedValue([[]])
+
+        await model.getMovies({ title: 'incept' })
+
+        const queryStr = conn.query.mock.calls[0][0] as string
+        expect(queryStr).toContain('m.title LIKE ?')
+        expect(conn.query.mock.calls[0][1]).toContain('%incept%')
+    })
+
+    test('debe combinar title con year y genre en la query', async () => {
+        const conn = createMockConnection()
+        const model = new MovieModel(conn)
+        conn.query.mockResolvedValue([[]])
+
+        await model.getMovies({ title: 'dark', genre: 'action', year: '2008' })
+
+        const queryStr = conn.query.mock.calls[0][0] as string
+        expect(queryStr).toContain('m.title LIKE ?')
+        expect(queryStr).toContain('m.year = ?')
+        expect(queryStr).toContain('genre_name = ?')
+        expect(queryStr).toContain('AND')
+    })
+})
