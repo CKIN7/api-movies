@@ -15,9 +15,9 @@ class MovieController {
     console.log(req.url)
     console.log('------------------')
 
-    const { genre, year } = req.query as { genre?: string, year?: string }
+    const { genre, year, title } = req.query as { genre?: string, year?: string, title?: string }
 
-    let movieFiltered = await this.movieModel.getMovies({genre, year})
+    const movieFiltered = await this.movieModel.getMovies({genre, year, title})
 
     resp.json(movieFiltered)
 }

@@ -24,7 +24,7 @@ class MovieModel {
         return this.conn.query(sql, params)
     }
 
-    async getMovies({genre, year}: {genre?: string, year?: string} = {}) {
+    async getMovies({genre, year, title}: {genre?: string, year?: string, title?: string} = {}) {
         try {
         let query = `
         SELECT m.id, m.title, m.year, d.director_name as director, m.rating, m.duration, m.plot, m.poster,
@@ -54,9 +54,14 @@ class MovieModel {
               `)
               params.push(genre)
         }
+        
+        if(title){
+            conditions.push('m.title LIKE ?')
+            params.push(`%${title}%`)
+        }
 
         if(conditions.length > 0){
-          query += ' WHERE ' + conditions.join(' AND ')
+          query += ` WHERE ${conditions.join(' AND ')}`
         }
 
         query += ` GROUP BY m.id`
