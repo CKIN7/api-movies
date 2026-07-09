@@ -27,10 +27,8 @@ describe('GET /movies?title= (búsqueda por título)', () => {
         const res = await request(app).get('/movies?title=incept')
 
         expect(res.status).toBe(200)
-        expect(res.body.length).toBeGreaterThanOrEqual(1)
-        res.body.forEach((m: any) =>
-            expect(m.title.toLowerCase()).toMatch(/incept/)
-        )
+        expect(res.body).toHaveLength(1)
+        expect(res.body[0].title.toLowerCase()).toMatch(/incept/)
     })
 
     test('debe devolver array vacío si no hay coincidencias', async () => {
@@ -43,6 +41,29 @@ describe('GET /movies?title= (búsqueda por título)', () => {
         expect(res.body).toEqual([])
     })
 
+    test('debe devolver múltiples resultados para término compartido', async () => {
+        const model = new MovieModel(db)
+        const app = createApp(model)
+
+        const res = await request(app).get('/movies?title=dark')
+
+        expect(res.status).toBe(200)
+        expect(res.body.length).toBeGreaterThanOrEqual(3)
+        res.body.forEach((m: any) => expect(m.title.toLowerCase()).toMatch(/dark/))
+    })
+
+    test('debe combinar title con year reduciendo resultados', async () => {
+        const model = new MovieModel(db)
+        const app = createApp(model)
+
+        const res = await request(app).get('/movies?title=dark&year=1994')
+
+        expect(res.status).toBe(200)
+        expect(res.body).toHaveLength(1)
+        expect(res.body[0].title).toBe('Dark Shadows')
+        expect(res.body[0].year).toBe(1994)
+    })
+
     test('debe combinar title con genre', async () => {
         const model = new MovieModel(db)
         const app = createApp(model)
@@ -50,26 +71,14 @@ describe('GET /movies?title= (búsqueda por título)', () => {
         const res = await request(app).get('/movies?title=dark&genre=action')
 
         expect(res.status).toBe(200)
-        expect(res.body.length).toBeGreaterThanOrEqual(1)
+        expect(res.body.length).toBeGreaterThanOrEqual(2)
         res.body.forEach((m: any) => {
             expect(m.title.toLowerCase()).toMatch(/dark/)
             expect(m.genres.toLowerCase()).toMatch(/action/)
         })
     })
 
-    test('debe combinar title con year', async () => {
-        const model = new MovieModel(db)
-        const app = createApp(model)
-
-        const res = await request(app).get('/movies?title=shawshank&year=1994')
-
-        expect(res.status).toBe(200)
-        expect(res.body.length).toBe(1)
-        expect(res.body[0].title).toBe('The Shawshank Redemption')
-        expect(res.body[0].year).toBe(1994)
-    })
-
-    test('debe combinar title, year y genre', async () => {
+    test('debe combinar title, genre y year simultáneamente', async () => {
         const model = new MovieModel(db)
         const app = createApp(model)
 

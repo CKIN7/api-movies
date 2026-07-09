@@ -28,7 +28,7 @@ describe('GET /movies (integración real con DB)', () => {
 
         expect(res.status).toBe(200)
         expect(Array.isArray(res.body)).toBe(true)
-        expect(res.body.length).toBeGreaterThanOrEqual(5)
+        expect(res.body.length).toBeGreaterThanOrEqual(8)
     })
 
     test('debe filtrar por año', async () => {
@@ -38,7 +38,7 @@ describe('GET /movies (integración real con DB)', () => {
         const res = await request(app).get('/movies?year=1994')
 
         expect(res.status).toBe(200)
-        expect(res.body).toHaveLength(2)
+        expect(res.body).toHaveLength(3)
         res.body.forEach((m: any) => expect(m.year).toBe(1994))
     })
 
