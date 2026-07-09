@@ -68,4 +68,17 @@ describe('GET /movies?title= (búsqueda por título)', () => {
         expect(res.body[0].title).toBe('The Shawshank Redemption')
         expect(res.body[0].year).toBe(1994)
     })
+
+    test('debe combinar title, year y genre', async () => {
+        const model = new MovieModel(db)
+        const app = createApp(model)
+
+        const res = await request(app).get('/movies?title=knight&genre=action&year=2008')
+
+        expect(res.status).toBe(200)
+        expect(res.body).toHaveLength(1)
+        expect(res.body[0].title).toBe('The Dark Knight')
+        expect(res.body[0].year).toBe(2008)
+        expect(res.body[0].genres.toLowerCase()).toMatch(/action/)
+    })
 })
