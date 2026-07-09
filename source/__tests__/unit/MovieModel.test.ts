@@ -1,4 +1,4 @@
-import MovieModel from '../models/Movie-mysql'
+import MovieModel from '../../models/Movie-mysql'
 
 function createMockConnection() {
     const query = jest.fn()

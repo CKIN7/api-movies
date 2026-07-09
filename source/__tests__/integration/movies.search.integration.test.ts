@@ -1,7 +1,7 @@
 import request from 'supertest'
-import { createApp } from '../api'
-import MovieModel from '../models/Movie-mysql'
-import { setupTestDb, teardownTestDb, clearTestData, seedTestData } from './helpers/db'
+import { createApp } from '../../api'
+import MovieModel from '../../models/Movie-mysql'
+import { setupTestDb, teardownTestDb, clearTestData, seedTestData } from '../helpers/db'
 import type { Connection } from 'mysql2/promise'
 
 let db: Connection

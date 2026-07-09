@@ -1,5 +1,5 @@
 import request from 'supertest'
-import { createApp } from '../api'
+import { createApp } from '../../api'
 
 function createMockModel() {
     return {

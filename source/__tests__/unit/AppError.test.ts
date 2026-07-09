@@ -1,4 +1,4 @@
-import AppError from '../utils/AppError'
+import AppError from '../../utils/AppError'
 
 describe('AppError', () => {
   test('debe crear una instancia con message y statusCode', () => {

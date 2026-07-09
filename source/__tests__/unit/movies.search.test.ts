@@ -1,6 +1,6 @@
 import request from 'supertest'
-import { createApp } from '../api'
-import MovieModel from '../models/Movie-mysql'
+import { createApp } from '../../api'
+import MovieModel from '../../models/Movie-mysql'
 
 describe('GET /movies?title= (controlador)', () => {
     function createMockModel() {
