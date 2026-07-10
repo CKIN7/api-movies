@@ -1,4 +1,5 @@
 import { MovieRow, MovieInput } from '../types/movie'
+import AppError from '../utils/AppError'
 
 class MovieModel {
     private conn: any
