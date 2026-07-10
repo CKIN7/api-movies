@@ -1,12 +1,15 @@
 import { movieSchema } from '../schemas/movie'
 import MovieModel from '../models/Movie-mysql'
 import type { Request, Response } from 'express'
+import MovieService from '../services/movieService'
 
 class MovieController {
     private movieModel: MovieModel
+    private movieService: MovieService
 
     constructor(movieModel?: MovieModel) {
         this.movieModel = movieModel || new MovieModel()
+        this.movieService = new MovieService(this.movieModel)
     }
 
     getAll = async (req: Request, resp: Response) => {
@@ -17,7 +20,7 @@ class MovieController {
 
     const { genre, year, title } = req.query as { genre?: string, year?: string, title?: string }
 
-    const movieFiltered = await this.movieModel.getMovies({genre, year, title})
+    const movieFiltered = await this.movieService.getMovies({genre, year, title})
 
     resp.json(movieFiltered)
 }
