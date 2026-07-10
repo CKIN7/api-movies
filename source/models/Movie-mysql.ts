@@ -24,7 +24,7 @@ class MovieModel {
         return this.conn.query(sql, params)
     }
 
-    async getMovies({genre, year, title}: {genre?: string, year?: string, title?: string} = {}) {
+    async getMovies({genre, year, title, sort, order}: {genre?: string, year?: string, title?: string, sort?: string, order?: string} = {}) {
         let query = `
         SELECT m.id, m.title, m.year, d.director_name as director, m.rating, m.duration, m.plot, m.poster,
         GROUP_CONCAT(genre_name ORDER BY genre_name SEPARATOR ', ') AS genres 

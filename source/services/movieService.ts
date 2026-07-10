@@ -8,7 +8,7 @@ class MovieService {
         this.movieModel = movieModels || new MovieModel()
     }
 
-    getMovies = async (params: {genre?: string, year?: string, title?: string}) => {
+    getMovies = async (params: {genre?: string, year?: string, title?: string, sort?: string, order?: string}) => {
         try {
             return await this.movieModel.getMovies(params)
         } catch (error) {
