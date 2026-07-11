@@ -1,0 +1,20 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "commonjs",           // ← clave: CommonJS
+    "moduleResolution": "node",
+    "ignoreDeprecations": "5.0",
+    "esModuleInterop": true,
+    "resolveJsonModule": true,      // para movies.json
+    "outDir": "./dist",
+    "rootDir": ".",
+    "strict": true,
+    "types": ["node", "jest"],
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "declaration": true,
+    "sourceMap": true
+  },
+  "include": ["./**/*.ts"],
+  "exclude": ["node_modules", "dist"]
+}
