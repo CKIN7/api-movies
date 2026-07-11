@@ -69,9 +69,20 @@ describe('GET /movies/:id', () => {
 })
 
 describe('POST /movies', () => {
-    test('debe crear una película con status 201', async () => {
+    test('debe crear y devolver la película completa con id y status 201', async () => {
         const model = createMockModel()
-        model.createMovie.mockResolvedValue(undefined)
+        const fakeCreatedMovie = {
+            id: 9,
+            title: 'New Movie',
+            year: 2024,
+            rating: 7.5,
+            duration: 120,
+            plot: 'A plot',
+            poster: 'https://example.com/poster.jpg',
+            director: 'New Director',
+            genres: 'Drama'
+        }
+        model.createMovie.mockResolvedValue(fakeCreatedMovie)
 
         const newMovie = {
             title: 'New Movie',
@@ -89,7 +100,10 @@ describe('POST /movies', () => {
         const res = await request(app).post('/movies').send(newMovie)
 
         expect(res.status).toBe(201)
-        expect(res.body).toHaveProperty('message', 'Pelicula creada con exito')
+        expect(res.body).toEqual({
+            message: 'Pelicula creada con exito',
+            data: fakeCreatedMovie
+        })
     })
 
     test('debe devolver 400 si falla validación', async () => {
@@ -100,6 +114,29 @@ describe('POST /movies', () => {
         const res = await request(app).post('/movies').send(invalidMovie)
 
         expect(res.status).toBe(400)
+        expect(res.body).toHaveProperty('error')
+    })
+
+    test('debe devolver 500 si el modelo falla', async () => {
+        const model = createMockModel()
+        model.createMovie.mockRejectedValue(new Error('DB error'))
+
+        const newMovie = {
+            title: 'Error Movie',
+            year: 2024,
+            rating: 7.5,
+            duration: 120,
+            plot: 'A plot',
+            poster: 'https://example.com/poster.jpg',
+            director: 'New Director',
+            genre: ['Drama'],
+            available: true
+        }
+
+        const app = createApp(model as any)
+        const res = await request(app).post('/movies').send(newMovie)
+
+        expect(res.status).toBe(500)
         expect(res.body).toHaveProperty('error')
     })
 })
