@@ -1,20 +1,30 @@
-import mysql from 'mysql2'
 import AppError from '../utils/AppError'
 import { MovieRow, MovieInput } from '../types/movie'
-import type { RowDataPacket, ResultSetHeader } from 'mysql2/promise'
-
-const connection = mysql.createConnection({
-    host: process.env.DB_HOST,
-    user: process.env.DB_USER,
-    password: process.env.DB_PASSWORD,
-    database: process.env.DB_NAME,
-    port: Number(process.env.DB_PORT) || 3306
-})
-
 
 class MovieModel {
-    
-    static async getMovies({genre, year}: {genre?: string, year?: string} = {}) {
+    private conn: any
+
+    constructor(conn?: any) {
+        if (conn) {
+            this.conn = conn
+        } else {
+            const mysql = require('mysql2')
+            require('dotenv').config()
+            this.conn = mysql.createConnection({
+                host: process.env.DB_HOST,
+                user: process.env.DB_USER || process.env.DB_user,
+                password: process.env.DB_PASSWORD,
+                database: process.env.DB_NAME,
+                port: Number(process.env.DB_PORT) || 3306
+            }).promise()
+        }
+    }
+
+    private query(sql: string, params?: any[]) {
+        return this.conn.query(sql, params)
+    }
+
+    async getMovies({genre, year, title}: {genre?: string, year?: string, title?: string} = {}) {
         try {
         let query = `
         SELECT m.id, m.title, m.year, d.director_name as director, m.rating, m.duration, m.plot, m.poster,
@@ -25,8 +35,8 @@ class MovieModel {
         JOIN genres g ON mg.genre_id = g.id_genre
         `
         
-        const params = []
-        const conditions = []
+        const params: (string | number)[] = []
+        const conditions: string[] = []
         
         if(year){
           conditions.push('m.year = ?')
@@ -44,14 +54,19 @@ class MovieModel {
               `)
               params.push(genre)
         }
+        
+        if(title){
+            conditions.push('m.title LIKE ?')
+            params.push(`%${title}%`)
+        }
 
         if(conditions.length > 0){
-          query += ' WHERE ' + conditions.join(' AND ')
+          query += ` WHERE ${conditions.join(' AND ')}`
         }
 
         query += ` GROUP BY m.id`
 
-        const [rows] = await connection.promise().query<RowDataPacket[]>(query, params)
+        const [rows] = await this.query(query, params)
         return rows as MovieRow[]
 
         } catch (error) {
@@ -61,12 +76,11 @@ class MovieModel {
         
     }
 
-    static async getMovieById(id: string){
+    async getMovieById(id: string){
 
         try {
          const movieId = Number(id)
-         const [rows] = await connection.promise()
-         .query<RowDataPacket[]>(`SELECT id,title,year,director_name as director,rating,duration,plot,poster,
+         const [rows] = await this.query(`SELECT id,title,year,director_name as director,rating,duration,plot,poster,
          GROUP_CONCAT(genre_name ORDER BY genre_name SEPARATOR ', ') AS genres 
          FROM movies 
          JOIN directors AS d ON movies.id_director = d.director_id
@@ -74,7 +88,7 @@ class MovieModel {
          JOIN genres g ON movie_genres.genre_id = g.id_genre
          WHERE movies.id = ?
          GROUP BY movies.id
-         `,[movieId])
+         `,[id])
          return (rows as MovieRow[])[0] || null
          
         } catch (error) {
@@ -84,31 +98,30 @@ class MovieModel {
         
     }
 
-    static async createMovie({result}: {result: { data: MovieInput }}){
+    async createMovie({result}: {result: { data: MovieInput }}){
 
         try {
 
-        await connection.promise().beginTransaction()
-        const [directorRows] = await connection.promise().query<RowDataPacket[]>('SELECT director_id FROM directors WHERE director_name = ?', [result.data.director])
+        await this.conn.beginTransaction()
+        const [directorRows] = await this.query('SELECT director_id FROM directors WHERE director_name = ?', [result.data.director])
         let directorId: number
         if(directorRows.length > 0){
             directorId = directorRows[0].director_id as number
         } else{
-            const [directorResult] = await connection.promise().query<ResultSetHeader>('INSERT INTO directors(director_name) VALUES(?)',[result.data.director])
+            const [directorResult] = await this.query('INSERT INTO directors(director_name) VALUES(?)',[result.data.director])
             directorId = directorResult.insertId
         }
         
         const {title,year,rating,duration,plot,poster} = result.data
         const values = [title, year, rating, duration, plot, poster, directorId]
-        const [movieResult] = await connection.promise()
-        .query<ResultSetHeader>('INSERT INTO movies(title,year,rating,duration,plot,poster, id_director) VALUES(?,?,?,?,?,?,?)',values)
+        const [movieResult] = await this.query('INSERT INTO movies(title,year,rating,duration,plot,poster, id_director) VALUES(?,?,?,?,?,?,?)',values)
         
         const movieId = movieResult.insertId
         
         const genres = result.data.genre
 
         for (const genreName of genres) {
-            const [genreRows] = await connection.promise().query<RowDataPacket[]>(
+            const [genreRows] = await this.query(
                 'SELECT id_genre FROM genres WHERE genre_name = ?',
                 [genreName]
             )
@@ -117,16 +130,16 @@ class MovieModel {
         if (genreRows.length > 0) {
         genreId = genreRows[0].id_genre as number
         } else {
-        const [genreResult] = await connection.promise().query<ResultSetHeader>('INSERT INTO genres(genre_name) VALUES(?)', [genreName])
+        const [genreResult] = await this.query('INSERT INTO genres(genre_name) VALUES(?)', [genreName])
         genreId = genreResult.insertId
         }
         
-        await connection.promise().query('INSERT INTO movie_genres(movie_id, genre_id) VALUES(?, ?)', [movieId, genreId])
+        await this.query('INSERT INTO movie_genres(movie_id, genre_id) VALUES(?, ?)', [movieId, genreId])
 
         }
-        await connection.promise().commit()
+        await this.conn.commit()
         } catch (error) {
-            await connection.promise().rollback()
+            await this.conn.rollback()
             console.log(error)
             
             throw new AppError('Ocurrio un problema al crear la pelicula', 500)
@@ -134,26 +147,26 @@ class MovieModel {
      
     }
     
-    static async updateMovie({id, result}: {id: string, result: { data: Partial<MovieInput> }}){
+    async updateMovie({id, result}: {id: string, result: { data: Partial<MovieInput> }}){
 
         try {
         
-         const [rows] = await connection.promise().query<RowDataPacket[]>('SELECT id FROM movies WHERE id = ?',[id])
+         const [rows] = await this.query('SELECT id FROM movies WHERE id = ?',[id])
          if(rows.length === 0) return null
           
-        await connection.promise().beginTransaction()
+        await this.conn.beginTransaction()
           
           if(result.data.director){
-              const [directorRows] = await connection.promise().query<RowDataPacket[]>('SELECT director_id FROM directors WHERE director_name = ?',[result.data.director])
+              const [directorRows] = await this.query('SELECT director_id FROM directors WHERE director_name = ?',[result.data.director])
               let director_id: number
               if(directorRows.length > 0) {
                 director_id = directorRows[0].director_id as number
               } else {
-                const [directorResult] = await connection.promise().query<ResultSetHeader>('INSERT INTO directors(director_name) VALUES(?)',[result.data.director])
+                const [directorResult] = await this.query('INSERT INTO directors(director_name) VALUES(?)',[result.data.director])
                 director_id = directorResult.insertId
               }
               
-              await connection.promise().query('UPDATE movies SET id_director = ? WHERE id = ? ',[director_id,id])
+              await this.query('UPDATE movies SET id_director = ? WHERE id = ? ',[director_id,id])
 
           }
 
@@ -168,36 +181,36 @@ class MovieModel {
             }
               if (fields.length > 0) {
                 values.push(id)
-                await connection.promise().query(`UPDATE movies SET ${fields.join(', ')} WHERE id = ?`,values)
+                await this.query(`UPDATE movies SET ${fields.join(', ')} WHERE id = ?`,values)
               }
           
 
           if(result.data.genre){
-            await connection.promise().query('DELETE FROM movie_genres WHERE movie_id = ?', [id])
+            await this.query('DELETE FROM movie_genres WHERE movie_id = ?', [id])
 
             for (const genreName of result.data.genre) {
-                const [genreRows] = await connection.promise().query<RowDataPacket[]>('SELECT id_genre FROM genres WHERE genre_name = ?', [genreName])
+                const [genreRows] = await this.query('SELECT id_genre FROM genres WHERE genre_name = ?', [genreName])
               
               let genre_id: number
               if(genreRows.length > 0){
                 genre_id = genreRows[0].id_genre as number
               } else{
-                const [genreResult] = await connection.promise().query<ResultSetHeader>('INSERT INTO genres(genre_name) VALUES(?)',[genreName])
+                const [genreResult] = await this.query('INSERT INTO genres(genre_name) VALUES(?)',[genreName])
                 genre_id = genreResult.insertId
               }
 
-              await connection.promise().query('INSERT INTO movie_genres(movie_id, genre_id) VALUES(?,?)',[id,genre_id])
+              await this.query('INSERT INTO movie_genres(movie_id, genre_id) VALUES(?,?)',[id,genre_id])
             }
             
           }
           
-          await connection.promise().commit()
+          await this.conn.commit()
 
-          return await MovieModel.getMovieById(id)
+          return await this.getMovieById(id)
           
         } 
         catch (error) {
-            await connection.promise().rollback()
+            await this.conn.rollback()
             console.log(error)
             
             throw new AppError('Ocurrio un problema al crear la pelicula', 500)
@@ -205,22 +218,22 @@ class MovieModel {
 
     }
 
-    static async deleteMovie(id: string){
+    async deleteMovie(id: string){
         
         try {
-         const [rows] = await connection.promise().query<RowDataPacket[]>('SELECT id FROM movies WHERE id = ?',[id])
+         const [rows] = await this.query('SELECT id FROM movies WHERE id = ?',[id])
          if (rows.length === 0) return null
 
-         await connection.promise().beginTransaction()
+         await this.conn.beginTransaction()
 
-         await connection.promise().query('DELETE FROM movie_genres WHERE movie_id = ?', [id])
-         await connection.promise().query('DELETE FROM movies WHERE id = ?', [id])
+         await this.query('DELETE FROM movie_genres WHERE movie_id = ?', [id])
+         await this.query('DELETE FROM movies WHERE id = ?', [id])
 
-         await connection.promise().commit()
+         await this.conn.commit()
          return true
 
         } catch (error) {
-          await connection.promise().rollback()
+          await this.conn.rollback()
           console.log(error)
           throw new AppError('Ocurrio un problema al crear la pelicula', 500)
         }
