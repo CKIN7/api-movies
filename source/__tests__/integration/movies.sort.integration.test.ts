@@ -248,20 +248,6 @@ describe('GET /movies?sort=&order= (integración)', () => {
             expect(res.status).toBe(400)
         })
 
-        test('order duplicado: ?sort=year&order=desc&order=asc debe funcionar (toma primer o último valor)', async () => {
-            const model = new MovieModel(db)
-            const app = createApp(model)
-
-            const res = await request(app).get('/movies?sort=year&order=desc&order=asc')
-
-            expect(res.status).toBe(200)
-
-            const movies = res.body
-            for (let i = 0; i < movies.length - 1; i++) {
-                expect(movies[i].year).toBeLessThanOrEqual(movies[i + 1].year)
-            }
-        })
-
         test('sort con caracteres especiales: ?sort=year\'" OR 1=1 -- debe dar 400', async () => {
             const model = new MovieModel(db)
             const app = createApp(model)

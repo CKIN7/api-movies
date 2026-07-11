@@ -10,6 +10,15 @@ class MovieService {
 
     getMovies = async (params: {genre?: string, year?: string, title?: string, sort?: string, order?: string}) => {
         try {
+
+            if(params.sort !== undefined && typeof params.sort !== "string"){
+                throw new AppError('No se permiten parámetros duplicados en "sort"',400)
+            }
+
+            if(params.order !== undefined && typeof params.order !== "string"){
+                throw new AppError('No se permiten parámetros duplicados en "order"',400)
+            }
+
             const sort = params.sort?.toLowerCase();
             let order = params.order?.toLowerCase();
             
