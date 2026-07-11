@@ -10,16 +10,30 @@ class MovieService {
 
     getMovies = async (params: {genre?: string, year?: string, title?: string, sort?: string, order?: string}) => {
         try {
-            const {sort, order} = params
+            const sort = params.sort?.toLowerCase();
+            let order = params.order?.toLowerCase();
+            
             const whiteListSet = new Set<string>(['year', 'rating', 'title']);
-
+            const allowedOrders = new Set(['asc', 'desc'])
+            
             if(sort && !whiteListSet.has(sort)){
-            throw new AppError('el valor del parametro es invalido', 400)
-
-            } else{
-            return await this.movieModel.getMovies(params)
-
+            throw new AppError('el valor del parametro sort es invalido', 400)
             }
+            
+            if(order && !allowedOrders.has(order)){
+              throw new AppError('el valor del parametro order es invalido', 400)
+            }
+
+            if(sort && !order){
+                order = 'asc'
+            }
+
+            const normalizedParams = {
+                ...params,
+                order
+            }
+            
+            return await this.movieModel.getMovies(normalizedParams)
 
         } catch (error) {
          // 1. Si el error ya es una instancia de AppError, déjalo pasar sin modificarlo
