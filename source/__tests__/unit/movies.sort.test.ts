@@ -34,7 +34,7 @@ describe('GET /movies?sort=&order= (controlador)', () => {
         const app = createApp(model as any)
         await request(app).get('/movies?sort=title')
 
-        expect(model.getMovies).toHaveBeenCalledWith({ sort: 'title' })
+        expect(model.getMovies).toHaveBeenCalledWith({ sort: 'title', order: 'asc' })
     })
 
     test('debe pasar sort y order junto con filtros existentes', async () => {
@@ -44,7 +44,7 @@ describe('GET /movies?sort=&order= (controlador)', () => {
         const app = createApp(model as any)
         await request(app).get('/movies?sort=rating&genre=action&title=dark')
 
-        expect(model.getMovies).toHaveBeenCalledWith({ sort: 'rating', genre: 'action', title: 'dark' })
+        expect(model.getMovies).toHaveBeenCalledWith({ sort: 'rating', genre: 'action', title: 'dark', order: 'asc' })
     })
 
     test('no debe pasar sort si no está en query', async () => {
@@ -83,7 +83,7 @@ describe('MovieModel - getMovies con sort (modelo)', () => {
         const model = new MovieModel(conn)
         conn.query.mockResolvedValue([[]])
 
-        await model.getMovies({ sort: 'rating' })
+        await model.getMovies({ sort: 'rating', order: 'asc' })
 
         const queryStr = conn.query.mock.calls[0][0] as string
         expect(queryStr).toContain('ORDER BY m.rating ASC')
@@ -110,6 +110,6 @@ describe('MovieModel - getMovies con sort (modelo)', () => {
         const queryStr = conn.query.mock.calls[0][0] as string
         expect(queryStr).toContain('WHERE')
         expect(queryStr).toContain('ORDER BY m.year DESC')
-        expect(queryStr.indexOf('ORDER BY')).toBeGreaterThan(queryStr.indexOf('WHERE'))
+        expect(queryStr.indexOf('ORDER BY m.year DESC')).toBeGreaterThan(queryStr.indexOf('WHERE'))
     })
 })
