@@ -65,6 +65,11 @@ class MovieModel {
 
         query += ` GROUP BY m.id`
 
+        if(sort){
+            const direction = order === 'desc' ? 'DESC' : 'ASC'
+            query += ` ORDER BY m.${sort} ${direction}`
+        }
+
         const [rows] = await this.query(query, params)
         return rows as MovieRow[]
 
