@@ -66,7 +66,7 @@ class MovieModel {
         query += ` GROUP BY m.id`
 
         if(sort){
-            const direction = order === 'desc' ? 'DESC' : 'ASC'
+            const direction = order === 'asc' ? 'ASC' : 'DESC'
             query += ` ORDER BY m.${sort} ${direction}`
         }
 

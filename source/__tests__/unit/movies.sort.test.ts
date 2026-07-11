@@ -1,6 +1,8 @@
 import request from 'supertest'
 import { createApp } from '../../api'
 import MovieModel from '../../models/Movie-mysql'
+import MovieService from '../../services/movieService'
+import AppError from '../../utils/AppError'
 
 describe('GET /movies?sort=&order= (controlador)', () => {
     function createMockModel() {
@@ -58,6 +60,72 @@ describe('GET /movies?sort=&order= (controlador)', () => {
     })
 })
 
+describe('MovieService - getMovies con sort/order (servicio)', () => {
+    function createMockModel() {
+        return { getMovies: jest.fn().mockName('getMovies') } as any
+    }
+
+    test('debe pasar sort y order al modelo tal cual', async () => {
+        const model = createMockModel()
+        const service = new MovieService(model)
+
+        await service.getMovies({ sort: 'year', order: 'desc' })
+
+        expect(model.getMovies).toHaveBeenCalledWith({ sort: 'year', order: 'desc' })
+    })
+
+    test('debe lanzar AppError 400 si sort es inválido', async () => {
+        const model = createMockModel()
+        const service = new MovieService(model)
+
+        await expect(service.getMovies({ sort: 'invalido' }))
+            .rejects.toThrow(AppError)
+    })
+
+    test('debe lanzar AppError 400 si sort es un array (params duplicados)', async () => {
+        const model = createMockModel()
+        const service = new MovieService(model)
+
+        try {
+            await service.getMovies({ sort: ['year', 'rating'] as any })
+            expect('no debió llegar').toBe('nunca')
+        } catch (error) {
+            expect(error).toBeInstanceOf(AppError)
+            expect((error as AppError).statusCode).toBe(400)
+        }
+    })
+
+    test('debe lanzar AppError 400 si order es un array (params duplicados)', async () => {
+        const model = createMockModel()
+        const service = new MovieService(model)
+
+        try {
+            await service.getMovies({ sort: 'year', order: ['desc', 'asc'] as any })
+            expect('no debió llegar').toBe('nunca')
+        } catch (error) {
+            expect(error).toBeInstanceOf(AppError)
+            expect((error as AppError).statusCode).toBe(400)
+        }
+    })
+
+    test('debe lanzar AppError 400 si order es inválido', async () => {
+        const model = createMockModel()
+        const service = new MovieService(model)
+
+        await expect(service.getMovies({ sort: 'year', order: 'invalid' }))
+            .rejects.toThrow(AppError)
+    })
+
+    test('debe ignorar order si no hay sort', async () => {
+        const model = createMockModel()
+        const service = new MovieService(model)
+
+        await service.getMovies({ order: 'desc' })
+
+        expect(model.getMovies).toHaveBeenCalledWith({ order: 'desc' })
+    })
+})
+
 describe('MovieModel - getMovies con sort (modelo)', () => {
     function createMockConnection() {
         const query = jest.fn()
@@ -98,6 +166,17 @@ describe('MovieModel - getMovies con sort (modelo)', () => {
 
         const queryStr = conn.query.mock.calls[0][0] as string
         expect(queryStr).toContain('ORDER BY m.title ASC')
+    })
+
+    test('debe manejar order=DESC mayúscula como descendente', async () => {
+        const conn = createMockConnection()
+        const model = new MovieModel(conn)
+        conn.query.mockResolvedValue([[]])
+
+        await model.getMovies({ sort: 'year', order: 'DESC' })
+
+        const queryStr = conn.query.mock.calls[0][0] as string
+        expect(queryStr).toContain('ORDER BY m.year DESC')
     })
 
     test('debe combinar ORDER BY con filtros WHERE', async () => {
