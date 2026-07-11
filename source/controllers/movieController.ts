@@ -47,11 +47,12 @@ class MovieController {
         return resp.status(400).json({ error: result.error.message })
     }
 
-    const newMovie = await this.movieModel.createMovie({result})
+    const newMovie = await this.movieService.createMovie(result.data)
 
     resp.status(201).json({
         message: 'Pelicula creada con exito',
         data: newMovie
+        //nos tiene que traer el id newMovie
     })
 }
 

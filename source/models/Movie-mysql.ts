@@ -139,6 +139,9 @@ class MovieModel {
 
         }
         await this.conn.commit()
+        
+        return this.getMovieById(movieId);
+        
         } catch (error) {
             await this.conn.rollback()
             console.log(error)

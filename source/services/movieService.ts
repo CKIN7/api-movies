@@ -1,4 +1,5 @@
 import MovieModel from "../models/Movie-mysql";
+import { MovieInput } from "../types/movie";
 import AppError from "../utils/AppError";
 
 class MovieService {
@@ -51,6 +52,24 @@ class MovieService {
          }
 
          // 2. Si es cualquier otro error inesperado (base de datos, etc.), entonces sí devuelves el 500
+            console.error('Error en getMovies:', (error as Error).message)
+            throw new AppError('Pelicula no encontrada (msg personalizado con status code para el cliente)', 500)
+        }
+    }
+
+    createMovie = async (inputData: MovieInput) => {
+
+        try {
+            
+        
+
+        return await this.movieModel.createMovie({ result: { data: inputData } })
+
+        } catch (error) {
+            if(error instanceof AppError){
+                throw error
+            }
+
             console.error('Error en getMovies:', (error as Error).message)
             throw new AppError('Pelicula no encontrada (msg personalizado con status code para el cliente)', 500)
         }
