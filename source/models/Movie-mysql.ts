@@ -1,5 +1,5 @@
-import AppError from '../utils/AppError'
 import { MovieRow, MovieInput } from '../types/movie'
+import AppError from '../utils/AppError'
 
 class MovieModel {
     private conn: any
@@ -24,8 +24,7 @@ class MovieModel {
         return this.conn.query(sql, params)
     }
 
-    async getMovies({genre, year, title}: {genre?: string, year?: string, title?: string} = {}) {
-        try {
+    async getMovies({genre, year, title, sort, order}: {genre?: string, year?: string, title?: string, sort?: string, order?: string} = {}) {
         let query = `
         SELECT m.id, m.title, m.year, d.director_name as director, m.rating, m.duration, m.plot, m.poster,
         GROUP_CONCAT(genre_name ORDER BY genre_name SEPARATOR ', ') AS genres 
@@ -66,13 +65,15 @@ class MovieModel {
 
         query += ` GROUP BY m.id`
 
+        if(sort){
+            const direction = order === 'asc' ? 'ASC' : 'DESC'
+            query += ` ORDER BY m.${sort} ${direction}`
+        }
+
         const [rows] = await this.query(query, params)
         return rows as MovieRow[]
 
-        } catch (error) {
-        console.error('Error en getMovies:', (error as Error).message)
-        throw new AppError('Pelicula no encontrada (msg personalizado con status code para el cliente)', 500)
-        }
+       
         
     }
 
