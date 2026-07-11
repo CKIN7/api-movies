@@ -95,6 +95,7 @@ describe('MovieModel - createMovie', () => {
             .mockResolvedValueOnce([[]])
             .mockResolvedValueOnce([{ insertId: 30 }])
             .mockResolvedValueOnce([{}])
+            .mockResolvedValueOnce([[{ id: 1, title: 'New Movie', year: 2024, director: 'New Director', rating: '7.5', duration: 120, plot: 'A plot', poster: 'https://example.com/poster.jpg', genres: 'Drama, Comedy' }]])
 
         const movieInput = {
             result: {

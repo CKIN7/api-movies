@@ -78,7 +78,7 @@ describe('GET /movies/:id (integración con DB)', () => {
 })
 
 describe('POST /movies (integración con DB)', () => {
-    test('debe crear una película nueva', async () => {
+    test('debe crear y devolver la película completa con id', async () => {
         const model = new MovieModel(db)
         const app = createApp(model)
 
@@ -98,6 +98,50 @@ describe('POST /movies (integración con DB)', () => {
 
         expect(res.status).toBe(201)
         expect(res.body).toHaveProperty('message', 'Pelicula creada con exito')
+        expect(res.body.data).toMatchObject({
+            id: 9,
+            title: 'Test Movie',
+            year: 2024,
+            director: 'Test Director',
+            rating: expect.any(String),
+            duration: 120,
+            plot: 'A test plot',
+            poster: 'https://example.com/test.jpg',
+            genres: expect.stringMatching(/drama/)
+        })
+    })
+
+    test('debe crear con director y género nuevos y devolverlos en la respuesta', async () => {
+        const model = new MovieModel(db)
+        const app = createApp(model)
+
+        const newMovie = {
+            title: 'Brand New',
+            year: 2025,
+            rating: 6.0,
+            duration: 90,
+            plot: 'Brand new plot',
+            poster: 'https://example.com/brandnew.jpg',
+            director: 'Director Inexistente',
+            genre: ['thriller', 'comedy'],
+            available: true
+        }
+
+        const res = await request(app).post('/movies').send(newMovie)
+
+        expect(res.status).toBe(201)
+        expect(res.body.data).toMatchObject({
+            id: 9,
+            title: 'Brand New',
+            year: 2025,
+            director: 'Director Inexistente',
+            rating: expect.any(String),
+            duration: 90,
+            plot: 'Brand new plot',
+            poster: 'https://example.com/brandnew.jpg',
+            genres: expect.stringMatching(/thriller/)
+        })
+        expect(res.body.data.genres).toContain('comedy')
     })
 
     test('debe devolver 400 con datos inválidos', async () => {

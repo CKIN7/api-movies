@@ -52,7 +52,6 @@ class MovieController {
     resp.status(201).json({
         message: 'Pelicula creada con exito',
         data: newMovie
-        //nos tiene que traer el id newMovie
     })
 }
 
