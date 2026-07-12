@@ -13,9 +13,9 @@ const movieSchema = zod.object({
     genre: zod.array(
         zod.string({ message: "Cada género debe ser un texto" })
             .transform(s => s.trim().toLowerCase())
-            .pipe(zod.string().min(1, "Cada género debe tener al menos 1 carácter"))
-    ).nonempty("Debe haber al menos un género"),
-    director: zod.string().min(1, "El director no puede estar vacío").trim().refine(noHtml,noHtmlMsg),
+            .pipe(zod.string().min(1, "Cada género debe tener al menos 1 carácter").max(100, "Cada género debe tener máximo 100 caracteres"))
+    ).nonempty("Debe haber al menos un género").max(10, "Máximo 10 géneros por película"),
+    director: zod.string().min(1, "El director no puede estar vacío").max(255).trim().refine(noHtml,noHtmlMsg),
     rating: zod.number().min(0).max(10).multipleOf(0.1).default(5),
     duration: zod.number().int().positive().max(300),
     plot: zod.string().min(1, "El argumento no puede estar vacío").refine(noHtml,noHtmlMsg),

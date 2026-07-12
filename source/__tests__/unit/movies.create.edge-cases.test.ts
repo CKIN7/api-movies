@@ -799,6 +799,41 @@ describe('POST /movies — duration max', () => {
 })
 
 /* ────────────────────────────
+   CANTIDAD DE GÉNEROS
+   ──────────────────────────── */
+describe('POST /movies — cantidad de géneros por película', () => {
+
+    test('11 géneros debe dar 400 (supera .max(10))', async () => {
+        // Arrange
+        const model = createMockModel()
+        const app = createApp(model as any)
+        const payload = { ...validPayload, genre: Array.from({ length: 11 }, (_, i) => `genre${i}`) }
+
+        // Act
+        const res = await request(app).post('/movies').send(payload)
+
+        // Assert
+        // ? status 400
+        // ? createMovie NOT called
+    })
+
+    test('10 géneros debe crear', async () => {
+        // Arrange
+        const model = createMockModel()
+        model.createMovie.mockResolvedValue(fakeCreatedMovie)
+        const app = createApp(model as any)
+        const payload = { ...validPayload, genre: Array.from({ length: 10 }, (_, i) => `genre${i}`) }
+
+        // Act
+        const res = await request(app).post('/movies').send(payload)
+
+        // Assert
+        // ? status 201
+        // ? createMovie called with 10 genres
+    })
+})
+
+/* ────────────────────────────
    MAX LENGTH en strings
    ──────────────────────────── */
 describe('POST /movies — max length en campos de texto', () => {
@@ -843,9 +878,10 @@ describe('POST /movies — max length en campos de texto', () => {
 
         // Assert
         // ? status 400
+        expect(res.status).toBe(400)
     })
 
-    test('genre elemento con 101 caracteres debe dar 400', async () => {
+    test('genre elemento con 101 caracteres debe dar 400 (supera .max(100))', async () => {
         // Arrange
         const model = createMockModel()
         const app = createApp(model as any)
@@ -856,6 +892,7 @@ describe('POST /movies — max length en campos de texto', () => {
 
         // Assert
         // ? status 400 si hay .max(100) en cada elemento
+        expect(res.status).toBe(400)
     })
 
     test('genre elemento con 100 caracteres debe crear', async () => {
