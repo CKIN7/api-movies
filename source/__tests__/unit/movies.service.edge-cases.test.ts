@@ -35,13 +35,12 @@ describe('MovieService — error propagation', () => {
         mockModel.createMovie.mockRejectedValue(originalError)
         const service = new (await import('../../services/movieService')).default(mockModel as any)
 
-        // Act
-        const promise = service.createMovie(sampleInput)
-
-        // Assert
-        // ? esperar que promise rechace con AppError
-        // ? el statusCode debe ser 409 (NO 500)
-        // ? el mensaje debe ser 'Conflicto: título duplicado'
+        // Act / Assert
+        await expect(service.createMovie(sampleInput)).rejects.toThrow(AppError)
+        await expect(service.createMovie(sampleInput)).rejects.toMatchObject({
+            statusCode: 409,
+            message: 'Conflicto: título duplicado'
+        })
     })
 
     test('Error genérico (no AppError) se envuelve en AppError 500', async () => {
@@ -50,12 +49,9 @@ describe('MovieService — error propagation', () => {
         mockModel.createMovie.mockRejectedValue(new Error('DB connection lost'))
         const service = new (await import('../../services/movieService')).default(mockModel as any)
 
-        // Act
-        const promise = service.createMovie(sampleInput)
-
-        // Assert
-        // ? esperar que promise rechace con AppError
-        // ? statusCode debe ser 500
+        // Act / Assert
+        await expect(service.createMovie(sampleInput)).rejects.toThrow(AppError)
+        await expect(service.createMovie(sampleInput)).rejects.toMatchObject({ statusCode: 500 })
     })
 
     test('Error con campos especiales en input se pasan correctamente al modelo', async () => {
@@ -74,9 +70,8 @@ describe('MovieService — error propagation', () => {
         const result = await service.createMovie(input)
 
         // Assert
-        // ? el modelo fue llamado CON los mismos valores sin modificar
-        // ? mockModel.createMovie llamado con { result: { data: input } }
-        // ? result tiene id: 10
+        expect(result).toMatchObject({ id: 10 })
+        expect(mockModel.createMovie).toHaveBeenCalledWith({ result: { data: input } })
     })
 
     test('Director con espacios alrededor no se transforma (solo genre hace trim)', async () => {
@@ -90,7 +85,13 @@ describe('MovieService — error propagation', () => {
         const result = await service.createMovie(input)
 
         // Assert
-        // ? el director debe llegar al modelo con los espacios: '  Christopher Nolan  '
-        // ? (el trim solo se aplica en genre, no en director)
+        expect(result).toMatchObject({ id: 11 })
+        expect(mockModel.createMovie).toHaveBeenCalledWith(
+            expect.objectContaining({
+                result: expect.objectContaining({
+                    data: expect.objectContaining({ director: '  Christopher Nolan  ' })
+                })
+            })
+        )
     })
 })

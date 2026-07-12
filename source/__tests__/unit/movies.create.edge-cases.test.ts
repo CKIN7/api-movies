@@ -197,10 +197,9 @@ describe('POST /movies — genre edge cases', () => {
         expect(model.createMovie).not.toHaveBeenCalled()
     })
 
-    test('genre con string vacío [""] pasa validación (trim no lo elimina, array tiene 1 elemento)', async () => {
+    test('genre con string vacío [""] debe dar 400 (pipe .min(1) después de trim)', async () => {
         // Arrange
         const model = createMockModel()
-        model.createMovie.mockResolvedValue(fakeCreatedMovie)
         const app = createApp(model as any)
         const payload = { ...validPayload, genre: [''] }
 
@@ -208,8 +207,9 @@ describe('POST /movies — genre edge cases', () => {
         const res = await request(app).post('/movies').send(payload)
 
         // Assert
-        // Zod: .nonempty() ve 1 elemento, .trim() de "" es ""
-        expect(res.status).toBe(201)
+        expect(res.status).toBe(400)
+        expect(res.body).toHaveProperty('error')
+        expect(model.createMovie).not.toHaveBeenCalled()
     })
 
     test('genre con duplicados lógicos ["drama","DRAMA","Drama"] debe crear', async () => {
@@ -474,12 +474,12 @@ describe('POST /movies — string vacíos', () => {
         const res = await request(app).post('/movies').send(payload)
 
         // Assert
-        // Zod acepta string vacío, status 201
-        expect(res.status).toBe(201)
-        expect(res.body.message).toBe('Pelicula creada con exito')
+        expect(res.status).toBe(400)
+        expect(res.body).toHaveProperty('error')
+        expect(model.createMovie).not.toHaveBeenCalled()
     })
 
-    test('director vacío "" — ver comportamiento actual', async () => {
+    test('director vacío "" debe dar 400', async () => {
         // Arrange
         const model = createMockModel()
         model.createMovie.mockResolvedValue(fakeCreatedMovie)
@@ -490,9 +490,9 @@ describe('POST /movies — string vacíos', () => {
         const res = await request(app).post('/movies').send(payload)
 
         // Assert
-        // Zod acepta string vacío, status 201
-        expect(res.status).toBe(201)
-        expect(res.body.message).toBe('Pelicula creada con exito')
+        expect(res.status).toBe(400)
+        expect(res.body).toHaveProperty('error')
+        expect(model.createMovie).not.toHaveBeenCalled()
     })
 })
 
