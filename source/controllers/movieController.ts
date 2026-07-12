@@ -2,6 +2,7 @@ import { movieSchema } from '../schemas/movie'
 import MovieModel from '../models/Movie-mysql'
 import type { Request, Response } from 'express'
 import MovieService from '../services/movieService'
+import logger from '../utils/logger'
 
 class MovieController {
     private movieModel: MovieModel
@@ -13,10 +14,6 @@ class MovieController {
     }
 
     getAll = async (req: Request, resp: Response) => {
-    console.log('----Nueva request')
-    console.log(req.method)
-    console.log(req.url)
-    console.log('------------------')
 
     const { genre, year, title, sort, order } = req.query as { genre?: string, year?: string, title?: string, sort?: string, order?: string }
 
@@ -41,7 +38,7 @@ class MovieController {
     createMovie = async (req: Request, resp: Response) => { 
 
     const result = movieSchema.safeParse(req.body)
-    console.log(req.body)
+    logger.debug('Request body', { body: req.body })
     
     if (result.error) {
         return resp.status(400).json({ error: result.error.message })
@@ -64,7 +61,7 @@ class MovieController {
     }
     
     const updateMovie = await this.movieModel.updateMovie({id, result})
-    console.log(updateMovie)
+    logger.info(`Película actualizada: ${id}`, { movie: updateMovie })
     
     if(!updateMovie){
     return resp.status(404).json({ message: 'Pelicula no encontrada' })

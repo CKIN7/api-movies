@@ -3,6 +3,8 @@ import { createMovieRoutes } from './routes/movieRoutes'
 import MovieController from './controllers/movieController'
 import MovieModel from './models/Movie-mysql'
 import AppError from './utils/AppError'
+import logger from './utils/logger'
+import { requestLogger } from './middleware/requestLogger'
 import type { Request, Response, NextFunction } from 'express'
 
 export function createApp(movieModel?: MovieModel) {
@@ -10,6 +12,7 @@ export function createApp(movieModel?: MovieModel) {
 
     app.disable('x-powered-by')
     app.use(express.json())
+    app.use(requestLogger)
 
     const model = movieModel || new MovieModel()
     const controller = new MovieController(model)
@@ -19,6 +22,7 @@ export function createApp(movieModel?: MovieModel) {
 
     app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
         const statusCode = err instanceof AppError ? err.statusCode : 500
+        logger.error(`Error handler: ${err.message}`, { statusCode, stack: err.stack })
         res.status(statusCode).json({ error: err.message })
     })
 
@@ -33,6 +37,6 @@ if (require.main === module) {
     const app = createApp()
     const PORT = 8089
     app.listen(PORT, () => {
-        console.log('Servidor escuchando en http://localhost:', PORT)
+        logger.info(`Servidor escuchando en http://localhost:${PORT}`)
     })
 }

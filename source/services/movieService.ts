@@ -1,6 +1,7 @@
 import MovieModel from "../models/Movie-mysql";
 import { MovieInput } from "../types/movie";
 import AppError from "../utils/AppError";
+import logger from "../utils/logger";
 
 class MovieService {
     private movieModel: MovieModel
@@ -52,7 +53,7 @@ class MovieService {
          }
 
          // 2. Si es cualquier otro error inesperado (base de datos, etc.), entonces sí devuelves el 500
-            console.error('Error en getMovies:', (error as Error).message)
+            logger.error(`Error en getMovies: ${(error as Error).message}`)
             throw new AppError('Pelicula no encontrada (msg personalizado con status code para el cliente)', 500)
         }
     }
@@ -70,7 +71,7 @@ class MovieService {
                 throw error
             }
 
-            console.error('Error en getMovies:', (error as Error).message)
+            logger.error(`Error en createMovie: ${(error as Error).message}`)
             throw new AppError('Pelicula no encontrada (msg personalizado con status code para el cliente)', 500)
         }
     }

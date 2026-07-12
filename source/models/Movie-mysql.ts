@@ -1,5 +1,7 @@
 import { MovieRow, MovieInput } from '../types/movie'
 import AppError from '../utils/AppError'
+import { DbLogger } from '../utils/DbLogger'
+import logger from '../utils/logger'
 
 class MovieModel {
     private conn: any
@@ -20,8 +22,8 @@ class MovieModel {
         }
     }
 
-    private query(sql: string, params?: any[]) {
-        return this.conn.query(sql, params)
+    private async query(sql: string, params?: any[]) {
+        return await DbLogger.query('query', sql, params || [], () => this.conn.query(sql, params)) as any
     }
 
     async getMovies({genre, year, title, sort, order}: {genre?: string, year?: string, title?: string, sort?: string, order?: string} = {}) {
@@ -93,7 +95,7 @@ class MovieModel {
          return (rows as MovieRow[])[0] || null
          
         } catch (error) {
-         console.error('Error en getMovies:', (error as Error).message)
+         logger.error(`Error en getMovieById: ${(error as Error).message}`)
          throw new AppError('Pelicula no encontrada (msg personalizado con status code para el cliente)', 500)
         }
         
@@ -144,7 +146,7 @@ class MovieModel {
         
         } catch (error) {
             await this.conn.rollback()
-            console.log(error)
+            logger.error(`Error en createMovie: ${(error as Error).message}`)
             
             throw new AppError('Ocurrio un problema al crear la pelicula', 500)
         }
@@ -215,9 +217,9 @@ class MovieModel {
         } 
         catch (error) {
             await this.conn.rollback()
-            console.log(error)
+            logger.error(`Error en updateMovie: ${(error as Error).message}`)
             
-            throw new AppError('Ocurrio un problema al crear la pelicula', 500)
+            throw new AppError('Ocurrio un problema al actualizar la pelicula', 500)
         }
 
     }
@@ -238,8 +240,8 @@ class MovieModel {
 
         } catch (error) {
           await this.conn.rollback()
-          console.log(error)
-          throw new AppError('Ocurrio un problema al crear la pelicula', 500)
+          logger.error(`Error en deleteMovie: ${(error as Error).message}`)
+          throw new AppError('Ocurrio un problema al eliminar la pelicula', 500)
         }
         
         
