@@ -598,15 +598,14 @@ describe('POST /movies — trim en strings', () => {
         const res = await request(app).post('/movies').send(payload)
 
         // Assert
-        // ? status 201
-        // ? modelo recibe title: 'Mi Película' (sin espacios)
         expect(res.status).toBe(201)
-        // Arreglamos el expected para que coincida con lo que el controlador realmente envía (Received)
-        expect(model.createMovie).toHaveBeenCalledWith({
-        result: {
-          data: expect.objectContaining({ title: 'Mi Película' })
-         }
-        })
+        expect(model.createMovie).toHaveBeenCalledWith(
+            expect.objectContaining({
+                result: expect.objectContaining({
+                    data: expect.objectContaining({ title: 'Mi Película' })
+                })
+            })
+        )
 
         // Validamos también que la respuesta de la API (res.body) devuelva la data que el mock resuelve
         expect(res.body.data).toEqual(fakeCreatedMovie)
@@ -624,14 +623,14 @@ describe('POST /movies — trim en strings', () => {
         const res = await request(app).post('/movies').send(payload)
 
         // Assert
-        // ? status 201
-        // ? modelo recibe director: 'Nolan' (sin espacios)
         expect(res.status).toBe(201)
-        expect(model.createMovie).toHaveBeenCalledWith({
-        result: {
-          data: expect.objectContaining({ director: 'Nolan' })
-         }
-        })
+        expect(model.createMovie).toHaveBeenCalledWith(
+            expect.objectContaining({
+                result: expect.objectContaining({
+                    data: expect.objectContaining({ director: 'Nolan' })
+                })
+            })
+        )
     })
 })
 
@@ -650,8 +649,9 @@ describe('POST /movies — bloqueo de etiquetas HTML', () => {
         const res = await request(app).post('/movies').send(payload)
 
         // Assert
-        // ? status 400
         expect(res.status).toBe(400)
+        expect(res.body).toHaveProperty('error')
+        expect(model.createMovie).not.toHaveBeenCalled()
     })
 
     test('director con <b> debe dar 400', async () => {
@@ -664,8 +664,9 @@ describe('POST /movies — bloqueo de etiquetas HTML', () => {
         const res = await request(app).post('/movies').send(payload)
 
         // Assert
-        // ? status 400
         expect(res.status).toBe(400)
+        expect(res.body).toHaveProperty('error')
+        expect(model.createMovie).not.toHaveBeenCalled()
     })
 
     test('plot con <p> debe dar 400', async () => {
@@ -678,8 +679,9 @@ describe('POST /movies — bloqueo de etiquetas HTML', () => {
         const res = await request(app).post('/movies').send(payload)
 
         // Assert
-        // ? status 400
         expect(res.status).toBe(400)
+        expect(res.body).toHaveProperty('error')
+        expect(model.createMovie).not.toHaveBeenCalled()
     })
 
     test('title con & válido (no HTML) debe crear', async () => {
@@ -693,7 +695,6 @@ describe('POST /movies — bloqueo de etiquetas HTML', () => {
         const res = await request(app).post('/movies').send(payload)
 
         // Assert
-        // ? status 201 (evitar falsos positivos)
         expect(res.status).toBe(201)
         expect(res.body.message).toBe('Pelicula creada con exito')
     })
@@ -714,8 +715,9 @@ describe('POST /movies — rating decimal (.multipleOf)', () => {
         const res = await request(app).post('/movies').send(payload)
 
         // Assert
-        // ? status 400 solo si hay .multipleOf(0.1) en el schema
         expect(res.status).toBe(400)
+        expect(res.body).toHaveProperty('error')
+        expect(model.createMovie).not.toHaveBeenCalled()
     })
 
     test('rating = 5.5 debe crear', async () => {
@@ -729,7 +731,6 @@ describe('POST /movies — rating decimal (.multipleOf)', () => {
         const res = await request(app).post('/movies').send(payload)
 
         // Assert
-        // ? status 201
         expect(res.status).toBe(201)
     })
 
@@ -743,8 +744,9 @@ describe('POST /movies — rating decimal (.multipleOf)', () => {
         const res = await request(app).post('/movies').send(payload)
 
         // Assert
-        // ? status 400
         expect(res.status).toBe(400)
+        expect(res.body).toHaveProperty('error')
+        expect(model.createMovie).not.toHaveBeenCalled()
     })
 
     test('rating = 7.9 debe crear', async () => {
@@ -758,7 +760,6 @@ describe('POST /movies — rating decimal (.multipleOf)', () => {
         const res = await request(app).post('/movies').send(payload)
 
         // Assert
-        // ? status 201
         expect(res.status).toBe(201)
     })
 })
@@ -768,7 +769,7 @@ describe('POST /movies — rating decimal (.multipleOf)', () => {
    ──────────────────────────── */
 describe('POST /movies — duration max', () => {
 
-    test('duration = 300 debe crear (si se agrega .max() )', async () => {
+    test('duration = 300 debe crear', async () => {
         // Arrange
         const model = createMockModel()
         model.createMovie.mockResolvedValue(fakeCreatedMovie)
@@ -779,11 +780,10 @@ describe('POST /movies — duration max', () => {
         const res = await request(app).post('/movies').send(payload)
 
         // Assert
-        // ? status 201
         expect(res.status).toBe(201)
     })
 
-    test('duration = 301 debe dar 400', async () => {
+    test('duration = 1001 debe dar 400 (supera .max(300))', async () => {
         // Arrange
         const model = createMockModel()
         const app = createApp(model as any)
@@ -793,8 +793,9 @@ describe('POST /movies — duration max', () => {
         const res = await request(app).post('/movies').send(payload)
 
         // Assert
-        // ? status 400 solo si hay .max(1000) en el schema
         expect(res.status).toBe(400)
+        expect(res.body).toHaveProperty('error')
+        expect(model.createMovie).not.toHaveBeenCalled()
     })
 })
 
@@ -813,8 +814,9 @@ describe('POST /movies — cantidad de géneros por película', () => {
         const res = await request(app).post('/movies').send(payload)
 
         // Assert
-        // ? status 400
-        // ? createMovie NOT called
+        expect(res.status).toBe(400)
+        expect(res.body).toHaveProperty('error')
+        expect(model.createMovie).not.toHaveBeenCalled()
     })
 
     test('10 géneros debe crear', async () => {
@@ -828,8 +830,28 @@ describe('POST /movies — cantidad de géneros por película', () => {
         const res = await request(app).post('/movies').send(payload)
 
         // Assert
-        // ? status 201
-        // ? createMovie called with 10 genres
+        expect(res.status).toBe(201)
+        expect(model.createMovie).toHaveBeenCalledWith(
+            expect.objectContaining({
+                result: expect.objectContaining({
+                    data: expect.objectContaining({
+                        genre: expect.arrayContaining([
+                            expect.any(String),
+                            expect.any(String),
+                            expect.any(String),
+                            expect.any(String),
+                            expect.any(String),
+                            expect.any(String),
+                            expect.any(String),
+                            expect.any(String),
+                            expect.any(String),
+                            expect.any(String),
+                        ])
+                    })
+                })
+            })
+        )
+        expect(model.createMovie).toHaveBeenCalledTimes(1)
     })
 })
 
@@ -848,8 +870,9 @@ describe('POST /movies — max length en campos de texto', () => {
         const res = await request(app).post('/movies').send(payload)
 
         // Assert
-        // ? status 400 si hay .max(255)
         expect(res.status).toBe(400)
+        expect(res.body).toHaveProperty('error')
+        expect(model.createMovie).not.toHaveBeenCalled()
     })
 
     test('title con 255 caracteres debe crear', async () => {
@@ -863,7 +886,6 @@ describe('POST /movies — max length en campos de texto', () => {
         const res = await request(app).post('/movies').send(payload)
 
         // Assert
-        // ? status 201
         expect(res.status).toBe(201)
     })
 
@@ -877,8 +899,9 @@ describe('POST /movies — max length en campos de texto', () => {
         const res = await request(app).post('/movies').send(payload)
 
         // Assert
-        // ? status 400
         expect(res.status).toBe(400)
+        expect(res.body).toHaveProperty('error')
+        expect(model.createMovie).not.toHaveBeenCalled()
     })
 
     test('genre elemento con 101 caracteres debe dar 400 (supera .max(100))', async () => {
@@ -891,8 +914,9 @@ describe('POST /movies — max length en campos de texto', () => {
         const res = await request(app).post('/movies').send(payload)
 
         // Assert
-        // ? status 400 si hay .max(100) en cada elemento
         expect(res.status).toBe(400)
+        expect(res.body).toHaveProperty('error')
+        expect(model.createMovie).not.toHaveBeenCalled()
     })
 
     test('genre elemento con 100 caracteres debe crear', async () => {
@@ -906,7 +930,7 @@ describe('POST /movies — max length en campos de texto', () => {
         const res = await request(app).post('/movies').send(payload)
 
         // Assert
-        // ? status 201
+        expect(res.status).toBe(201)
     })
 
     test('plot con 2001 caracteres debe dar 400', async () => {
@@ -919,7 +943,9 @@ describe('POST /movies — max length en campos de texto', () => {
         const res = await request(app).post('/movies').send(payload)
 
         // Assert
-        // ? status 400 si hay .max(2000)
+        expect(res.status).toBe(400)
+        expect(res.body).toHaveProperty('error')
+        expect(model.createMovie).not.toHaveBeenCalled()
     })
 
     test('plot con 2000 caracteres debe crear', async () => {
@@ -933,6 +959,6 @@ describe('POST /movies — max length en campos de texto', () => {
         const res = await request(app).post('/movies').send(payload)
 
         // Assert
-        // ? status 201
+        expect(res.status).toBe(201)
     })
 })

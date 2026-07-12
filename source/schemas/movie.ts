@@ -18,7 +18,7 @@ const movieSchema = zod.object({
     director: zod.string().min(1, "El director no puede estar vacío").max(255).trim().refine(noHtml,noHtmlMsg),
     rating: zod.number().min(0).max(10).multipleOf(0.1).default(5),
     duration: zod.number().int().positive().max(300),
-    plot: zod.string().min(1, "El argumento no puede estar vacío").refine(noHtml,noHtmlMsg),
+    plot: zod.string().min(1, "El argumento no puede estar vacío").max(2000, "El argumento no puede tener más de 2000 caracteres").refine(noHtml,noHtmlMsg),
     poster: zod.string().url(),
     available: zod.boolean().default(true)
 })
