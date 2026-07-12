@@ -55,9 +55,15 @@ describe('POST /movies — year edge cases', () => {
         const res = await request(app).post('/movies').send(payload)
 
         // Assert
-        // ? verificar status 201
-        // ? verificar body.message
-        // ? verificar que createMovie fue llamado con year: 1895
+        expect(res.status).toBe(201)
+        expect(res.body.message).toBe('Pelicula creada con exito')
+        expect(model.createMovie).toHaveBeenCalledWith(
+            expect.objectContaining({
+                result: expect.objectContaining({
+                    data: expect.objectContaining({ year: 1895 })
+                })
+            })
+        )
     })
 
     test('year = 1894 (por debajo del mínimo) debe dar 400', async () => {
@@ -65,7 +71,7 @@ describe('POST /movies — year edge cases', () => {
         const model = createMockModel()
         const app = createApp(model as any)
         const payload = { ...validPayload, year: 1894 }
-
+        
         // Act
         const res = await request(app).post('/movies').send(payload)
 
@@ -73,6 +79,9 @@ describe('POST /movies — year edge cases', () => {
         // ? status 400
         // ? body tiene propiedad 'error'
         // ? createMovie NO fue llamado
+        expect(res.status).toBe(400)
+        expect(res.body.error).toMatch('El año mínimo es 1895')
+        expect(model.createMovie).not.toHaveBeenCalled()
     })
 
     test('year = 2026 (máximo permitido) debe crear', async () => {
@@ -87,6 +96,14 @@ describe('POST /movies — year edge cases', () => {
 
         // Assert
         // ? status 201
+        expect(res.status).toBe(201)
+        expect(model.createMovie).toHaveBeenCalledWith(
+            expect.objectContaining({
+                result: expect.objectContaining({
+                    data: expect.objectContaining({ year: 2026 })
+                })
+            })
+        )
     })
 
     test('year = 2027 (futuro inválido) debe dar 400', async () => {
@@ -484,7 +501,9 @@ describe('POST /movies — payload malformed', () => {
         requiredFields.forEach(async (field) => {
             const model = createMockModel()
             const app = createApp(model as any)
-            const { [field]: _, ...payload } = validPayload
+            const payload = Object.fromEntries(
+                Object.entries(validPayload).filter(([key]) => key !== field)
+            )
 
             // Act
             const res = await request(app).post('/movies').send(payload)
