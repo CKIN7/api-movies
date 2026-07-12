@@ -665,6 +665,7 @@ describe('POST /movies — bloqueo de etiquetas HTML', () => {
 
         // Assert
         // ? status 400
+        expect(res.status).toBe(400)
     })
 
     test('plot con <p> debe dar 400', async () => {
@@ -678,6 +679,7 @@ describe('POST /movies — bloqueo de etiquetas HTML', () => {
 
         // Assert
         // ? status 400
+        expect(res.status).toBe(400)
     })
 
     test('title con & válido (no HTML) debe crear', async () => {
@@ -692,6 +694,8 @@ describe('POST /movies — bloqueo de etiquetas HTML', () => {
 
         // Assert
         // ? status 201 (evitar falsos positivos)
+        expect(res.status).toBe(201)
+        expect(res.body.message).toBe('Pelicula creada con exito')
     })
 })
 
@@ -711,6 +715,7 @@ describe('POST /movies — rating decimal (.multipleOf)', () => {
 
         // Assert
         // ? status 400 solo si hay .multipleOf(0.1) en el schema
+        expect(res.status).toBe(400)
     })
 
     test('rating = 5.5 debe crear', async () => {
@@ -725,6 +730,7 @@ describe('POST /movies — rating decimal (.multipleOf)', () => {
 
         // Assert
         // ? status 201
+        expect(res.status).toBe(201)
     })
 
     test('rating = 7.89 debe dar 400 (no es múltiplo de 0.1)', async () => {
@@ -738,6 +744,7 @@ describe('POST /movies — rating decimal (.multipleOf)', () => {
 
         // Assert
         // ? status 400
+        expect(res.status).toBe(400)
     })
 
     test('rating = 7.9 debe crear', async () => {
@@ -752,6 +759,7 @@ describe('POST /movies — rating decimal (.multipleOf)', () => {
 
         // Assert
         // ? status 201
+        expect(res.status).toBe(201)
     })
 })
 
