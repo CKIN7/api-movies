@@ -768,21 +768,22 @@ describe('POST /movies — rating decimal (.multipleOf)', () => {
    ──────────────────────────── */
 describe('POST /movies — duration max', () => {
 
-    test('duration = 1000 debe crear (si se agrega .max() )', async () => {
+    test('duration = 300 debe crear (si se agrega .max() )', async () => {
         // Arrange
         const model = createMockModel()
         model.createMovie.mockResolvedValue(fakeCreatedMovie)
         const app = createApp(model as any)
-        const payload = { ...validPayload, duration: 1000 }
+        const payload = { ...validPayload, duration: 300 }
 
         // Act
         const res = await request(app).post('/movies').send(payload)
 
         // Assert
         // ? status 201
+        expect(res.status).toBe(201)
     })
 
-    test('duration = 1001 debe dar 400', async () => {
+    test('duration = 301 debe dar 400', async () => {
         // Arrange
         const model = createMockModel()
         const app = createApp(model as any)
@@ -793,6 +794,7 @@ describe('POST /movies — duration max', () => {
 
         // Assert
         // ? status 400 solo si hay .max(1000) en el schema
+        expect(res.status).toBe(400)
     })
 })
 
@@ -812,6 +814,7 @@ describe('POST /movies — max length en campos de texto', () => {
 
         // Assert
         // ? status 400 si hay .max(255)
+        expect(res.status).toBe(400)
     })
 
     test('title con 255 caracteres debe crear', async () => {
@@ -826,6 +829,7 @@ describe('POST /movies — max length en campos de texto', () => {
 
         // Assert
         // ? status 201
+        expect(res.status).toBe(201)
     })
 
     test('director con 256 caracteres debe dar 400', async () => {
