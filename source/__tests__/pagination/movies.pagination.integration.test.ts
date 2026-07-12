@@ -29,284 +29,499 @@ describe('GET /movies?page=&limit= (integración)', () => {
 
     test('page=1&limit=3 debe devolver 3 películas en data y meta correcta', async () => {
         // ARRANGE
-        //   model = new MovieModel(db)
-        //   app = createApp(model)
+        const model = new MovieModel(db)
+        const app = createApp(model)
 
         // ACT
-        //   res = await request(app).get('/movies?page=1&limit=3')
+        const res = await request(app).get('/movies?page=1&limit=3')
 
         // ASSERT
-        //   res.status = 200
-        //   res.body.data.length = 3
-        //   res.body.meta = { total: 8, page: 1, limit: 3, totalPages: 3 }
-        //   cada item en data tiene id, title, year, director, rating, genres
+        expect(res.status).toBe(200)
+        expect(res.body.data).toHaveLength(3)
+        expect(res.body.meta).toEqual({ total: 8, page: 1, limit: 3, totalPages: 3 })
+        res.body.data.forEach((movie: any) => {
+            expect(movie).toHaveProperty('id')
+            expect(movie).toHaveProperty('title')
+            expect(movie).toHaveProperty('year')
+            expect(movie).toHaveProperty('director')
+            expect(movie).toHaveProperty('rating')
+            expect(movie).toHaveProperty('genres')
+        })
     })
 
     test('page=2&limit=3 debe devolver las siguientes 3 películas', async () => {
         // ARRANGE
-        //   model = new MovieModel(db), app = createApp(model)
+        const model = new MovieModel(db)
+        const app = createApp(model)
 
         // ACT
-        //   res1 = GET /movies?page=1&limit=3
-        //   res2 = GET /movies?page=2&limit=3
+        const res1 = await request(app).get('/movies?page=1&limit=3')
+        const res2 = await request(app).get('/movies?page=2&limit=3')
 
         // ASSERT
-        //   res2.status = 200
-        //   res2.body.data.length = 3
-        //   res2.body.meta = { total: 8, page: 2, limit: 3, totalPages: 3 }
-        //   ningún id de res2.body.data está en res1.body.data
-        //   (verificar que son registros distintos)
+        expect(res2.status).toBe(200)
+        expect(res2.body.data).toHaveLength(3)
+        expect(res2.body.meta).toEqual({ total: 8, page: 2, limit: 3, totalPages: 3 })
+
+        const idsPage1 = res1.body.data.map((m: any) => m.id)
+        const idsPage2 = res2.body.data.map((m: any) => m.id)
+        idsPage2.forEach((id: number) => {
+            expect(idsPage1).not.toContain(id)
+        })
     })
 
     test('page=3&limit=3 debe devolver las últimas 2 películas', async () => {
-        // ARRANGE + ACT
-        //   GET /movies?page=3&limit=3
+        // ARRANGE
+        const model = new MovieModel(db)
+        const app = createApp(model)
+
+        // ACT
+        const res = await request(app).get('/movies?page=3&limit=3')
 
         // ASSERT
-        //   res.body.data.length = 2  (porque 8 % 3 = 2)
-        //   res.body.meta = { total: 8, page: 3, limit: 3, totalPages: 3 }
+        expect(res.status).toBe(200)
+        expect(res.body.data).toHaveLength(2)
+        expect(res.body.meta).toEqual({ total: 8, page: 3, limit: 3, totalPages: 3 })
     })
 
     test('sin parámetros debe usar defaults page=1 limit=10, devolver 8 películas', async () => {
-        // ARRANGE + ACT
-        //   GET /movies (sin query params)
+        // ARRANGE
+        const model = new MovieModel(db)
+        const app = createApp(model)
+
+        // ACT
+        const res = await request(app).get('/movies')
 
         // ASSERT
-        //   res.status = 200
-        //   res.body.data.length = 8
-        //   res.body.meta = { total: 8, page: 1, limit: 10, totalPages: 1 }
+        expect(res.status).toBe(200)
+        expect(res.body.data).toHaveLength(8)
+        expect(res.body.meta).toEqual({ total: 8, page: 1, limit: 10, totalPages: 1 })
     })
 
     test('page mayor al total debe devolver data vacío y meta correcta', async () => {
-        // ARRANGE + ACT
-        //   GET /movies?page=99&limit=10
+        // ARRANGE
+        const model = new MovieModel(db)
+        const app = createApp(model)
+
+        // ACT
+        const res = await request(app).get('/movies?page=99&limit=10')
 
         // ASSERT
-        //   res.body.data = []
-        //   res.body.meta = { total: 8, page: 99, limit: 10, totalPages: 1 }
+        expect(res.status).toBe(200)
+        expect(res.body.data).toEqual([])
+        expect(res.body.meta).toEqual({ total: 8, page: 99, limit: 10, totalPages: 1 })
     })
 
     // --- VALIDACIONES: page ---
 
     test('page=0 debe devolver 400', async () => {
-        // ARRANGE + ACT
-        //   GET /movies?page=0
+        // ARRANGE
+        const model = new MovieModel(db)
+        const app = createApp(model)
+
+        // ACT
+        const res = await request(app).get('/movies?page=0')
 
         // ASSERT
-        //   res.status = 400
-        //   res.body tiene propiedad 'error'
+        expect(res.status).toBe(400)
+        expect(res.body).toHaveProperty('error')
     })
 
     test('page=-1 debe devolver 400', async () => {
-        // ARRANGE + ACT + ASSERT similar
+        // ARRANGE
+        const model = new MovieModel(db)
+        const app = createApp(model)
+
+        // ACT
+        const res = await request(app).get('/movies?page=-1')
+
+        // ASSERT
+        expect(res.status).toBe(400)
+        expect(res.body).toHaveProperty('error')
     })
 
     test('page=abc debe devolver 400', async () => {
-        // ARRANGE + ACT + ASSERT similar
+        // ARRANGE
+        const model = new MovieModel(db)
+        const app = createApp(model)
+
+        // ACT
+        const res = await request(app).get('/movies?page=abc')
+
+        // ASSERT
+        expect(res.status).toBe(400)
+        expect(res.body).toHaveProperty('error')
     })
 
     test('page=1.5 debe devolver 400 (decimal no entero)', async () => {
-        // ARRANGE + ACT + ASSERT similar
+        // ARRANGE
+        const model = new MovieModel(db)
+        const app = createApp(model)
+
+        // ACT
+        const res = await request(app).get('/movies?page=1.5')
+
+        // ASSERT
+        expect(res.status).toBe(400)
+        expect(res.body).toHaveProperty('error')
     })
 
     test('page vacío debe ser tratado como por defecto (page=1)', async () => {
-        // ARRANGE + ACT
-        //   GET /movies?page=&limit=5
+        // ARRANGE
+        const model = new MovieModel(db)
+        const app = createApp(model)
+
+        // ACT
+        const res = await request(app).get('/movies?page=&limit=5')
 
         // ASSERT
-        //   res.status = 200
-        //   res.body.data.length = 5
-        //   (page vacío se ignora, se usa default 1)
+        expect(res.status).toBe(200)
+        expect(res.body.data).toHaveLength(5)
     })
 
     test('params duplicados page=1&page=2 debe devolver 400', async () => {
-        // ARRANGE + ACT
-        //   GET /movies?page=1&page=2&limit=5
+        // ARRANGE
+        const model = new MovieModel(db)
+        const app = createApp(model)
+
+        // ACT
+        const res = await request(app).get('/movies?page=1&page=2&limit=5')
 
         // ASSERT
-        //   res.status = 400
+        expect(res.status).toBe(400)
+        expect(res.body).toHaveProperty('error')
     })
 
     // --- VALIDACIONES: limit ---
 
     test('limit=0 debe devolver 400', async () => {
-        // ARRANGE + ACT + ASSERT similar
+        // ARRANGE
+        const model = new MovieModel(db)
+        const app = createApp(model)
+
+        // ACT
+        const res = await request(app).get('/movies?page=1&limit=0')
+
+        // ASSERT
+        expect(res.status).toBe(400)
+        expect(res.body).toHaveProperty('error')
     })
 
     test('limit=101 debe devolver 400 (excede máximo)', async () => {
-        // ARRANGE + ACT
-        //   GET /movies?page=1&limit=101
+        // ARRANGE
+        const model = new MovieModel(db)
+        const app = createApp(model)
+
+        // ACT
+        const res = await request(app).get('/movies?page=1&limit=101')
 
         // ASSERT
-        //   res.status = 400
+        expect(res.status).toBe(400)
+        expect(res.body).toHaveProperty('error')
     })
 
     test('limit=100 debe funcionar correctamente (máximo permitido)', async () => {
-        // ARRANGE + ACT
-        //   GET /movies?page=1&limit=100
+        // ARRANGE
+        const model = new MovieModel(db)
+        const app = createApp(model)
+
+        // ACT
+        const res = await request(app).get('/movies?page=1&limit=100')
 
         // ASSERT
-        //   res.status = 200
-        //   res.body.data.length = 8  (total en seed)
+        expect(res.status).toBe(200)
+        expect(res.body.data).toHaveLength(8)
     })
 
     test('limit=abc debe devolver 400', async () => {
-        // ARRANGE + ACT + ASSERT similar
+        // ARRANGE
+        const model = new MovieModel(db)
+        const app = createApp(model)
+
+        // ACT
+        const res = await request(app).get('/movies?page=1&limit=abc')
+
+        // ASSERT
+        expect(res.status).toBe(400)
+        expect(res.body).toHaveProperty('error')
     })
 
     test('limit vacío debe ser tratado como por defecto (limit=10)', async () => {
-        // ARRANGE + ACT
-        //   GET /movies?page=1&limit=
+        // ARRANGE
+        const model = new MovieModel(db)
+        const app = createApp(model)
+
+        // ACT
+        const res = await request(app).get('/movies?page=1&limit=')
 
         // ASSERT
-        //   res.status = 200
-        //   res.body.data.length = 8
+        expect(res.status).toBe(200)
+        expect(res.body.data).toHaveLength(8)
     })
 
     test('limit=-5 debe devolver 400', async () => {
-        // ARRANGE + ACT + ASSERT similar
+        // ARRANGE
+        const model = new MovieModel(db)
+        const app = createApp(model)
+
+        // ACT
+        const res = await request(app).get('/movies?page=1&limit=-5')
+
+        // ASSERT
+        expect(res.status).toBe(400)
+        expect(res.body).toHaveProperty('error')
     })
 
     test('limit=5.5 debe devolver 400 (decimal no entero)', async () => {
-        // ARRANGE + ACT + ASSERT similar
+        // ARRANGE
+        const model = new MovieModel(db)
+        const app = createApp(model)
+
+        // ACT
+        const res = await request(app).get('/movies?page=1&limit=5.5')
+
+        // ASSERT
+        expect(res.status).toBe(400)
+        expect(res.body).toHaveProperty('error')
     })
 
     test('params duplicados limit=5&limit=10 debe devolver 400', async () => {
-        // ARRANGE + ACT + ASSERT similar
+        // ARRANGE
+        const model = new MovieModel(db)
+        const app = createApp(model)
+
+        // ACT
+        const res = await request(app).get('/movies?page=1&limit=5&limit=10')
+
+        // ASSERT
+        expect(res.status).toBe(400)
+        expect(res.body).toHaveProperty('error')
     })
 
     // --- COMBINACIÓN CON FILTROS ---
 
     test('combinar paginación con filtro genre: page=1&limit=2&genre=action', async () => {
-        // ARRANGE + ACT
-        //   GET /movies?page=1&limit=2&genre=action
+        // ARRANGE
+        const model = new MovieModel(db)
+        const app = createApp(model)
+
+        // ACT
+        const res = await request(app).get('/movies?page=1&limit=2&genre=action')
 
         // ASSERT
-        //   res.status = 200
-        //   res.body.data.length = 2
-        //   cada item contiene 'action' en genres (case-insensitive)
-        //   res.body.meta.total = cantidad total de action movies en seed
+        expect(res.status).toBe(200)
+        expect(res.body.data).toHaveLength(2)
+        res.body.data.forEach((movie: any) => {
+            expect(movie.genres.toLowerCase()).toMatch(/action/)
+        })
+        expect(res.body.meta.total).toBe(3)
     })
 
     test('combinar paginación con filtro year: page=1&limit=5&year=1994', async () => {
-        // ARRANGE + ACT
-        //   GET /movies?page=1&limit=5&year=1994
+        // ARRANGE
+        const model = new MovieModel(db)
+        const app = createApp(model)
+
+        // ACT
+        const res = await request(app).get('/movies?page=1&limit=5&year=1994')
 
         // ASSERT
-        //   res.status = 200
-        //   res.body.data.length = 3 (todas las de 1994 caben en limit=5)
-        //   todas tienen year = 1994
-        //   res.body.meta.total = 3
+        expect(res.status).toBe(200)
+        expect(res.body.data).toHaveLength(3)
+        res.body.data.forEach((movie: any) => {
+            expect(movie.year).toBe(1994)
+        })
+        expect(res.body.meta.total).toBe(3)
     })
 
     test('combinar paginación con filtro title: page=1&limit=2&title=dark', async () => {
-        // ARRANGE + ACT
-        //   GET /movies?page=1&limit=2&title=dark
+        // ARRANGE
+        const model = new MovieModel(db)
+        const app = createApp(model)
+
+        // ACT
+        const res1 = await request(app).get('/movies?page=1&limit=2&title=dark')
+        const res2 = await request(app).get('/movies?page=2&limit=2&title=dark')
 
         // ASSERT
-        //   res.status = 200
-        //   res.body.data.length = 2
-        //   res.body.meta.total = 4 (Dark Knight, Dark Shadows, Dark City, Dark Knight Rises)
-        //   Verificar que page=2&limit=2&title=dark da los otros 2
+        expect(res1.status).toBe(200)
+        expect(res1.body.data).toHaveLength(2)
+        expect(res1.body.meta.total).toBe(4)
+
+        expect(res2.status).toBe(200)
+        expect(res2.body.data).toHaveLength(2)
+
+        const idsPage1 = res1.body.data.map((m: any) => m.id)
+        const idsPage2 = res2.body.data.map((m: any) => m.id)
+        idsPage2.forEach((id: number) => {
+            expect(idsPage1).not.toContain(id)
+        })
     })
 
     // --- COMBINACIÓN CON SORT ---
 
     test('combinar paginación con sort: page=1&limit=3&sort=year&order=desc', async () => {
-        // ARRANGE + ACT
-        //   GET /movies?page=1&limit=3&sort=year&order=desc
+        // ARRANGE
+        const model = new MovieModel(db)
+        const app = createApp(model)
+
+        // ACT
+        const res = await request(app).get('/movies?page=1&limit=3&sort=year&order=desc')
 
         // ASSERT
-        //   res.status = 200
-        //   res.body.data.length = 3
-        //   años en orden descendente (2014, 2012, 2010)
-        //   res.body.meta.total = 8
+        expect(res.status).toBe(200)
+        expect(res.body.data).toHaveLength(3)
+        expect(res.body.meta.total).toBe(8)
+
+        const years = res.body.data.map((m: any) => m.year)
+        for (let i = 0; i < years.length - 1; i++) {
+            expect(years[i]).toBeGreaterThanOrEqual(years[i + 1])
+        }
     })
 
     test('combinar paginación con sort ascendente: page=1&limit=3&sort=year&order=asc', async () => {
-        // ARRANGE + ACT
-        //   GET /movies?page=1&limit=3&sort=year&order=asc
+        // ARRANGE
+        const model = new MovieModel(db)
+        const app = createApp(model)
+
+        // ACT
+        const res = await request(app).get('/movies?page=1&limit=3&sort=year&order=asc')
 
         // ASSERT
-        //   años en orden ascendente (1994, 1994, 1994) — los primeros 3 por año
+        expect(res.status).toBe(200)
+        expect(res.body.data).toHaveLength(3)
+
+        const years = res.body.data.map((m: any) => m.year)
+        for (let i = 0; i < years.length - 1; i++) {
+            expect(years[i]).toBeLessThanOrEqual(years[i + 1])
+        }
     })
 
     test('combinar paginación con sort descendente en page=2: page=2&limit=3&sort=year&order=desc', async () => {
-        // ARRANGE + ACT
-        //   GET /movies?page=1&limit=3&sort=year&order=desc → ids [3, 8, 1]
-        //   GET /movies?page=2&limit=3&sort=year&order=desc → ids [2, 7, ...]
+        // ARRANGE
+        const model = new MovieModel(db)
+        const app = createApp(model)
+
+        // ACT
+        const res1 = await request(app).get('/movies?page=1&limit=3&sort=year&order=desc')
+        const res2 = await request(app).get('/movies?page=2&limit=3&sort=year&order=desc')
 
         // ASSERT
-        //   ningún id coincide entre page=1 y page=2
+        expect(res2.status).toBe(200)
+        expect(res2.body.data).toHaveLength(3)
+
+        const idsPage1 = res1.body.data.map((m: any) => m.id)
+        const idsPage2 = res2.body.data.map((m: any) => m.id)
+        idsPage2.forEach((id: number) => {
+            expect(idsPage1).not.toContain(id)
+        })
     })
 
     // --- COMBINACIÓN COMPLETA ---
 
     test('combinación completa: page=1&limit=2&sort=year&order=desc&genre=action', async () => {
-        // ARRANGE + ACT
-        //   GET /movies?page=1&limit=2&sort=year&order=desc&genre=action
+        // ARRANGE
+        const model = new MovieModel(db)
+        const app = createApp(model)
+
+        // ACT
+        const res = await request(app).get('/movies?page=1&limit=2&sort=year&order=desc&genre=action')
 
         // ASSERT
-        //   res.status = 200
-        //   res.body.data.length = 2
-        //   todos contienen 'action'
-        //   años en orden descendente
-        //   res.body.meta.total = 3 (Interstellar no es action, las action son 3)
+        expect(res.status).toBe(200)
+        expect(res.body.data).toHaveLength(2)
+        res.body.data.forEach((movie: any) => {
+            expect(movie.genres.toLowerCase()).toMatch(/action/)
+        })
+
+        const years = res.body.data.map((m: any) => m.year)
+
+        for (let i = 0; i < years.length - 1; i++) {
+            expect(years[i]).toBeGreaterThanOrEqual(years[i + 1])
+        }
+
+        expect(res.body.meta.total).toBe(3)
     })
 
     // --- EDGE CASES ---
 
     test('SQL injection en page: ?page=1; DROP TABLE movies;-- debe dar 400', async () => {
-        // ARRANGE + ACT
-        //   GET /movies?page=1; DROP TABLE movies;--&limit=5
+        // ARRANGE
+        const model = new MovieModel(db)
+        const app = createApp(model)
+
+        // ACT
+        const res = await request(app).get('/movies?page=1; DROP TABLE movies;--&limit=5')
 
         // ASSERT
-        //   res.status = 400
+        expect(res.status).toBe(400)
     })
 
     test('SQL injection en limit: ?limit=10; DROP TABLE movies;-- debe dar 400', async () => {
-        // ARRANGE + ACT
-        //   GET /movies?page=1&limit=10; DROP TABLE movies;--
+        // ARRANGE
+        const model = new MovieModel(db)
+        const app = createApp(model)
+
+        // ACT
+        const res = await request(app).get("/movies?page=1&limit=10; DROP TABLE movies;--")
 
         // ASSERT
-        //   res.status = 400
+        expect(res.status).toBe(400)
     })
 
     test('page con leading zero: ?page=01 debe ser tratado como page=1', async () => {
-        // ARRANGE + ACT
-        //   GET /movies?page=01&limit=5
+        // ARRANGE
+        const model = new MovieModel(db)
+        const app = createApp(model)
+
+        // ACT
+        const res = await request(app).get('/movies?page=01&limit=5')
 
         // ASSERT
-        //   res.status = 200
-        //   res.body.data.length = 5
-        //   (01 se parsea como 1)
+        expect(res.status).toBe(200)
+        expect(res.body.data).toHaveLength(5)
     })
 
     test('page con espacios: ?page=%201 debe dar 400', async () => {
-        // ARRANGE + ACT
-        //   GET /movies?page=%201&limit=5
+        // ARRANGE
+        const model = new MovieModel(db)
+        const app = createApp(model)
+
+        // ACT
+        const res = await request(app).get('/movies?page=%201&limit=5')
 
         // ASSERT
-        //   res.status = 400 (espacio no es número válido)
+        expect(res.status).toBe(400)
     })
 
     test('limit con signo positivo: ?limit=+5 debe funcionar', async () => {
-        // ARRANGE + ACT
-        //   GET /movies?page=1&limit=+5
+        // ARRANGE
+        const model = new MovieModel(db)
+        const app = createApp(model)
+
+        // ACT
+        const res = await request(app).get('/movies?page=1&limit=+5')
 
         // ASSERT
-        //   res.status = 200
-        //   res.body.data.length = 5
-        //   (+5 se parsea como 5)
+        expect(res.status).toBe(200)
+        expect(res.body.data).toHaveLength(5)
     })
 
     test('combinar paginación con todos los filtros: genre+year+title+sort+page+limit', async () => {
-        // ARRANGE + ACT
-        //   GET /movies?page=1&limit=2&genre=action&year=2008&title=knight&sort=rating&order=desc
+        // ARRANGE
+        const model = new MovieModel(db)
+        const app = createApp(model)
+
+        // ACT
+        const res = await request(app).get('/movies?page=1&limit=2&genre=action&year=2008&title=knight&sort=rating&order=desc')
 
         // ASSERT
-        //   res.status = 200
-        //   filtros aplicados correctamente
-        //   paginación aplicada correctamente
+        expect(res.status).toBe(200)
+
+        res.body.data.forEach((movie: any) => {
+            expect(movie.genres.toLowerCase()).toMatch(/action/)
+            expect(movie.year).toBe(2008)
+            expect(movie.title.toLowerCase()).toMatch(/knight/)
+        })
     })
 })
