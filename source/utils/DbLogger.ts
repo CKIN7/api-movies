@@ -1,4 +1,4 @@
-import logger from './logger'
+import logger, { dbLogger } from './logger'
 
 export class DbLogger {
     static async query<T>(label: string, sql: string, params: any[], exec: () => Promise<T>): Promise<T> {
@@ -6,21 +6,25 @@ export class DbLogger {
         try {
             const result = await exec()
             const duration = Date.now() - start
-            logger.info(`DB: ${label}`, {
+            const meta = {
                 sql: sql.replace(/\s+/g, ' ').trim(),
                 params,
                 rows: Array.isArray(result) ? result.length : 1,
                 duration: `${duration}ms`
-            })
+            }
+            logger.info(`DB: ${label}`, meta)
+            dbLogger.info(`DB: ${label}`, meta)
             return result
         } catch (error) {
             const duration = Date.now() - start
-            logger.error(`DB ERROR: ${label}`, {
+            const meta = {
                 sql: sql.replace(/\s+/g, ' ').trim(),
                 params,
                 duration: `${duration}ms`,
                 error: (error as Error).message
-            })
+            }
+            logger.error(`DB ERROR: ${label}`, meta)
+            dbLogger.error(`DB ERROR: ${label}`, meta)
             throw error
         }
     }
