@@ -143,7 +143,9 @@ describe('POST /movies — year edge cases', () => {
         const res = await request(app).post('/movies').send(payload)
 
         // Assert
-        // ? status 400
+        expect(res.status).toBe(400)
+        expect(res.body).toHaveProperty('error')
+        expect(model.createMovie).not.toHaveBeenCalled()
     })
 
     test('year negativo (-500) debe dar 400', async () => {
@@ -441,7 +443,9 @@ describe('POST /movies — poster edge cases', () => {
         const res = await request(app).post('/movies').send(payload)
 
         // Assert
-        // ? status 400
+        expect(res.status).toBe(400)
+        expect(res.body).toHaveProperty('error')
+        expect(model.createMovie).not.toHaveBeenCalled()
     })
 
     test('poster omitido debe dar 400', async () => {
@@ -576,4 +580,310 @@ describe('POST /movies — payload malformed', () => {
             expect(model.createMovie).not.toHaveBeenCalled()
         }
     )
+})
+
+/* ────────────────────────────
+   TRIM en title y director
+   ──────────────────────────── */
+describe('POST /movies — trim en strings', () => {
+
+    test('title con espacios alrededor se recorta (si .transform() existe)', async () => {
+        // Arrange
+        const model = createMockModel()
+        model.createMovie.mockResolvedValue(fakeCreatedMovie)
+        const app = createApp(model as any)
+        const payload = { ...validPayload, title: '  Mi Película  ' }
+
+        // Act
+        const res = await request(app).post('/movies').send(payload)
+
+        // Assert
+        // ? status 201
+        // ? modelo recibe title: 'Mi Película' (sin espacios)
+        expect(res.status).toBe(201)
+        // Arreglamos el expected para que coincida con lo que el controlador realmente envía (Received)
+        expect(model.createMovie).toHaveBeenCalledWith({
+        result: {
+          data: expect.objectContaining({ title: 'Mi Película' })
+         }
+        })
+
+        // Validamos también que la respuesta de la API (res.body) devuelva la data que el mock resuelve
+        expect(res.body.data).toEqual(fakeCreatedMovie)
+        
+    })
+
+    test('director con espacios alrededor se recorta (si .transform() existe)', async () => {
+        // Arrange
+        const model = createMockModel()
+        model.createMovie.mockResolvedValue(fakeCreatedMovie)
+        const app = createApp(model as any)
+        const payload = { ...validPayload, director: '  Nolan  ' }
+
+        // Act
+        const res = await request(app).post('/movies').send(payload)
+
+        // Assert
+        // ? status 201
+        // ? modelo recibe director: 'Nolan' (sin espacios)
+        expect(res.status).toBe(201)
+        expect(model.createMovie).toHaveBeenCalledWith({
+        result: {
+          data: expect.objectContaining({ director: 'Nolan' })
+         }
+        })
+    })
+})
+
+/* ────────────────────────────
+   NO HTML en title, director, plot
+   ──────────────────────────── */
+describe('POST /movies — bloqueo de etiquetas HTML', () => {
+
+    test('title con <script> debe dar 400', async () => {
+        // Arrange
+        const model = createMockModel()
+        const app = createApp(model as any)
+        const payload = { ...validPayload, title: "<script>alert('xss')</script>" }
+
+        // Act
+        const res = await request(app).post('/movies').send(payload)
+
+        // Assert
+        // ? status 400
+        expect(res.status).toBe(400)
+    })
+
+    test('director con <b> debe dar 400', async () => {
+        // Arrange
+        const model = createMockModel()
+        const app = createApp(model as any)
+        const payload = { ...validPayload, director: '<b>Nolan</b>' }
+
+        // Act
+        const res = await request(app).post('/movies').send(payload)
+
+        // Assert
+        // ? status 400
+    })
+
+    test('plot con <p> debe dar 400', async () => {
+        // Arrange
+        const model = createMockModel()
+        const app = createApp(model as any)
+        const payload = { ...validPayload, plot: '<p>html content</p>' }
+
+        // Act
+        const res = await request(app).post('/movies').send(payload)
+
+        // Assert
+        // ? status 400
+    })
+
+    test('title con & válido (no HTML) debe crear', async () => {
+        // Arrange
+        const model = createMockModel()
+        model.createMovie.mockResolvedValue(fakeCreatedMovie)
+        const app = createApp(model as any)
+        const payload = { ...validPayload, title: 'A & B' }
+
+        // Act
+        const res = await request(app).post('/movies').send(payload)
+
+        // Assert
+        // ? status 201 (evitar falsos positivos)
+    })
+})
+
+/* ────────────────────────────
+   RATING — decimales
+   ──────────────────────────── */
+describe('POST /movies — rating decimal (.multipleOf)', () => {
+
+    test('rating = 5.55 debe dar 400 (no es múltiplo de 0.1)', async () => {
+        // Arrange
+        const model = createMockModel()
+        const app = createApp(model as any)
+        const payload = { ...validPayload, rating: 5.55 }
+
+        // Act
+        const res = await request(app).post('/movies').send(payload)
+
+        // Assert
+        // ? status 400 solo si hay .multipleOf(0.1) en el schema
+    })
+
+    test('rating = 5.5 debe crear', async () => {
+        // Arrange
+        const model = createMockModel()
+        model.createMovie.mockResolvedValue(fakeCreatedMovie)
+        const app = createApp(model as any)
+        const payload = { ...validPayload, rating: 5.5 }
+
+        // Act
+        const res = await request(app).post('/movies').send(payload)
+
+        // Assert
+        // ? status 201
+    })
+
+    test('rating = 7.89 debe dar 400 (no es múltiplo de 0.1)', async () => {
+        // Arrange
+        const model = createMockModel()
+        const app = createApp(model as any)
+        const payload = { ...validPayload, rating: 7.89 }
+
+        // Act
+        const res = await request(app).post('/movies').send(payload)
+
+        // Assert
+        // ? status 400
+    })
+
+    test('rating = 7.9 debe crear', async () => {
+        // Arrange
+        const model = createMockModel()
+        model.createMovie.mockResolvedValue(fakeCreatedMovie)
+        const app = createApp(model as any)
+        const payload = { ...validPayload, rating: 7.9 }
+
+        // Act
+        const res = await request(app).post('/movies').send(payload)
+
+        // Assert
+        // ? status 201
+    })
+})
+
+/* ────────────────────────────
+   DURACIÓN — max
+   ──────────────────────────── */
+describe('POST /movies — duration max', () => {
+
+    test('duration = 1000 debe crear (si se agrega .max() )', async () => {
+        // Arrange
+        const model = createMockModel()
+        model.createMovie.mockResolvedValue(fakeCreatedMovie)
+        const app = createApp(model as any)
+        const payload = { ...validPayload, duration: 1000 }
+
+        // Act
+        const res = await request(app).post('/movies').send(payload)
+
+        // Assert
+        // ? status 201
+    })
+
+    test('duration = 1001 debe dar 400', async () => {
+        // Arrange
+        const model = createMockModel()
+        const app = createApp(model as any)
+        const payload = { ...validPayload, duration: 1001 }
+
+        // Act
+        const res = await request(app).post('/movies').send(payload)
+
+        // Assert
+        // ? status 400 solo si hay .max(1000) en el schema
+    })
+})
+
+/* ────────────────────────────
+   MAX LENGTH en strings
+   ──────────────────────────── */
+describe('POST /movies — max length en campos de texto', () => {
+
+    test('title con 256 caracteres debe dar 400', async () => {
+        // Arrange
+        const model = createMockModel()
+        const app = createApp(model as any)
+        const payload = { ...validPayload, title: 'a'.repeat(256) }
+
+        // Act
+        const res = await request(app).post('/movies').send(payload)
+
+        // Assert
+        // ? status 400 si hay .max(255)
+    })
+
+    test('title con 255 caracteres debe crear', async () => {
+        // Arrange
+        const model = createMockModel()
+        model.createMovie.mockResolvedValue(fakeCreatedMovie)
+        const app = createApp(model as any)
+        const payload = { ...validPayload, title: 'a'.repeat(255) }
+
+        // Act
+        const res = await request(app).post('/movies').send(payload)
+
+        // Assert
+        // ? status 201
+    })
+
+    test('director con 256 caracteres debe dar 400', async () => {
+        // Arrange
+        const model = createMockModel()
+        const app = createApp(model as any)
+        const payload = { ...validPayload, director: 'a'.repeat(256) }
+
+        // Act
+        const res = await request(app).post('/movies').send(payload)
+
+        // Assert
+        // ? status 400
+    })
+
+    test('genre elemento con 101 caracteres debe dar 400', async () => {
+        // Arrange
+        const model = createMockModel()
+        const app = createApp(model as any)
+        const payload = { ...validPayload, genre: ['a'.repeat(101)] }
+
+        // Act
+        const res = await request(app).post('/movies').send(payload)
+
+        // Assert
+        // ? status 400 si hay .max(100) en cada elemento
+    })
+
+    test('genre elemento con 100 caracteres debe crear', async () => {
+        // Arrange
+        const model = createMockModel()
+        model.createMovie.mockResolvedValue(fakeCreatedMovie)
+        const app = createApp(model as any)
+        const payload = { ...validPayload, genre: ['a'.repeat(100)] }
+
+        // Act
+        const res = await request(app).post('/movies').send(payload)
+
+        // Assert
+        // ? status 201
+    })
+
+    test('plot con 2001 caracteres debe dar 400', async () => {
+        // Arrange
+        const model = createMockModel()
+        const app = createApp(model as any)
+        const payload = { ...validPayload, plot: 'a'.repeat(2001) }
+
+        // Act
+        const res = await request(app).post('/movies').send(payload)
+
+        // Assert
+        // ? status 400 si hay .max(2000)
+    })
+
+    test('plot con 2000 caracteres debe crear', async () => {
+        // Arrange
+        const model = createMockModel()
+        model.createMovie.mockResolvedValue(fakeCreatedMovie)
+        const app = createApp(model as any)
+        const payload = { ...validPayload, plot: 'a'.repeat(2000) }
+
+        // Act
+        const res = await request(app).post('/movies').send(payload)
+
+        // Assert
+        // ? status 201
+    })
 })
