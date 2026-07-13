@@ -89,7 +89,13 @@ class MovieService {
                 offset
             }
             
-            return await this.movieModel.getMovies(normalizedParams)
+            const result = await this.movieModel.getMovies(normalizedParams)
+
+            const totalPages = Math.ceil(result.total / limit)
+            
+            return {
+                data: result.rows, meta: {total: result.total, page, limit, totalPages}
+            }
 
         } catch (error) {
          // 1. Si el error ya es una instancia de AppError, déjalo pasar sin modificarlo
