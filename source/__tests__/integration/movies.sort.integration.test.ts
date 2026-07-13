@@ -35,7 +35,7 @@ describe('GET /movies?sort=&order= (integración)', () => {
         const res = await request(app).get('/movies?sort=year&order=desc')
         
          // Assert: Validar orden descendente de los datos recibidos
-        const movies = res.body
+        const movies = res.body.data
         for (let i = 0; i < movies.length - 1; i++) {
             expect(movies[i].year).toBeGreaterThanOrEqual(movies[i + 1].year)
         }
@@ -49,7 +49,7 @@ describe('GET /movies?sort=&order= (integración)', () => {
 
         expect(res.status).toBe(200)
 
-        const movies = res.body
+        const movies = res.body.data
         for (let i = 0; i < movies.length - 1; i++) {
             expect(Number(movies[i].rating)).toBeLessThanOrEqual(Number(movies[i + 1].rating))
         }
@@ -63,7 +63,7 @@ describe('GET /movies?sort=&order= (integración)', () => {
 
         expect(res.status).toBe(200)
 
-        const movies = res.body
+        const movies = res.body.data
         for (let i = 0; i < movies.length - 1; i++) {
             expect(movies[i].title.localeCompare(movies[i + 1].title)).toBeLessThanOrEqual(0)
         }
@@ -86,7 +86,7 @@ describe('GET /movies?sort=&order= (integración)', () => {
         const res = await request(app).get('/movies')
 
         expect(res.status).toBe(200)
-        expect(res.body).toHaveLength(8)
+        expect(res.body.data).toHaveLength(8)
     })
 
     test('debe combinar sort con filtros existentes: GET /movies?sort=year&order=desc&genre=action', async () => {
@@ -97,7 +97,7 @@ describe('GET /movies?sort=&order= (integración)', () => {
 
         expect(res.status).toBe(200)
 
-        const movies = res.body
+        const movies = res.body.data
         expect(movies.length).toBeGreaterThan(0)
         movies.forEach((m: any) => expect(m.genres.toLowerCase()).toMatch(/action/))
 
@@ -114,7 +114,7 @@ describe('GET /movies?sort=&order= (integración)', () => {
 
         expect(res.status).toBe(200)
 
-        const movies = res.body
+        const movies = res.body.data
         for (let i = 0; i < movies.length - 1; i++) {
             expect(Number(movies[i].rating)).toBeGreaterThanOrEqual(Number(movies[i + 1].rating))
         }
@@ -128,7 +128,7 @@ describe('GET /movies?sort=&order= (integración)', () => {
 
         expect(res.status).toBe(200)
 
-        const movies = res.body
+        const movies = res.body.data
         for (let i = 0; i < movies.length - 1; i++) {
             expect(movies[i].title.localeCompare(movies[i + 1].title)).toBeGreaterThanOrEqual(0)
         }
@@ -142,7 +142,7 @@ describe('GET /movies?sort=&order= (integración)', () => {
 
         expect(res.status).toBe(200)
 
-        const movies = res.body
+        const movies = res.body.data
         for (let i = 0; i < movies.length - 1; i++) {
             expect(movies[i].year).toBeLessThanOrEqual(movies[i + 1].year)
         }
@@ -155,7 +155,7 @@ describe('GET /movies?sort=&order= (integración)', () => {
         const res = await request(app).get('/movies?order=desc')
 
         expect(res.status).toBe(200)
-        expect(res.body).toHaveLength(8)
+        expect(res.body.data).toHaveLength(8)
     })
 
     test('debe combinar sort=year con filtro year: GET /movies?sort=year&order=desc&year=1994', async () => {
@@ -165,8 +165,8 @@ describe('GET /movies?sort=&order= (integración)', () => {
         const res = await request(app).get('/movies?sort=year&order=desc&year=1994')
 
         expect(res.status).toBe(200)
-        expect(res.body).toHaveLength(3)
-        res.body.forEach((m: any) => expect(m.year).toBe(1994))
+        expect(res.body.data).toHaveLength(3)
+        res.body.data.forEach((m: any) => expect(m.year).toBe(1994))
     })
 
     test('debe combinar sort=year con filtro title: GET /movies?sort=year&order=desc&title=dark', async () => {
@@ -177,7 +177,7 @@ describe('GET /movies?sort=&order= (integración)', () => {
 
         expect(res.status).toBe(200)
 
-        const movies = res.body
+        const movies = res.body.data
         expect(movies.length).toBeGreaterThan(0)
         movies.forEach((m: any) => expect(m.title.toLowerCase()).toMatch(/dark/))
 
@@ -214,7 +214,7 @@ describe('GET /movies?sort=&order= (integración)', () => {
 
             expect(res.status).toBe(200)
 
-            const movies = res.body
+            const movies = res.body.data
             for (let i = 0; i < movies.length - 1; i++) {
                 expect(movies[i].year).toBeGreaterThanOrEqual(movies[i + 1].year)
             }
@@ -236,7 +236,7 @@ describe('GET /movies?sort=&order= (integración)', () => {
             const res = await request(app).get('/movies?sort=')
 
             expect(res.status).toBe(200)
-            expect(res.body).toHaveLength(8)
+            expect(res.body.data).toHaveLength(8)
         })
 
         test('sort duplicado: ?sort=year&sort=rating debe dar 400 (valor array)', async () => {

@@ -61,7 +61,7 @@ class MovieModel {
             params.push(`%${title}%`)
         }
 
-        let countQuery = `SELECT COUNT(DISTINCT m.id) as total FROM movies
+        let countQuery = `SELECT COUNT(DISTINCT m.id) as total FROM movies m
         JOIN directors d ON m.id_director = d.director_id
         JOIN movie_genres mg ON m.id = mg.movie_id 
         JOIN genres g ON mg.genre_id = g.id_genre`
@@ -135,6 +135,7 @@ class MovieModel {
         const movieId = movieResult.insertId
         
         const genres = result.data.genre
+        const insertedGenreIds = new Set<number>()
 
         for (const genreName of genres) {
             const [genreRows] = await this.query(
@@ -149,8 +150,11 @@ class MovieModel {
         const [genreResult] = await this.query('INSERT INTO genres(genre_name) VALUES(?)', [genreName])
         genreId = genreResult.insertId
         }
-        
-        await this.query('INSERT INTO movie_genres(movie_id, genre_id) VALUES(?, ?)', [movieId, genreId])
+
+        if (!insertedGenreIds.has(genreId)) {
+            insertedGenreIds.add(genreId)
+            await this.query('INSERT INTO movie_genres(movie_id, genre_id) VALUES(?, ?)', [movieId, genreId])
+        }
 
         }
         await this.conn.commit()

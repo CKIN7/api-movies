@@ -17,35 +17,41 @@ describe('MovieModel - getMovies', () => {
         const fakeMovies = [
             { id: 1, title: 'Inception', year: 2010, director: 'Christopher Nolan', rating: 8.8, duration: 148, plot: '...', poster: '...', genres: 'Action, Sci-Fi' }
         ]
-        conn.query.mockResolvedValue([fakeMovies])
+        conn.query
+            .mockResolvedValueOnce([[{ total: 1 }]])
+            .mockResolvedValueOnce([fakeMovies])
 
-        const result = await model.getMovies()
-        expect(result).toEqual(fakeMovies)
-        expect(conn.query).toHaveBeenCalledTimes(1)
+        const result = await model.getMovies({ limit: 10, offset: 0 })
+        expect(result).toEqual({ rows: fakeMovies, total: 1 })
+        expect(conn.query).toHaveBeenCalledTimes(2)
     })
 
     test('debe filtrar por año', async () => {
         const conn = createMockConnection()
         const model = new MovieModel(conn)
-        conn.query.mockResolvedValue([[]])
+        conn.query
+            .mockResolvedValueOnce([[{ total: 0 }]])
+            .mockResolvedValueOnce([[]])
 
-        await model.getMovies({ year: '1994' })
+        await model.getMovies({ year: '1994', limit: 10, offset: 0 })
 
-        const queryStr = conn.query.mock.calls[0][0]
+        const queryStr = conn.query.mock.calls[1][0] as string
         expect(queryStr).toContain('m.year = ?')
-        expect(conn.query.mock.calls[0][1]).toContain('1994')
+        expect(conn.query.mock.calls[1][1]).toContain('1994')
     })
 
     test('debe filtrar por género', async () => {
         const conn = createMockConnection()
         const model = new MovieModel(conn)
-        conn.query.mockResolvedValue([[]])
+        conn.query
+            .mockResolvedValueOnce([[{ total: 0 }]])
+            .mockResolvedValueOnce([[]])
 
-        await model.getMovies({ genre: 'Action' })
+        await model.getMovies({ genre: 'Action', limit: 10, offset: 0 })
 
-        const queryStr = conn.query.mock.calls[0][0]
+        const queryStr = conn.query.mock.calls[1][0] as string
         expect(queryStr).toContain('genre_name = ?')
-        expect(conn.query.mock.calls[0][1]).toContain('Action')
+        expect(conn.query.mock.calls[1][1]).toContain('Action')
     })
 
     test('debe lanzar AppError si la query falla', async () => {
@@ -53,7 +59,7 @@ describe('MovieModel - getMovies', () => {
         const model = new MovieModel(conn)
         conn.query.mockRejectedValue(new Error('DB error'))
 
-        await expect(model.getMovies()).rejects.toThrow()
+        await expect(model.getMovies({ limit: 10, offset: 0 })).rejects.toThrow()
     })
 })
 

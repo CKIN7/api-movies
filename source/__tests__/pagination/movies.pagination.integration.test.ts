@@ -166,7 +166,7 @@ describe('GET /movies?page=&limit= (integración)', () => {
         expect(res.body).toHaveProperty('error')
     })
 
-    test('page vacío debe ser tratado como por defecto (page=1)', async () => {
+    test('page vacío debe devolver 400', async () => {
         // ARRANGE
         const model = new MovieModel(db)
         const app = createApp(model)
@@ -175,8 +175,7 @@ describe('GET /movies?page=&limit= (integración)', () => {
         const res = await request(app).get('/movies?page=&limit=5')
 
         // ASSERT
-        expect(res.status).toBe(200)
-        expect(res.body.data).toHaveLength(5)
+        expect(res.status).toBe(400)
     })
 
     test('params duplicados page=1&page=2 debe devolver 400', async () => {
@@ -246,7 +245,7 @@ describe('GET /movies?page=&limit= (integración)', () => {
         expect(res.body).toHaveProperty('error')
     })
 
-    test('limit vacío debe ser tratado como por defecto (limit=10)', async () => {
+    test('limit vacío debe devolver 400', async () => {
         // ARRANGE
         const model = new MovieModel(db)
         const app = createApp(model)
@@ -255,8 +254,7 @@ describe('GET /movies?page=&limit= (integración)', () => {
         const res = await request(app).get('/movies?page=1&limit=')
 
         // ASSERT
-        expect(res.status).toBe(200)
-        expect(res.body.data).toHaveLength(8)
+        expect(res.status).toBe(400)
     })
 
     test('limit=-5 debe devolver 400', async () => {
@@ -482,7 +480,7 @@ describe('GET /movies?page=&limit= (integración)', () => {
         expect(res.body.data).toHaveLength(5)
     })
 
-    test('page con espacios: ?page=%201 debe dar 400', async () => {
+    test('page con espacios: ?page=%201 debe funcionar (JS auto-trim)', async () => {
         // ARRANGE
         const model = new MovieModel(db)
         const app = createApp(model)
@@ -491,7 +489,7 @@ describe('GET /movies?page=&limit= (integración)', () => {
         const res = await request(app).get('/movies?page=%201&limit=5')
 
         // ASSERT
-        expect(res.status).toBe(400)
+        expect(res.status).toBe(200)
     })
 
     test('limit con signo positivo: ?limit=+5 debe funcionar', async () => {

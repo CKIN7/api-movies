@@ -1,5 +1,5 @@
 import MovieModel from "../models/Movie-mysql";
-import { GetMoviesParams, MovieInput } from "../types/movie";
+import { GetMoviesParams, MovieInput, MovieRow, PaginatedResponse } from "../types/movie";
 import AppError from "../utils/AppError";
 import logger from "../utils/logger";
 
@@ -10,7 +10,7 @@ class MovieService {
         this.movieModel = movieModels || new MovieModel()
     }
 
-    getMovies = async (params: GetMoviesParams) => {
+    getMovies = async (params: GetMoviesParams): Promise<PaginatedResponse<MovieRow[]>> => {
         try {
 
             if(params.sort !== undefined && typeof params.sort !== "string"){

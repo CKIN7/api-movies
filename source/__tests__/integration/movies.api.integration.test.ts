@@ -27,8 +27,8 @@ describe('GET /movies (integración real con DB)', () => {
         const res = await request(app).get('/movies')
 
         expect(res.status).toBe(200)
-        expect(Array.isArray(res.body)).toBe(true)
-        expect(res.body.length).toBeGreaterThanOrEqual(8)
+        expect(Array.isArray(res.body.data)).toBe(true)
+        expect(res.body.data.length).toBeGreaterThanOrEqual(8)
     })
 
     test('debe filtrar por año', async () => {
@@ -38,8 +38,8 @@ describe('GET /movies (integración real con DB)', () => {
         const res = await request(app).get('/movies?year=1994')
 
         expect(res.status).toBe(200)
-        expect(res.body).toHaveLength(3)
-        res.body.forEach((m: any) => expect(m.year).toBe(1994))
+        expect(res.body.data).toHaveLength(3)
+        res.body.data.forEach((m: any) => expect(m.year).toBe(1994))
     })
 
     test('debe filtrar por género', async () => {
@@ -49,8 +49,8 @@ describe('GET /movies (integración real con DB)', () => {
         const res = await request(app).get('/movies?genre=action')
 
         expect(res.status).toBe(200)
-        expect(res.body.length).toBeGreaterThanOrEqual(1)
-        res.body.forEach((m: any) => expect(m.genres.toLowerCase()).toMatch(/action/))
+        expect(res.body.data.length).toBeGreaterThanOrEqual(1)
+        res.body.data.forEach((m: any) => expect(m.genres.toLowerCase()).toMatch(/action/))
     })
 })
 

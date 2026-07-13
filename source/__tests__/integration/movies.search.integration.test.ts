@@ -27,8 +27,8 @@ describe('GET /movies?title= (búsqueda por título)', () => {
         const res = await request(app).get('/movies?title=incept')
 
         expect(res.status).toBe(200)
-        expect(res.body).toHaveLength(1)
-        expect(res.body[0].title.toLowerCase()).toMatch(/incept/)
+        expect(res.body.data).toHaveLength(1)
+        expect(res.body.data[0].title.toLowerCase()).toMatch(/incept/)
     })
 
     test('debe devolver array vacío si no hay coincidencias', async () => {
@@ -38,7 +38,7 @@ describe('GET /movies?title= (búsqueda por título)', () => {
         const res = await request(app).get('/movies?title=xyzxyz')
 
         expect(res.status).toBe(200)
-        expect(res.body).toEqual([])
+        expect(res.body.data).toEqual([])
     })
 
     test('debe devolver múltiples resultados para término compartido', async () => {
@@ -48,8 +48,8 @@ describe('GET /movies?title= (búsqueda por título)', () => {
         const res = await request(app).get('/movies?title=dark')
 
         expect(res.status).toBe(200)
-        expect(res.body.length).toBeGreaterThanOrEqual(3)
-        res.body.forEach((m: any) => expect(m.title.toLowerCase()).toMatch(/dark/))
+        expect(res.body.data.length).toBeGreaterThanOrEqual(3)
+        res.body.data.forEach((m: any) => expect(m.title.toLowerCase()).toMatch(/dark/))
     })
 
     test('debe combinar title con year reduciendo resultados', async () => {
@@ -59,9 +59,9 @@ describe('GET /movies?title= (búsqueda por título)', () => {
         const res = await request(app).get('/movies?title=dark&year=1994')
 
         expect(res.status).toBe(200)
-        expect(res.body).toHaveLength(1)
-        expect(res.body[0].title).toBe('Dark Shadows')
-        expect(res.body[0].year).toBe(1994)
+        expect(res.body.data).toHaveLength(1)
+        expect(res.body.data[0].title).toBe('Dark Shadows')
+        expect(res.body.data[0].year).toBe(1994)
     })
 
     test('debe combinar title con genre', async () => {
@@ -71,8 +71,8 @@ describe('GET /movies?title= (búsqueda por título)', () => {
         const res = await request(app).get('/movies?title=dark&genre=action')
 
         expect(res.status).toBe(200)
-        expect(res.body.length).toBeGreaterThanOrEqual(2)
-        res.body.forEach((m: any) => {
+        expect(res.body.data.length).toBeGreaterThanOrEqual(2)
+        res.body.data.forEach((m: any) => {
             expect(m.title.toLowerCase()).toMatch(/dark/)
             expect(m.genres.toLowerCase()).toMatch(/action/)
         })
@@ -85,9 +85,9 @@ describe('GET /movies?title= (búsqueda por título)', () => {
         const res = await request(app).get('/movies?title=knight&genre=action&year=2008')
 
         expect(res.status).toBe(200)
-        expect(res.body).toHaveLength(1)
-        expect(res.body[0].title).toBe('The Dark Knight')
-        expect(res.body[0].year).toBe(2008)
-        expect(res.body[0].genres.toLowerCase()).toMatch(/action/)
+        expect(res.body.data).toHaveLength(1)
+        expect(res.body.data[0].title).toBe('The Dark Knight')
+        expect(res.body.data[0].year).toBe(2008)
+        expect(res.body.data[0].genres.toLowerCase()).toMatch(/action/)
     })
 })

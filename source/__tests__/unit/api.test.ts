@@ -18,17 +18,19 @@ afterEach(() => {
 describe('GET /movies', () => {
     test('debe devolver lista de películas con status 200', async () => {
         const model = createMockModel()
-        model.getMovies.mockResolvedValue([
+        const fakeMovies = [
             { id: 1, title: 'Inception', year: 2010, director: 'Christopher Nolan', rating: 8.8, duration: 148, plot: '...', poster: '...', genres: 'Action, Sci-Fi' }
-        ])
+        ]
+        model.getMovies.mockResolvedValue({ rows: fakeMovies, total: 1 })
 
         const app = createApp(model as any)
         const res = await request(app).get('/movies')
 
         expect(res.status).toBe(200)
-        expect(res.body).toEqual([
-            { id: 1, title: 'Inception', year: 2010, director: 'Christopher Nolan', rating: 8.8, duration: 148, plot: '...', poster: '...', genres: 'Action, Sci-Fi' }
-        ])
+        expect(res.body).toEqual({
+            data: fakeMovies,
+            meta: { total: 1, page: 1, limit: 10, totalPages: 1 }
+        })
     })
 
     test('debe devolver 500 si el modelo falla', async () => {

@@ -34,7 +34,7 @@ describe('GET /movies?page=&limit= (controlador)', () => {
 
         // ASSERT
         expect(model.getMovies).toHaveBeenCalledWith(
-            expect.objectContaining({ page: '2', limit: '5' })
+            expect.objectContaining({ page: '2', limit: 5, offset: 5 })
         )
     })
 
@@ -60,7 +60,7 @@ describe('GET /movies?page=&limit= (controlador)', () => {
         })
     })
 
-    test('no debe pasar page/limit si no están en query', async () => {
+    test('debe usar defaults page=1 limit=10 si no se pasan en query', async () => {
         // ARRANGE
         const model = createMockModel()
         model.getMovies.mockResolvedValue({ rows: [], total: 0 })
@@ -70,7 +70,9 @@ describe('GET /movies?page=&limit= (controlador)', () => {
         await request(app).get('/movies')
 
         // ASSERT
-        expect(model.getMovies).toHaveBeenCalledWith({})
+        expect(model.getMovies).toHaveBeenCalledWith(
+            expect.objectContaining({ limit: 10, offset: 0, page: undefined })
+        )
     })
 
     test('debe envolver data vacío cuando no hay resultados', async () => {
@@ -99,7 +101,7 @@ describe('GET /movies?page=&limit= (controlador)', () => {
         // ASSERT
         expect(model.getMovies).toHaveBeenCalledWith(
             expect.objectContaining({
-                page: '1', limit: '5', genre: 'action', sort: 'year', order: 'desc'
+                page: '1', limit: 5, offset: 0, genre: 'action', sort: 'year', order: 'desc'
             })
         )
     })
@@ -413,7 +415,7 @@ describe('MovieModel - getMovies con page/limit (modelo)', () => {
         const conn = createMockConnection()
         const model = new MovieModel(conn)
         conn.query
-            .mockResolvedValueOnce([[{ 'COUNT(*)': 0 }]])
+            .mockResolvedValueOnce([[{ total: 0 }]])
             .mockResolvedValueOnce([[]])
 
         // ACT
@@ -421,7 +423,8 @@ describe('MovieModel - getMovies con page/limit (modelo)', () => {
 
         // ASSERT
         const selectQuery = conn.query.mock.calls[1][0] as string
-        expect(selectQuery).toContain('LIMIT 5 OFFSET 0')
+        expect(selectQuery).toContain('LIMIT ? OFFSET ?')
+        expect(conn.query.mock.calls[1][1]).toEqual([5, 0])
     })
 
     test('debe incluir LIMIT 10 OFFSET 20 en SQL para page=3 limit=10', async () => {
@@ -429,7 +432,7 @@ describe('MovieModel - getMovies con page/limit (modelo)', () => {
         const conn = createMockConnection()
         const model = new MovieModel(conn)
         conn.query
-            .mockResolvedValueOnce([[{ 'COUNT(*)': 0 }]])
+            .mockResolvedValueOnce([[{ total: 0 }]])
             .mockResolvedValueOnce([[]])
 
         // ACT
@@ -437,7 +440,8 @@ describe('MovieModel - getMovies con page/limit (modelo)', () => {
 
         // ASSERT
         const selectQuery = conn.query.mock.calls[1][0] as string
-        expect(selectQuery).toContain('LIMIT 10 OFFSET 20')
+        expect(selectQuery).toContain('LIMIT ? OFFSET ?')
+        expect(conn.query.mock.calls[1][1]).toEqual([10, 20])
     })
 
     test('debe combinar LIMIT/OFFSET con WHERE y ORDER BY', async () => {
@@ -445,7 +449,7 @@ describe('MovieModel - getMovies con page/limit (modelo)', () => {
         const conn = createMockConnection()
         const model = new MovieModel(conn)
         conn.query
-            .mockResolvedValueOnce([[{ 'COUNT(*)': 0 }]])
+            .mockResolvedValueOnce([[{ total: 0 }]])
             .mockResolvedValueOnce([[]])
 
         // ACT
@@ -458,7 +462,7 @@ describe('MovieModel - getMovies con page/limit (modelo)', () => {
         const selectQuery = conn.query.mock.calls[1][0] as string
         expect(selectQuery).toContain('WHERE')
         expect(selectQuery).toContain('ORDER BY')
-        expect(selectQuery).toContain('LIMIT 5 OFFSET 0')
+        expect(selectQuery).toContain('LIMIT ? OFFSET ?')
         expect(selectQuery.indexOf('ORDER BY')).toBeLessThan(selectQuery.indexOf('LIMIT'))
     })
 
@@ -467,7 +471,7 @@ describe('MovieModel - getMovies con page/limit (modelo)', () => {
         const conn = createMockConnection()
         const model = new MovieModel(conn)
         conn.query
-            .mockResolvedValueOnce([[{ 'COUNT(*)': 8 }]])
+            .mockResolvedValueOnce([[{ total: 8 }]])
             .mockResolvedValueOnce([[]])
 
         // ACT
@@ -477,41 +481,28 @@ describe('MovieModel - getMovies con page/limit (modelo)', () => {
         const countQuery  = conn.query.mock.calls[0][0] as string
         const selectQuery = conn.query.mock.calls[1][0] as string
         expect(countQuery).toMatch(/COUNT/i)
-        expect(selectQuery).toContain('LIMIT 5 OFFSET 0')
+        expect(selectQuery).toContain('LIMIT ? OFFSET ?')
+        expect(conn.query.mock.calls[1][1]).toEqual([5, 0])
         expect(result).toEqual({ rows: [], total: 8 })
     })
 
-    test('debe mantener compatibilidad cuando NO se pasan page/limit', async () => {
+    test('debe manejar LIMIT/OFFSET con filtros y ORDER BY', async () => {
         // ARRANGE
         const conn = createMockConnection()
         const model = new MovieModel(conn)
-        const fakeRows = [{ id: 1, title: 'Test', year: 2020, director: 'D', rating: 5, duration: 100, plot: 'P', poster: 'U', genres: 'Drama' }]
-        conn.query.mockResolvedValue([fakeRows])
+        conn.query
+            .mockResolvedValueOnce([[{ total: 5 }]])
+            .mockResolvedValueOnce([[]])
 
         // ACT
-        const result = await model.getMovies({})
+        const result = await model.getMovies({ genre: 'action', sort: 'year', order: 'desc', limit: 10, offset: 0 })
 
         // ASSERT
-        const queryStr = conn.query.mock.calls[0][0] as string
-        expect(queryStr).not.toContain('LIMIT')
-        expect(result).toEqual(fakeRows)
-    })
-
-    test('no debe inyectar LIMIT/OFFSET si no se pasan (compatibilidad con sort/filtros)', async () => {
-        // ARRANGE
-        const conn = createMockConnection()
-        const model = new MovieModel(conn)
-        const fakeRows = [{ id: 1, title: 'Test', year: 2020, director: 'D', rating: 5, duration: 100, plot: 'P', poster: 'U', genres: 'Drama' }]
-        conn.query.mockResolvedValue([fakeRows])
-
-        // ACT
-        const result = await model.getMovies({ genre: 'action', sort: 'year', order: 'desc' })
-
-        // ASSERT
-        const queryStr = conn.query.mock.calls[0][0] as string
-        expect(queryStr).toContain('WHERE')
-        expect(queryStr).toContain('ORDER BY')
-        expect(queryStr).not.toContain('LIMIT')
-        expect(result).toEqual(fakeRows)
+        const selectQuery = conn.query.mock.calls[1][0] as string
+        expect(selectQuery).toContain('WHERE')
+        expect(selectQuery).toContain('ORDER BY')
+        expect(selectQuery).toContain('LIMIT ? OFFSET ?')
+        expect(conn.query.mock.calls[1][1]).toEqual(['action', 10, 0])
+        expect(result).toEqual({ rows: [], total: 5 })
     })
 })

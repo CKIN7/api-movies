@@ -17,36 +17,42 @@ describe('MovieService - getMovies', () => {
         const fakeMovies = [
             { id: 1, title: 'Inception', year: 2010, director: 'Christopher Nolan', rating: 8.8, duration: 148, plot: '...', poster: '...', genres: 'Action, Sci-Fi' }
         ]
-        mockModel.getMovies.mockResolvedValue(fakeMovies)
+        mockModel.getMovies.mockResolvedValue({ rows: fakeMovies, total: 1 })
         const service = new MovieService(mockModel as any)
 
         const result = await service.getMovies({ genre: 'action' })
 
-        // Escribe aquí tu assert:
-        expect(result).toEqual(fakeMovies)
-        expect(mockModel.getMovies).toHaveBeenCalledWith({ genre: 'action' })
+        expect(result).toEqual({
+            data: fakeMovies,
+            meta: { total: 1, page: 1, limit: 10, totalPages: 1 }
+        })
+        expect(mockModel.getMovies).toHaveBeenCalledWith(
+            expect.objectContaining({ genre: 'action', limit: 10, offset: 0 })
+        )
     })
 
     test('debe llamar al modelo con los parámetros correctos', async () => {
         const mockModel = createMockModel()
-        mockModel.getMovies.mockResolvedValue([])
+        mockModel.getMovies.mockResolvedValue({ rows: [], total: 0 })
         const service = new MovieService(mockModel as any)
 
         await service.getMovies({ title: 'incept', year: '2010' })
 
-        // Escribe aquí tu assert:
-        expect(mockModel.getMovies).toHaveBeenCalledWith({ title: 'incept', year: '2010' })
+        expect(mockModel.getMovies).toHaveBeenCalledWith(
+            expect.objectContaining({ title: 'incept', year: '2010' })
+        )
     })
 
     test('debe llamar al modelo sin parámetros cuando no se pasan filtros', async () => {
         const mockModel = createMockModel()
-        mockModel.getMovies.mockResolvedValue([])
+        mockModel.getMovies.mockResolvedValue({ rows: [], total: 0 })
         const service = new MovieService(mockModel as any)
 
         await service.getMovies({})
 
-        // Escribe aquí tu assert:
-        expect(mockModel.getMovies).toHaveBeenCalledWith({})
+        expect(mockModel.getMovies).toHaveBeenCalledWith(
+            expect.objectContaining({ limit: 10, offset: 0 })
+        )
     })
 
     test('debe lanzar AppError con status 500 si el modelo falla', async () => {
@@ -54,7 +60,6 @@ describe('MovieService - getMovies', () => {
         mockModel.getMovies.mockRejectedValue(new Error('DB error'))
         const service = new MovieService(mockModel as any)
 
-        // Escribe aquí tu assert:
         await expect(service.getMovies({})).rejects.toThrow(AppError)
     })
 })
