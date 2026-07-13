@@ -61,9 +61,18 @@ class MovieModel {
             params.push(`%${title}%`)
         }
 
+        let countQuery = `SELECT COUNT(DISTINCT m.id) as total FROM movies
+        JOIN directors d ON m.id_director = d.director_id
+        JOIN movie_genres mg ON m.id = mg.movie_id 
+        JOIN genres g ON mg.genre_id = g.id_genre`
+
         if(conditions.length > 0){
           query += ` WHERE ${conditions.join(' AND ')}`
+          countQuery += ` WHERE ${conditions.join(' AND ')}`
         }
+
+        const [countResult] = await this.query(countQuery,[...params])
+        const total = countResult[0].total
 
         query += ` GROUP BY m.id`
 
@@ -72,8 +81,12 @@ class MovieModel {
             query += ` ORDER BY m.${sort} ${direction}`
         }
 
+        query += ` LIMIT ? OFFSET ?`
+        params.push(limit, offset)
+        
         const [rows] = await this.query(query, params)
-        return rows as MovieRow[]
+        //Sin backward compat
+        return {rows: rows as MovieRow[], total}
 
        
         
