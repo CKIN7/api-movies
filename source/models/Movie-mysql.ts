@@ -1,4 +1,4 @@
-import { MovieRow, MovieInput } from '../types/movie'
+import { MovieRow, MovieInput, GetMoviesQuery } from '../types/movie'
 import AppError from '../utils/AppError'
 import { DbLogger } from '../utils/DbLogger'
 import logger from '../utils/logger'
@@ -26,7 +26,7 @@ class MovieModel {
         return await DbLogger.query('query', sql, params || [], () => this.conn.query(sql, params)) as any
     }
 
-    async getMovies({genre, year, title, sort, order}: {genre?: string, year?: string, title?: string, sort?: string, order?: string} = {}) {
+    async getMovies({genre, year, title, sort, order, limit, offset}: GetMoviesQuery) {
         let query = `
         SELECT m.id, m.title, m.year, d.director_name as director, m.rating, m.duration, m.plot, m.poster,
         GROUP_CONCAT(genre_name ORDER BY genre_name SEPARATOR ', ') AS genres 

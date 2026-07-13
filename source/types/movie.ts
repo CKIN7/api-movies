@@ -24,3 +24,13 @@ export interface GetMoviesParams {
     page?: string
     limit?: string
 }
+
+export interface GetMoviesQuery {
+    genre?: string
+    year?: string
+    title?: string
+    sort?: string
+    order?: string
+    limit: number
+    offset: number
+}
