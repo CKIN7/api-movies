@@ -1,0 +1,54 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Debug API",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["tsx"],
+      "args": ["${workspaceFolder}/source/api.ts"],
+      "cwd": "${workspaceFolder}/source",
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen",
+      "skipFiles": ["<node_internals>/**"],
+      "envFile": "${workspaceFolder}/source/.env"
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Debug Jest Tests",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["jest"],
+      "args": [
+        "--config",
+        "${workspaceFolder}/source/jest.config.js",
+        "--runInBand",
+        "--no-cache"
+      ],
+      "cwd": "${workspaceFolder}/source",
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen",
+      "skipFiles": ["<node_internals>/**"]
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Debug Jest Current File",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["jest"],
+      "args": [
+        "--config",
+        "${workspaceFolder}/source/jest.config.js",
+        "--runInBand",
+        "--no-cache",
+        "--testPathPatterns",
+        "${file}"
+      ],
+      "cwd": "${workspaceFolder}/source",
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen",
+      "skipFiles": ["<node_internals>/**"]
+    }
+  ]
+}
