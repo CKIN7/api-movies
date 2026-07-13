@@ -6,6 +6,7 @@ import AppError from './utils/AppError'
 import logger from './utils/logger'
 import { requestLogger } from './middleware/requestLogger'
 import type { Request, Response, NextFunction } from 'express'
+import connection from './db/connection'
 
 export function createApp(movieModel?: MovieModel) {
     const app = express()
@@ -13,8 +14,11 @@ export function createApp(movieModel?: MovieModel) {
     app.disable('x-powered-by')
     app.use(express.json())
     app.use(requestLogger)
+    
+    const conn = connection
 
-    const model = movieModel || new MovieModel()
+    const model = movieModel || new MovieModel(conn)
+    // const auditLogModel = new 
     const controller = new MovieController(model)
     const router = createMovieRoutes(controller)
 

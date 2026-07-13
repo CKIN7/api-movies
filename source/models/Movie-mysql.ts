@@ -7,19 +7,7 @@ class MovieModel {
     private conn: any
 
     constructor(conn?: any) {
-        if (conn) {
-            this.conn = conn
-        } else {
-            const mysql = require('mysql2')
-            require('dotenv').config()
-            this.conn = mysql.createConnection({
-                host: process.env.DB_HOST,
-                user: process.env.DB_USER || process.env.DB_user,
-                password: process.env.DB_PASSWORD,
-                database: process.env.DB_NAME,
-                port: Number(process.env.DB_PORT) || 3306
-            }).promise()
-        }
+        this.conn = conn;
     }
 
     private async query(sql: string, params?: any[]) {
