@@ -1,5 +1,5 @@
 import MovieModel from "../models/Movie-mysql";
-import { MovieInput } from "../types/movie";
+import { GetMoviesParams, MovieInput } from "../types/movie";
 import AppError from "../utils/AppError";
 import logger from "../utils/logger";
 
@@ -10,7 +10,7 @@ class MovieService {
         this.movieModel = movieModels || new MovieModel()
     }
 
-    getMovies = async (params: {genre?: string, year?: string, title?: string, sort?: string, order?: string}) => {
+    getMovies = async (params: GetMoviesParams) => {
         try {
 
             if(params.sort !== undefined && typeof params.sort !== "string"){
@@ -20,6 +20,49 @@ class MovieService {
             if(params.order !== undefined && typeof params.order !== "string"){
                 throw new AppError('No se permiten parámetros duplicados en "order"',400)
             }
+
+            if(params.page !== undefined){
+                
+                if(typeof params.page !== "string"){
+                    throw new AppError('No se permiten parámetros duplicados en "page"',400)
+                }
+
+                if(params.page === ""){
+                throw new AppError("page no puede estar vacío", 400)
+                }
+
+                const pageNum = Number(params.page)
+
+                if(!Number.isInteger(pageNum) || pageNum < 1){
+                    throw new AppError("page debe ser un entero positivo", 400)
+                }
+                
+            }
+
+            if (params.limit !== undefined) {
+                
+                if(typeof params.limit !== "string"){
+                    throw new AppError('No se permiten parámetros duplicados en "limit"',400)
+                }
+
+                if (params.limit === "") {
+                    throw new AppError("limit no puede estar vacío", 400)
+                }
+
+                const limitNum = Number(params.limit)
+
+                if(!Number.isInteger(limitNum) || limitNum < 1 || limitNum > 100){
+                    throw new AppError("limit debe ser un entero entre 1 y 100", 400)
+                }
+            }
+
+            const page = params.page !== undefined ? parseInt(params.page, 10) : 1
+            const limit = params.limit !== undefined ? parseInt(params.limit, 10) : 10
+
+            const offset = (page - 1) * limit
+
+
+
 
             const sort = params.sort?.toLowerCase();
             let order = params.order?.toLowerCase();
@@ -41,7 +84,9 @@ class MovieService {
 
             const normalizedParams = {
                 ...params,
-                order
+                order,
+                limit,
+                offset
             }
             
             return await this.movieModel.getMovies(normalizedParams)

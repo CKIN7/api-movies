@@ -3,6 +3,7 @@ import MovieModel from '../models/Movie-mysql'
 import type { Request, Response } from 'express'
 import MovieService from '../services/movieService'
 import logger from '../utils/logger'
+import { GetMoviesParams } from '../types/movie'
 
 class MovieController {
     private movieModel: MovieModel
@@ -15,9 +16,9 @@ class MovieController {
 
     getAll = async (req: Request, resp: Response) => {
 
-    const { genre, year, title, sort, order } = req.query as { genre?: string, year?: string, title?: string, sort?: string, order?: string }
+    const { genre, year, title, sort, order, page, limit } = req.query as GetMoviesParams
 
-    const movieFiltered = await this.movieService.getMovies({genre, year, title, sort, order})
+    const movieFiltered = await this.movieService.getMovies({genre, year, title, sort, order, page, limit})
 
     resp.json(movieFiltered)
 }

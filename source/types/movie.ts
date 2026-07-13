@@ -14,3 +14,13 @@ export interface MovieRow {
     poster: string
     genres: string
 }
+
+export interface GetMoviesParams {
+    genre?: string
+    year?: string
+    title?: string
+    sort?: string
+    order?: string
+    page?: string
+    limit?: string
+}
