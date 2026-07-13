@@ -49,6 +49,35 @@
       "console": "integratedTerminal",
       "internalConsoleOptions": "neverOpen",
       "skipFiles": ["<node_internals>/**"]
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Debug Jest Test by Name",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["jest"],
+      "args": [
+        "--config",
+        "${workspaceFolder}/source/jest.config.js",
+        "--runInBand",
+        "--no-cache",
+        "--testPathPatterns",
+        "${file}",
+        "--testNamePattern",
+        "${input:testPattern}"
+      ],
+      "cwd": "${workspaceFolder}/source",
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen",
+      "skipFiles": ["<node_internals>/**"]
+    }
+  ],
+  "inputs": [
+    {
+      "type": "promptString",
+      "id": "testPattern",
+      "description": "Filtro por nombre del test (regex, ej: debe devolver)",
+      "default": ".*"
     }
   ]
 }
