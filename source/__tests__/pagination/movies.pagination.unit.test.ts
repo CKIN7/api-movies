@@ -282,13 +282,19 @@ describe('MovieService - getMovies con page/limit (servicio)', () => {
             .rejects.toThrow(AppError)
     })
 
-    test('debe lanzar AppError 400 si page es string vacío', async () => {
+    test('page vacío debe usar default page=1', async () => {
         // ARRANGE
-        const service = new MovieService(createMockModel())
+        const model = createMockModel()
+        model.getMovies.mockResolvedValue({ rows: [], total: 0 })
+        const service = new MovieService(model)
 
-        // ACT + ASSERT
-        await expect(service.getMovies({ page: '' }))
-            .rejects.toThrow(AppError)
+        // ACT
+        await service.getMovies({ page: '' })
+
+        // ASSERT
+        expect(model.getMovies).toHaveBeenCalledWith(
+            expect.objectContaining({ limit: 10, offset: 0 })
+        )
     })
 
     // --- VALIDACIONES: limit ---
@@ -362,13 +368,19 @@ describe('MovieService - getMovies con page/limit (servicio)', () => {
             .rejects.toThrow(AppError)
     })
 
-    test('debe lanzar AppError 400 si limit es string vacío', async () => {
+    test('limit vacío debe usar default limit=10', async () => {
         // ARRANGE
-        const service = new MovieService(createMockModel())
+        const model = createMockModel()
+        model.getMovies.mockResolvedValue({ rows: [], total: 0 })
+        const service = new MovieService(model)
 
-        // ACT + ASSERT
-        await expect(service.getMovies({ limit: '' }))
-            .rejects.toThrow(AppError)
+        // ACT
+        await service.getMovies({ limit: '' })
+
+        // ASSERT
+        expect(model.getMovies).toHaveBeenCalledWith(
+            expect.objectContaining({ limit: 10, offset: 0 })
+        )
     })
 
     // --- PROPAGACIÓN DE ERRORES ---

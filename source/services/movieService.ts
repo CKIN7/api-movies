@@ -21,15 +21,15 @@ class MovieService {
                 throw new AppError('No se permiten parámetros duplicados en "order"',400)
             }
 
+            if(params.page === "") delete params.page
+
             if(params.page !== undefined){
                 
                 if(typeof params.page !== "string"){
                     throw new AppError('No se permiten parámetros duplicados en "page"',400)
                 }
 
-                if(params.page === ""){
-                throw new AppError("page no puede estar vacío", 400)
-                }
+                
 
                 const pageNum = Number(params.page)
 
@@ -38,6 +38,8 @@ class MovieService {
                 }
                 
             }
+
+            if(params.limit === "") delete params.limit
 
             if (params.limit !== undefined) {
                 

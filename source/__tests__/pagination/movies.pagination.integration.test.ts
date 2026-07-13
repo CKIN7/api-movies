@@ -166,7 +166,7 @@ describe('GET /movies?page=&limit= (integración)', () => {
         expect(res.body).toHaveProperty('error')
     })
 
-    test('page vacío debe devolver 400', async () => {
+    test('page vacío debe usar default page=1', async () => {
         // ARRANGE
         const model = new MovieModel(db)
         const app = createApp(model)
@@ -175,7 +175,9 @@ describe('GET /movies?page=&limit= (integración)', () => {
         const res = await request(app).get('/movies?page=&limit=5')
 
         // ASSERT
-        expect(res.status).toBe(400)
+        expect(res.status).toBe(200)
+        expect(res.body.meta.page).toBe(1)
+        expect(res.body.data).toHaveLength(5)
     })
 
     test('params duplicados page=1&page=2 debe devolver 400', async () => {
@@ -245,7 +247,7 @@ describe('GET /movies?page=&limit= (integración)', () => {
         expect(res.body).toHaveProperty('error')
     })
 
-    test('limit vacío debe devolver 400', async () => {
+    test('limit vacío debe usar default limit=10', async () => {
         // ARRANGE
         const model = new MovieModel(db)
         const app = createApp(model)
@@ -254,7 +256,8 @@ describe('GET /movies?page=&limit= (integración)', () => {
         const res = await request(app).get('/movies?page=1&limit=')
 
         // ASSERT
-        expect(res.status).toBe(400)
+        expect(res.status).toBe(200)
+        expect(res.body.meta.limit).toBe(10)
     })
 
     test('limit=-5 debe devolver 400', async () => {
