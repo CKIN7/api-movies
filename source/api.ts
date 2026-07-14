@@ -7,6 +7,7 @@ import logger from './utils/logger'
 import { requestLogger } from './middleware/requestLogger'
 import type { Request, Response, NextFunction } from 'express'
 import connection from './db/connection'
+import AuditLogModel from './models/AuditLog'
 
 export function createApp(movieModel?: MovieModel) {
     const app = express()
@@ -18,8 +19,8 @@ export function createApp(movieModel?: MovieModel) {
     const conn = connection
 
     const model = movieModel || new MovieModel(conn)
-    // const auditLogModel = new 
-    const controller = new MovieController(model)
+    const auditLogModel = new AuditLogModel(conn)
+    const controller = new MovieController(auditLogModel, model)
     const router = createMovieRoutes(controller)
 
     app.use('/movies', router)

@@ -1,3 +1,4 @@
+import AuditLogModel from "../models/AuditLog";
 import MovieModel from "../models/Movie-mysql";
 import { GetMoviesParams, MovieInput, MovieRow, PaginatedResponse } from "../types/movie";
 import AppError from "../utils/AppError";
@@ -5,9 +6,11 @@ import logger from "../utils/logger";
 
 class MovieService {
     private movieModel: MovieModel
-
-    constructor(movieModels?: MovieModel) { 
+    private auditLogModel: AuditLogModel
+    
+    constructor(auditLogModel: AuditLogModel, movieModels?: MovieModel) { 
         this.movieModel = movieModels || new MovieModel()
+        this.auditLogModel = auditLogModel || new AuditLogModel()
     }
 
     getMovies = async (params: GetMoviesParams): Promise<PaginatedResponse<MovieRow[]>> => {

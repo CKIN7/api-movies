@@ -9,9 +9,8 @@ class AuditLogModel {
     }
 
     private async query(sql: string, params?: any[]) {
-            return await DbLogger.query('query', sql, params || [], () => this.conn.query(sql, params)) as any
-        }
-    
+        return await DbLogger.query('query', sql, params || [], () => this.conn.query(sql, params)) as any
+    }
 
     async getByMovieId({ movieId, field, limit, offset }: AuditLogParams): Promise<AuditLogEntry[]>{
         
@@ -42,7 +41,7 @@ class AuditLogModel {
         return rows as AuditLogEntry[]
     }
 
-    async countMovieById(movieId:number, field?: string): Promise<number> {
+    async countByMovieId(movieId: number, field?: string): Promise<number> {
         
         let sql = `
          SELECT COUNT(*) as total FROM audit_log
@@ -52,11 +51,18 @@ class AuditLogModel {
         
         if (field) { sql += ` AND field_name = ?`; params.push(field) }
 
-        const result = await this.conn.query(sql, params)
+        const [rows] = await this.query(sql, params)
 
-        return result[0].total
+        return rows[0].total as number
     }
-    
+
+    async record(movieId: number, fieldName: string, oldValue: string | null, newValue: string): Promise<void> {
+        await this.query(
+            `INSERT INTO audit_log (movie_id, field_name, old_value, new_value)
+             VALUES (?, ?, ?, ?)`,
+            [movieId, fieldName, oldValue, newValue]
+        )
+    }
 }
 
 export default AuditLogModel

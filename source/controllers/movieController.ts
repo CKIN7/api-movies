@@ -4,14 +4,17 @@ import type { Request, Response } from 'express'
 import MovieService from '../services/movieService'
 import logger from '../utils/logger'
 import { GetMoviesParams } from '../types/movie'
+import AuditLogModel from '../models/AuditLog'
 
 class MovieController {
     private movieModel: MovieModel
     private movieService: MovieService
+    private auditLogModel: AuditLogModel
 
-    constructor(movieModel?: MovieModel) {
+    constructor(auditLogModel: AuditLogModel, movieModel?: MovieModel) {
         this.movieModel = movieModel || new MovieModel()
-        this.movieService = new MovieService(this.movieModel)
+        this.auditLogModel = auditLogModel || new AuditLogModel()
+        this.movieService = new MovieService(this.auditLogModel,this.movieModel)
     }
 
     getAll = async (req: Request, resp: Response) => {
@@ -83,6 +86,9 @@ class MovieController {
     resp.status(200).json({ message: 'Pelicula borrada con exito' })
     }
     
+    getAuditLog = async () => {
+        
+    }
 }
 
 export default MovieController
