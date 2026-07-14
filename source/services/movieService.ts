@@ -135,6 +135,16 @@ class MovieService {
 
     getAuditLog = async (query: AuditLogQuery) => {
         
+        try {
+            
+            const movie = await this.movieModel.getMovieById(String(query.id));
+            if(!movie) throw new AppError('Película no encontrada', 404);
+
+            
+            
+        } catch (error) {
+            
+        }
         
     }
 }
