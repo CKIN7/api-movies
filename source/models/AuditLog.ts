@@ -56,7 +56,7 @@ class AuditLogModel {
         return rows[0].total as number
     }
 
-    async record(movieId: number, fieldName: string, oldValue: string | null, newValue: string): Promise<void> {
+    async record(movieId: number, fieldName: string, oldValue: string | null, newValue: string | number): Promise<void> {
         await this.query(
             `INSERT INTO audit_log (movie_id, field_name, old_value, new_value)
              VALUES (?, ?, ?, ?)`,

@@ -2,12 +2,15 @@ import { MovieRow, MovieInput, GetMoviesQuery } from '../types/movie'
 import AppError from '../utils/AppError'
 import { DbLogger } from '../utils/DbLogger'
 import logger from '../utils/logger'
+import AuditLogModel from './AuditLog'
 
 class MovieModel {
     private conn: any
+    private auditLog: AuditLogModel
 
-    constructor(conn?: any) {
+    constructor(auditLogModel: AuditLogModel, conn?: any) {
         this.conn = conn;
+        this.auditLog = auditLogModel
     }
 
     private async query(sql: string, params?: any[]) {
@@ -145,6 +148,9 @@ class MovieModel {
         }
 
         }
+        
+        await this.auditLog.record(movieId, 'rating', null, rating)
+
         await this.conn.commit()
         
         return this.getMovieById(movieId);

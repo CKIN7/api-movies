@@ -18,8 +18,8 @@ export function createApp(movieModel?: MovieModel) {
     
     const conn = connection
 
-    const model = movieModel || new MovieModel(conn)
     const auditLogModel = new AuditLogModel(conn)
+    const model = movieModel || new MovieModel(auditLogModel,conn)
     const controller = new MovieController(auditLogModel, model)
     const router = createMovieRoutes(controller)
 
