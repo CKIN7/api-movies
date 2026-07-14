@@ -1,3 +1,8 @@
+import { z } from 'zod'
+import { auditLogQuerySchema } from '../schemas/auditLogQuerySchema'
+
+export type AuditLogQuery = z.infer<typeof auditLogQuerySchema>
+
 export interface AuditLogEntry {
     id: number
     movieId: number

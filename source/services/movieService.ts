@@ -1,5 +1,6 @@
 import AuditLogModel from "../models/AuditLog";
 import MovieModel from "../models/Movie-mysql";
+import { AuditLogQuery } from "../types/auditLog";
 import { GetMoviesParams, MovieInput, MovieRow, PaginatedResponse } from "../types/movie";
 import AppError from "../utils/AppError";
 import logger from "../utils/logger";
@@ -10,7 +11,7 @@ class MovieService {
     
     constructor(auditLogModel: AuditLogModel, movieModels?: MovieModel) { 
         this.movieModel = movieModels || new MovieModel()
-        this.auditLogModel = auditLogModel || new AuditLogModel()
+        this.auditLogModel = auditLogModel
     }
 
     getMovies = async (params: GetMoviesParams): Promise<PaginatedResponse<MovieRow[]>> => {
@@ -130,6 +131,11 @@ class MovieService {
             logger.error(`Error en createMovie: ${(error as Error).message}`)
             throw new AppError('Pelicula no encontrada (msg personalizado con status code para el cliente)', 500)
         }
+    }
+
+    getAuditLog = async (query: AuditLogQuery) => {
+        
+        
     }
 }
 
