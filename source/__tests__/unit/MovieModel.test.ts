@@ -32,11 +32,11 @@ describe('MovieRepository - findMany', () => {
             .mockResolvedValueOnce([[{ total: 0 }]])
             .mockResolvedValueOnce([[]])
 
-        await repo.findMany({ year: '1994', limit: 10, offset: 0 })
+        await repo.findMany({ year: 1994, limit: 10, offset: 0 })
 
         const queryStr = conn.query.mock.calls[1][0] as string
         expect(queryStr).toContain('m.year = ?')
-        expect(conn.query.mock.calls[1][1]).toContain('1994')
+        expect(conn.query.mock.calls[1][1]).toContain(1994)
     })
 
     test('debe filtrar por género', async () => {

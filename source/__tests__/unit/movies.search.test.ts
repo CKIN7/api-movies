@@ -80,7 +80,7 @@ describe('MovieRepository - getMovies con title (repositorio)', () => {
             .mockResolvedValueOnce([[{ total: 0 }]])
             .mockResolvedValueOnce([[]])
 
-        await repo.findMany({ title: 'dark', genre: 'action', year: '2008', limit: 10, offset: 0 })
+        await repo.findMany({ title: 'dark', genre: 'action', year: 2008, limit: 10, offset: 0 })
 
         const queryStr = conn.query.mock.calls[1][0] as string
         expect(queryStr).toContain('m.title LIKE ?')

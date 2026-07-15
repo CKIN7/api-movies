@@ -28,7 +28,7 @@ class MovieService {
 
             const result = await this.movieRepo.findMany({
                 genre: params.genre,
-                year: params.year !== undefined ? String(params.year) : undefined,
+                year: params.year,
                 title: params.title,
                 sort: params.sort,
                 order: params.order,

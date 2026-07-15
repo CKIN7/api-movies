@@ -31,7 +31,7 @@ export interface GetMoviesParams {
 
 export interface GetMoviesQuery {
     genre?: string
-    year?: string
+    year?: number
     title?: string
     sort?: string
     order?: string
