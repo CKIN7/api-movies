@@ -4,14 +4,18 @@ import type { Request, Response } from 'express'
 import MovieService from '../services/movieService'
 import logger from '../utils/logger'
 import { GetMoviesParams } from '../types/movie'
+import AuditLogModel from '../models/AuditLog'
+import { auditLogQuerySchema } from '../schemas/auditLogQuerySchema'
 
 class MovieController {
     private movieModel: MovieModel
     private movieService: MovieService
+    private auditLogModel: AuditLogModel
 
-    constructor(movieModel?: MovieModel) {
+    constructor(auditLogModel: AuditLogModel, movieModel?: MovieModel) {
         this.movieModel = movieModel || new MovieModel()
-        this.movieService = new MovieService(this.movieModel)
+        this.auditLogModel = auditLogModel
+        this.movieService = new MovieService(this.auditLogModel,this.movieModel)
     }
 
     getAll = async (req: Request, resp: Response) => {
@@ -83,6 +87,21 @@ class MovieController {
     resp.status(200).json({ message: 'Pelicula borrada con exito' })
     }
     
+    getAuditLog = async (req: Request, resp: Response) => {
+
+        const {id} = req.params
+        const {field, page, limit} = req.query
+
+        const parsed = auditLogQuerySchema.safeParse({id, field, page, limit})
+
+        if(parsed.error){
+            return resp.status(400).json({ error: parsed.error.message })
+        }
+
+        const result = await this.movieService.getAuditLog(parsed.data)
+
+        resp.json(result)
+    }
 }
 
 export default MovieController

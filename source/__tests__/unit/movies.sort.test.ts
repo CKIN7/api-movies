@@ -76,7 +76,7 @@ describe('MovieService - getMovies con sort/order (servicio)', () => {
     test('debe pasar sort y order al modelo tal cual', async () => {
         const model = createMockModel()
         model.getMovies.mockResolvedValue({ rows: [], total: 0 })
-        const service = new MovieService(model)
+        const service = new MovieService({} as any, model)
 
         await service.getMovies({ sort: 'year', order: 'desc' })
 
@@ -87,7 +87,7 @@ describe('MovieService - getMovies con sort/order (servicio)', () => {
 
     test('debe lanzar AppError 400 si sort es inválido', async () => {
         const model = createMockModel()
-        const service = new MovieService(model)
+        const service = new MovieService({} as any, model)
 
         await expect(service.getMovies({ sort: 'invalido' }))
             .rejects.toThrow(AppError)
@@ -95,7 +95,7 @@ describe('MovieService - getMovies con sort/order (servicio)', () => {
 
     test('debe lanzar AppError 400 si sort es un array (params duplicados)', async () => {
         const model = createMockModel()
-        const service = new MovieService(model)
+        const service = new MovieService({} as any, model)
 
         try {
             await service.getMovies({ sort: ['year', 'rating'] as any })
@@ -108,7 +108,7 @@ describe('MovieService - getMovies con sort/order (servicio)', () => {
 
     test('debe lanzar AppError 400 si order es un array (params duplicados)', async () => {
         const model = createMockModel()
-        const service = new MovieService(model)
+        const service = new MovieService({} as any, model)
 
         try {
             await service.getMovies({ sort: 'year', order: ['desc', 'asc'] as any })
@@ -121,7 +121,7 @@ describe('MovieService - getMovies con sort/order (servicio)', () => {
 
     test('debe lanzar AppError 400 si order es inválido', async () => {
         const model = createMockModel()
-        const service = new MovieService(model)
+        const service = new MovieService({} as any, model)
 
         await expect(service.getMovies({ sort: 'year', order: 'invalid' }))
             .rejects.toThrow(AppError)
@@ -130,7 +130,7 @@ describe('MovieService - getMovies con sort/order (servicio)', () => {
     test('debe ignorar order si no hay sort', async () => {
         const model = createMockModel()
         model.getMovies.mockResolvedValue({ rows: [], total: 0 })
-        const service = new MovieService(model)
+        const service = new MovieService({} as any, model)
 
         await service.getMovies({ order: 'desc' })
 

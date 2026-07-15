@@ -1,14 +1,24 @@
+import AuditLogModel from "../models/AuditLog";
 import MovieModel from "../models/Movie-mysql";
+import { AuditLogEntry, AuditLogQuery } from "../types/auditLog";
 import { GetMoviesParams, MovieInput, MovieRow, PaginatedResponse } from "../types/movie";
 import AppError from "../utils/AppError";
 import logger from "../utils/logger";
 
 class MovieService {
     private movieModel: MovieModel
-
-    constructor(movieModels?: MovieModel) { 
+    private auditLogModel: AuditLogModel
+    
+    constructor(auditLogModel: AuditLogModel, movieModels?: MovieModel) { 
         this.movieModel = movieModels || new MovieModel()
+        this.auditLogModel = auditLogModel
     }
+
+    private calcOffset(page: number, limit: number): number {
+        return (page - 1) * limit
+    }
+
+
 
     getMovies = async (params: GetMoviesParams): Promise<PaginatedResponse<MovieRow[]>> => {
         try {
@@ -61,7 +71,7 @@ class MovieService {
             const page = params.page !== undefined ? parseInt(params.page, 10) : 1
             const limit = params.limit !== undefined ? parseInt(params.limit, 10) : 10
 
-            const offset = (page - 1) * limit
+            const offset = this.calcOffset(page,limit);
 
 
 
@@ -127,6 +137,38 @@ class MovieService {
             logger.error(`Error en createMovie: ${(error as Error).message}`)
             throw new AppError('Pelicula no encontrada (msg personalizado con status code para el cliente)', 500)
         }
+    }
+
+    getAuditLog = async (query: AuditLogQuery): Promise<PaginatedResponse<AuditLogEntry[]>> => {
+        
+        try {
+            
+            const movie = await this.movieModel.getMovieById(String(query.id));
+
+            if(!movie) throw new AppError('Película no encontrada', 404);
+
+            const offset = this.calcOffset(query.page, query.limit)
+
+            const { id: movieId, field, page, limit } = query
+            const data = await this.auditLogModel.getByMovieId({movieId, field, limit, offset})
+            
+            const total = await this.auditLogModel.countByMovieId(movieId, query.field)
+
+            const totalPages = Math.ceil(total / limit)
+
+            return {
+                data: data, meta: {total: total, page, limit, totalPages}
+            }
+            
+        } catch (error) {
+            if(error instanceof AppError){
+                throw error
+            }
+
+            logger.error(`Error en createMovie: ${(error as Error).message}`)
+            throw new AppError('Log no encontrado (msg personalizado con status code para el cliente)', 500)
+        }
+        
     }
 }
 
