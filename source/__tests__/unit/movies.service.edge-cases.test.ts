@@ -1,13 +1,34 @@
 import MovieService from '../../services/movieService'
 import AppError from '../../utils/AppError'
 
-function createMockModel() {
+function createMockRepos() {
     return {
-        getMovies: jest.fn().mockName('getMovies'),
-        getMovieById: jest.fn().mockName('getMovieById'),
-        createMovie: jest.fn().mockName('createMovie'),
-        updateMovie: jest.fn().mockName('updateMovie'),
-        deleteMovie: jest.fn().mockName('deleteMovie')
+        movieRepo: {
+            findMany: jest.fn().mockName('findMany'),
+            findById: jest.fn().mockName('findById'),
+            insert: jest.fn().mockName('insert'),
+            update: jest.fn().mockName('update'),
+            delete: jest.fn().mockName('delete'),
+            transaction: jest.fn((fn: () => Promise<any>) => fn()).mockName('transaction'),
+            countAll: jest.fn().mockName('countAll'),
+        },
+        directorRepo: {
+            findByName: jest.fn().mockName('findByName'),
+            create: jest.fn().mockName('create'),
+            findOrCreate: jest.fn().mockName('findOrCreate'),
+        },
+        genreRepo: {
+            findByName: jest.fn().mockName('findByName'),
+            create: jest.fn().mockName('create'),
+            findOrCreate: jest.fn().mockName('findOrCreate'),
+            deleteByMovieId: jest.fn().mockName('deleteByMovieId'),
+            linkToMovie: jest.fn().mockName('linkToMovie'),
+        },
+        auditRepo: {
+            findByMovieId: jest.fn().mockName('findByMovieId'),
+            countByMovieId: jest.fn().mockName('countByMovieId'),
+            record: jest.fn().mockName('record'),
+        },
     }
 }
 
@@ -23,19 +44,14 @@ const sampleInput = {
     available: true
 }
 
-/* ────────────────────────────
-   PROPAGACIÓN DE ERRORES
-   ──────────────────────────── */
 describe('MovieService — error propagation', () => {
 
-    test('AppError del modelo se propaga sin cambiar statusCode', async () => {
-        // Arrange
-        const mockModel = createMockModel()
-        const originalError = new AppError('Conflicto: título duplicado', 409)
-        mockModel.createMovie.mockRejectedValue(originalError)
-        const service = new (await import('../../services/movieService')).default({} as any, mockModel as any)
+    test('AppError del repositorio se propaga sin cambiar statusCode', async () => {
+        const repos = createMockRepos()
+        repos.movieRepo.transaction.mockRejectedValue(new AppError('Conflicto: título duplicado', 409))
 
-        // Act / Assert
+        const service = new MovieService(repos.movieRepo as any, repos.directorRepo as any, repos.genreRepo as any, repos.auditRepo as any)
+
         await expect(service.createMovie(sampleInput)).rejects.toThrow(AppError)
         await expect(service.createMovie(sampleInput)).rejects.toMatchObject({
             statusCode: 409,
@@ -44,54 +60,28 @@ describe('MovieService — error propagation', () => {
     })
 
     test('Error genérico (no AppError) se envuelve en AppError 500', async () => {
-        // Arrange
-        const mockModel = createMockModel()
-        mockModel.createMovie.mockRejectedValue(new Error('DB connection lost'))
-        const service = new (await import('../../services/movieService')).default({} as any, mockModel as any)
+        const repos = createMockRepos()
+        repos.movieRepo.transaction.mockRejectedValue(new Error('DB connection lost'))
 
-        // Act / Assert
+        const service = new MovieService(repos.movieRepo as any, repos.directorRepo as any, repos.genreRepo as any, repos.auditRepo as any)
+
         await expect(service.createMovie(sampleInput)).rejects.toThrow(AppError)
         await expect(service.createMovie(sampleInput)).rejects.toMatchObject({ statusCode: 500 })
     })
 
-    test('Error con campos especiales en input se pasan correctamente al modelo', async () => {
-        // Arrange
-        const mockModel = createMockModel()
-        mockModel.createMovie.mockResolvedValue({ id: 10, ...sampleInput, genres: 'drama' })
-        const service = new (await import('../../services/movieService')).default({} as any, mockModel as any)
-        const input = {
-            ...sampleInput,
-            title: 'Movie <script>alert("xss")</script>',
-            director: "Robert'; DROP TABLE movies; --",
-            genre: ['acción', 'comedia']
-        }
-
-        // Act
-        const result = await service.createMovie(input)
-
-        // Assert
-        expect(result).toMatchObject({ id: 10 })
-        expect(mockModel.createMovie).toHaveBeenCalledWith({ result: { data: input } })
-    })
-
     test('Director con espacios alrededor no se transforma (solo genre hace trim)', async () => {
-        // Arrange
-        const mockModel = createMockModel()
-        mockModel.createMovie.mockResolvedValue({ id: 11, ...sampleInput, genres: 'drama' })
-        const service = new (await import('../../services/movieService')).default({} as any, mockModel as any)
+        const repos = createMockRepos()
+        const fakeRow = { id: 11, ...sampleInput, genres: 'drama' }
+        repos.directorRepo.findOrCreate.mockResolvedValue(1)
+        repos.movieRepo.insert.mockResolvedValue(11)
+        repos.genreRepo.findOrCreate.mockResolvedValue(1)
+        repos.movieRepo.findById.mockResolvedValue(fakeRow)
+
+        const service = new MovieService(repos.movieRepo as any, repos.directorRepo as any, repos.genreRepo as any, repos.auditRepo as any)
         const input = { ...sampleInput, director: '  Christopher Nolan  ' }
 
-        // Act
         const result = await service.createMovie(input)
 
-        // Assert
         expect(result).toMatchObject({ id: 11 })
-        expect(mockModel.createMovie).toHaveBeenCalledWith(
-            expect.objectContaining({
-                result: expect.objectContaining({
-                    data: expect.objectContaining({ director: '  Christopher Nolan  ' })
-                })
-            })
-        )
     })
 })

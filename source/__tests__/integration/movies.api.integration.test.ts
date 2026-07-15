@@ -1,10 +1,22 @@
 import request from 'supertest'
 import { createApp } from '../../api'
-import MovieModel from '../../models/Movie-mysql'
+import MovieService from '../../services/movieService'
+import MovieRepository from '../../repositories/MovieRepository'
+import DirectorRepository from '../../repositories/DirectorRepository'
+import GenreRepository from '../../repositories/GenreRepository'
+import AuditLogRepository from '../../repositories/AuditLogRepository'
 import { setupTestDb, teardownTestDb, clearTestData, seedTestData } from '../helpers/db'
 import type { Connection } from 'mysql2/promise'
 
 let db: Connection
+
+function createTestService() {
+    const movieRepo = new MovieRepository(db)
+    const directorRepo = new DirectorRepository(db)
+    const genreRepo = new GenreRepository(db)
+    const auditRepo = new AuditLogRepository(db)
+    return new MovieService(movieRepo, directorRepo, genreRepo, auditRepo)
+}
 
 beforeAll(async () => {
     db = await setupTestDb()
@@ -21,8 +33,7 @@ beforeEach(async () => {
 
 describe('GET /movies (integración real con DB)', () => {
     test('debe devolver todas las películas', async () => {
-        const model = new MovieModel(db)
-        const app = createApp(model)
+        const app = createApp(createTestService())
 
         const res = await request(app).get('/movies')
 
@@ -32,8 +43,7 @@ describe('GET /movies (integración real con DB)', () => {
     })
 
     test('debe filtrar por año', async () => {
-        const model = new MovieModel(db)
-        const app = createApp(model)
+        const app = createApp(createTestService())
 
         const res = await request(app).get('/movies?year=1994')
 
@@ -43,21 +53,19 @@ describe('GET /movies (integración real con DB)', () => {
     })
 
     test('debe filtrar por género', async () => {
-        const model = new MovieModel(db)
-        const app = createApp(model)
+        const app = createApp(createTestService())
 
         const res = await request(app).get('/movies?genre=action')
 
         expect(res.status).toBe(200)
         expect(res.body.data.length).toBeGreaterThanOrEqual(1)
-        res.body.data.forEach((m: any) => expect(m.genres.toLowerCase()).toMatch(/action/))
+        res.body.data.forEach((m: any) => expect(m.genres.map((g: string) => g.toLowerCase())).toContain('action'))
     })
 })
 
 describe('GET /movies/:id (integración con DB)', () => {
     test('debe devolver una película existente', async () => {
-        const model = new MovieModel(db)
-        const app = createApp(model)
+        const app = createApp(createTestService())
 
         const res = await request(app).get('/movies/1')
 
@@ -67,8 +75,7 @@ describe('GET /movies/:id (integración con DB)', () => {
     })
 
     test('debe devolver 404 si no existe', async () => {
-        const model = new MovieModel(db)
-        const app = createApp(model)
+        const app = createApp(createTestService())
 
         const res = await request(app).get('/movies/9999')
 
@@ -79,8 +86,7 @@ describe('GET /movies/:id (integración con DB)', () => {
 
 describe('POST /movies (integración con DB)', () => {
     test('debe crear y devolver la película completa con id', async () => {
-        const model = new MovieModel(db)
-        const app = createApp(model)
+        const app = createApp(createTestService())
 
         const newMovie = {
             title: 'Test Movie',
@@ -103,17 +109,16 @@ describe('POST /movies (integración con DB)', () => {
             title: 'Test Movie',
             year: 2024,
             director: 'Test Director',
-            rating: expect.any(String),
+            rating: expect.any(Number),
             duration: 120,
             plot: 'A test plot',
             poster: 'https://example.com/test.jpg',
-            genres: expect.stringMatching(/drama/)
+            genres: expect.arrayContaining(['drama'])
         })
     })
 
     test('debe crear con director y género nuevos y devolverlos en la respuesta', async () => {
-        const model = new MovieModel(db)
-        const app = createApp(model)
+        const app = createApp(createTestService())
 
         const newMovie = {
             title: 'Brand New',
@@ -135,18 +140,17 @@ describe('POST /movies (integración con DB)', () => {
             title: 'Brand New',
             year: 2025,
             director: 'Director Inexistente',
-            rating: expect.any(String),
+            rating: expect.any(Number),
             duration: 90,
             plot: 'Brand new plot',
             poster: 'https://example.com/brandnew.jpg',
-            genres: expect.stringMatching(/thriller/)
+            genres: expect.arrayContaining(['thriller'])
         })
         expect(res.body.data.genres).toContain('comedy')
     })
 
     test('debe devolver 400 con datos inválidos', async () => {
-        const model = new MovieModel(db)
-        const app = createApp(model)
+        const app = createApp(createTestService())
 
         const res = await request(app).post('/movies').send({ title: 'Incomplete' })
 
@@ -157,8 +161,7 @@ describe('POST /movies (integración con DB)', () => {
 
 describe('PATCH /movies/:id (integración con DB)', () => {
     test('debe actualizar el título de una película', async () => {
-        const model = new MovieModel(db)
-        const app = createApp(model)
+        const app = createApp(createTestService())
 
         const res = await request(app).patch('/movies/1').send({ title: 'Updated Title' })
 
@@ -167,8 +170,7 @@ describe('PATCH /movies/:id (integración con DB)', () => {
     })
 
     test('debe devolver 404 si no existe', async () => {
-        const model = new MovieModel(db)
-        const app = createApp(model)
+        const app = createApp(createTestService())
 
         const res = await request(app).patch('/movies/9999').send({ title: 'Nope' })
 
@@ -179,8 +181,7 @@ describe('PATCH /movies/:id (integración con DB)', () => {
 
 describe('DELETE /movies/:id (integración con DB)', () => {
     test('debe borrar una película existente', async () => {
-        const model = new MovieModel(db)
-        const app = createApp(model)
+        const app = createApp(createTestService())
 
         const res = await request(app).delete('/movies/1')
 
@@ -189,8 +190,7 @@ describe('DELETE /movies/:id (integración con DB)', () => {
     })
 
     test('debe devolver 404 si no existe', async () => {
-        const model = new MovieModel(db)
-        const app = createApp(model)
+        const app = createApp(createTestService())
 
         const res = await request(app).delete('/movies/9999')
 

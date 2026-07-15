@@ -1,65 +1,96 @@
 import MovieService from '../../services/movieService'
 import AppError from '../../utils/AppError'
 
-function createMockModel() {
+function createMockRepos() {
     return {
-        getMovies: jest.fn().mockName('getMovies'),
-        getMovieById: jest.fn().mockName('getMovieById'),
-        createMovie: jest.fn().mockName('createMovie'),
-        updateMovie: jest.fn().mockName('updateMovie'),
-        deleteMovie: jest.fn().mockName('deleteMovie')
+        movieRepo: {
+            findMany: jest.fn().mockName('findMany'),
+            findById: jest.fn().mockName('findById'),
+            insert: jest.fn().mockName('insert'),
+            update: jest.fn().mockName('update'),
+            delete: jest.fn().mockName('delete'),
+            transaction: jest.fn().mockName('transaction'),
+            countAll: jest.fn().mockName('countAll'),
+        },
+        directorRepo: {
+            findByName: jest.fn().mockName('findByName'),
+            create: jest.fn().mockName('create'),
+            findOrCreate: jest.fn().mockName('findOrCreate'),
+        },
+        genreRepo: {
+            findByName: jest.fn().mockName('findByName'),
+            create: jest.fn().mockName('create'),
+            findOrCreate: jest.fn().mockName('findOrCreate'),
+            deleteByMovieId: jest.fn().mockName('deleteByMovieId'),
+            linkToMovie: jest.fn().mockName('linkToMovie'),
+        },
+        auditRepo: {
+            findByMovieId: jest.fn().mockName('findByMovieId'),
+            countByMovieId: jest.fn().mockName('countByMovieId'),
+            record: jest.fn().mockName('record'),
+        },
     }
 }
 
 describe('MovieService - getMovies', () => {
-    test('debe devolver películas cuando el modelo responde exitosamente', async () => {
-        const mockModel = createMockModel()
+    test('debe devolver películas cuando el repositorio responde exitosamente', async () => {
+        const repos = createMockRepos()
         const fakeMovies = [
             { id: 1, title: 'Inception', year: 2010, director: 'Christopher Nolan', rating: 8.8, duration: 148, plot: '...', poster: '...', genres: 'Action, Sci-Fi' }
         ]
-        mockModel.getMovies.mockResolvedValue({ rows: fakeMovies, total: 1 })
-        const service = new MovieService({} as any, mockModel as any)
+        repos.movieRepo.findMany.mockResolvedValue({ rows: fakeMovies, total: 1 })
+        const service = new MovieService(repos.movieRepo as any, repos.directorRepo as any, repos.genreRepo as any, repos.auditRepo as any)
 
-        const result = await service.getMovies({ genre: 'action' })
+        const result = await service.getMovies({ genre: 'action', page: 1, limit: 10 })
 
         expect(result).toEqual({
-            data: fakeMovies,
+            data: [{
+                id: 1,
+                title: 'Inception',
+                year: 2010,
+                director: 'Christopher Nolan',
+                rating: 8.8,
+                duration: 148,
+                plot: '...',
+                poster: '...',
+                genres: ['Action', 'Sci-Fi']
+            }],
             meta: { total: 1, page: 1, limit: 10, totalPages: 1 }
         })
-        expect(mockModel.getMovies).toHaveBeenCalledWith(
+        expect(repos.movieRepo.findMany).toHaveBeenCalledWith(
             expect.objectContaining({ genre: 'action', limit: 10, offset: 0 })
         )
     })
 
-    test('debe llamar al modelo con los parámetros correctos', async () => {
-        const mockModel = createMockModel()
-        mockModel.getMovies.mockResolvedValue({ rows: [], total: 0 })
-        const service = new MovieService({} as any, mockModel as any)
+    test('debe llamar al repositorio con los parámetros correctos', async () => {
+        const repos = createMockRepos()
+        repos.movieRepo.findMany.mockResolvedValue({ rows: [], total: 0 })
+        const service = new MovieService(repos.movieRepo as any, repos.directorRepo as any, repos.genreRepo as any, repos.auditRepo as any)
 
-        await service.getMovies({ title: 'incept', year: '2010' })
+        await service.getMovies({ title: 'incept', year: 2010, page: 1, limit: 10 })
 
-        expect(mockModel.getMovies).toHaveBeenCalledWith(
-            expect.objectContaining({ title: 'incept', year: '2010' })
+        expect(repos.movieRepo.findMany).toHaveBeenCalledWith(
+            expect.objectContaining({ title: 'incept', limit: 10, offset: 0 })
         )
     })
 
-    test('debe llamar al modelo sin parámetros cuando no se pasan filtros', async () => {
-        const mockModel = createMockModel()
-        mockModel.getMovies.mockResolvedValue({ rows: [], total: 0 })
-        const service = new MovieService({} as any, mockModel as any)
+    test('debe llamar al repositorio sin parámetros cuando no se pasan filtros', async () => {
+        const repos = createMockRepos()
+        repos.movieRepo.findMany.mockResolvedValue({ rows: [], total: 0 })
+        const service = new MovieService(repos.movieRepo as any, repos.directorRepo as any, repos.genreRepo as any, repos.auditRepo as any)
 
-        await service.getMovies({})
+        await service.getMovies({ page: 1, limit: 10 })
 
-        expect(mockModel.getMovies).toHaveBeenCalledWith(
+        expect(repos.movieRepo.findMany).toHaveBeenCalledWith(
             expect.objectContaining({ limit: 10, offset: 0 })
         )
     })
 
-    test('debe lanzar AppError con status 500 si el modelo falla', async () => {
-        const mockModel = createMockModel()
-        mockModel.getMovies.mockRejectedValue(new Error('DB error'))
-        const service = new MovieService({} as any, mockModel as any)
+    test('debe lanzar AppError con status 500 si el repositorio falla', async () => {
+        const repos = createMockRepos()
+        repos.movieRepo.findMany.mockRejectedValue(new Error('DB error'))
+        const service = new MovieService(repos.movieRepo as any, repos.directorRepo as any, repos.genreRepo as any, repos.auditRepo as any)
 
-        await expect(service.getMovies({})).rejects.toThrow(AppError)
+        await expect(service.getMovies({ page: 1, limit: 10 })).rejects.toThrow(AppError)
     })
 })

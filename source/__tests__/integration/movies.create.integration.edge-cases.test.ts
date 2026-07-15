@@ -1,33 +1,31 @@
 import request from 'supertest'
 import { createApp } from '../../api'
-import MovieModel from '../../models/Movie-mysql'
+import MovieService from '../../services/movieService'
+import MovieRepository from '../../repositories/MovieRepository'
+import DirectorRepository from '../../repositories/DirectorRepository'
+import GenreRepository from '../../repositories/GenreRepository'
+import AuditLogRepository from '../../repositories/AuditLogRepository'
 import { setupTestDb, teardownTestDb, clearTestData, seedTestData } from '../helpers/db'
 import type { Connection, RowDataPacket } from 'mysql2/promise'
 
 let db: Connection
 
-beforeAll(async () => {
-    db = await setupTestDb()
-})
+beforeAll(async () => { db = await setupTestDb() })
+afterAll(async () => { await teardownTestDb(db) })
+beforeEach(async () => { await clearTestData(db); await seedTestData(db) })
 
-afterAll(async () => {
-    await teardownTestDb(db)
-})
+function createTestService() {
+    const movieRepo = new MovieRepository(db)
+    const directorRepo = new DirectorRepository(db)
+    const genreRepo = new GenreRepository(db)
+    const auditRepo = new AuditLogRepository(db)
+    return new MovieService(movieRepo, directorRepo, genreRepo, auditRepo)
+}
 
-beforeEach(async () => {
-    await clearTestData(db)
-    await seedTestData(db)
-})
-
-/* ────────────────────────────
-   DIRECTOR + GÉNERO
-   ──────────────────────────── */
 describe('POST /movies — director y género en DB', () => {
 
     test('crear con director existente NO duplica fila en directors', async () => {
-        // Arrange
-        const model = new MovieModel(db)
-        const app = createApp(model)
+        const app = createApp(createTestService())
         const payload = {
             title: 'Otra de Nolan',
             year: 2023,
@@ -40,22 +38,18 @@ describe('POST /movies — director y género en DB', () => {
             available: true
         }
 
-        // Act
         const res = await request(app).post('/movies').send(payload)
         const [rows] = await db.execute(
             `SELECT COUNT(*) AS count FROM directors WHERE director_name = 'Christopher Nolan'`
         ) as unknown as [RowDataPacket[], unknown]
 
-        // Assert
         expect(res.status).toBe(201)
         expect(rows[0].count).toBe(1)
         expect(res.body.data.director).toBe('Christopher Nolan')
     })
 
     test('crear con mezcla de género existente + nuevo', async () => {
-        // Arrange
-        const model = new MovieModel(db)
-        const app = createApp(model)
+        const app = createApp(createTestService())
         const payload = {
             title: 'Género Mixto',
             year: 2024,
@@ -68,13 +62,11 @@ describe('POST /movies — director y género en DB', () => {
             available: true
         }
 
-        // Act
         const res = await request(app).post('/movies').send(payload)
         const [genreRows] = await db.execute(
             `SELECT COUNT(*) AS count FROM genres WHERE genre_name = 'drama'`
         ) as unknown as [RowDataPacket[], unknown]
 
-        // Assert
         expect(res.status).toBe(201)
         expect(res.body.data.genres).toContain('drama')
         expect(res.body.data.genres).toContain('thriller')
@@ -82,9 +74,7 @@ describe('POST /movies — director y género en DB', () => {
     })
 
     test('crear con director nuevo + género nuevo', async () => {
-        // Arrange
-        const model = new MovieModel(db)
-        const app = createApp(model)
+        const app = createApp(createTestService())
         const payload = {
             title: 'Todo Nuevo',
             year: 2025,
@@ -97,10 +87,8 @@ describe('POST /movies — director y género en DB', () => {
             available: true
         }
 
-        // Act
         const res = await request(app).post('/movies').send(payload)
 
-        // Assert
         expect(res.status).toBe(201)
         expect(res.body.data.director).toBe('Directora Nova')
         expect(res.body.data.genres).toContain('musical')
@@ -108,15 +96,10 @@ describe('POST /movies — director y género en DB', () => {
     })
 })
 
-/* ────────────────────────────
-   DUPLICADOS
-   ──────────────────────────── */
 describe('POST /movies — duplicados', () => {
 
     test('crear dos películas con el mismo título debe permitirse (sin unique)', async () => {
-        // Arrange
-        const model = new MovieModel(db)
-        const app = createApp(model)
+        const app = createApp(createTestService())
         const payload = {
             title: 'Título Repetido',
             year: 2020,
@@ -129,20 +112,16 @@ describe('POST /movies — duplicados', () => {
             available: true
         }
 
-        // Act
         const res1 = await request(app).post('/movies').send(payload)
         const res2 = await request(app).post('/movies').send({ ...payload, plot: 'Segunda' })
 
-        // Assert
         expect(res1.status).toBe(201)
         expect(res2.status).toBe(201)
         expect(res1.body.data.id).not.toBe(res2.body.data.id)
     })
 
     test('mismo género con distinto casing se normaliza a lowercase — no duplica', async () => {
-        // Arrange
-        const model = new MovieModel(db)
-        const app = createApp(model)
+        const app = createApp(createTestService())
         const payload = {
             title: 'Casing Genres',
             year: 2022,
@@ -155,28 +134,21 @@ describe('POST /movies — duplicados', () => {
             available: true
         }
 
-        // Act
         const res = await request(app).post('/movies').send(payload)
         const [mgRows] = await db.execute(
             'SELECT COUNT(*) AS count FROM movie_genres WHERE movie_id = ?', [res.body.data.id]
         ) as unknown as [RowDataPacket[], unknown]
 
-        // Assert
         expect(res.status).toBe(201)
         expect(mgRows[0].count).toBe(1)
-        expect(res.body.data.genres).toBe('drama')
+        expect(res.body.data.genres).toEqual(['drama'])
     })
 })
 
-/* ────────────────────────────
-   CARACTERES ESPECIALES
-   ──────────────────────────── */
 describe('POST /movies — caracteres especiales', () => {
 
     test('título con acentos y unicode debe persistir correctamente', async () => {
-        // Arrange
-        const model = new MovieModel(db)
-        const app = createApp(model)
+        const app = createApp(createTestService())
         const payload = {
             title: 'Película Época Ñoña 🎬',
             year: 2024,
@@ -189,19 +161,15 @@ describe('POST /movies — caracteres especiales', () => {
             available: true
         }
 
-        // Act
         const res = await request(app).post('/movies').send(payload)
 
-        // Assert
         expect(res.status).toBe(201)
         expect(res.body.data.title).toBe('Película Época Ñoña 🎬')
         expect(res.body.data.director).toBe('José Martínez')
     })
 
     test('inyección SQL en director no debe romper la DB', async () => {
-        // Arrange
-        const model = new MovieModel(db)
-        const app = createApp(model)
+        const app = createApp(createTestService())
         const payload = {
             title: 'SQL Injection Test',
             year: 2024,
@@ -214,10 +182,8 @@ describe('POST /movies — caracteres especiales', () => {
             available: true
         }
 
-        // Act
         const res = await request(app).post('/movies').send(payload)
 
-        // Assert
         expect(res.status).toBe(201)
         const [movieRows] = await db.execute(
             'SELECT * FROM movies WHERE title = ?', ['SQL Injection Test']
@@ -230,15 +196,10 @@ describe('POST /movies — caracteres especiales', () => {
     })
 })
 
-/* ────────────────────────────
-   AÑO LÍMITE EN DB
-   ──────────────────────────── */
 describe('POST /movies — year límite en DB', () => {
 
     test('year = 2026 (máximo) debe persistir correctamente', async () => {
-        // Arrange
-        const model = new MovieModel(db)
-        const app = createApp(model)
+        const app = createApp(createTestService())
         const payload = {
             title: 'Futuro Cercano',
             year: 2026,
@@ -251,10 +212,8 @@ describe('POST /movies — year límite en DB', () => {
             available: true
         }
 
-        // Act
         const res = await request(app).post('/movies').send(payload)
 
-        // Assert
         expect(res.status).toBe(201)
         expect(Number(res.body.data.year)).toBe(2026)
     })

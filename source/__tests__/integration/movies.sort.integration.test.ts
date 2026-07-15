@@ -1,40 +1,34 @@
 import request from 'supertest'
 import { createApp } from '../../api'
-import MovieModel from '../../models/Movie-mysql'
+import MovieService from '../../services/movieService'
+import MovieRepository from '../../repositories/MovieRepository'
+import DirectorRepository from '../../repositories/DirectorRepository'
+import GenreRepository from '../../repositories/GenreRepository'
+import AuditLogRepository from '../../repositories/AuditLogRepository'
 import { setupTestDb, teardownTestDb, clearTestData, seedTestData } from '../helpers/db'
 import type { Connection } from 'mysql2/promise'
 
 let db: Connection
 
-beforeAll(async () => {
-    db = await setupTestDb()
-})
+beforeAll(async () => { db = await setupTestDb() })
+afterAll(async () => { await teardownTestDb(db) })
+beforeEach(async () => { await clearTestData(db); await seedTestData(db) })
 
-afterAll(async () => {
-    await teardownTestDb(db)
-})
-
-beforeEach(async () => {
-    await clearTestData(db)
-    await seedTestData(db)
-})
+function createTestService() {
+    const movieRepo = new MovieRepository(db)
+    const directorRepo = new DirectorRepository(db)
+    const genreRepo = new GenreRepository(db)
+    const auditRepo = new AuditLogRepository(db)
+    return new MovieService(movieRepo, directorRepo, genreRepo, auditRepo)
+}
 
 describe('GET /movies?sort=&order= (integración)', () => {
 
     test('debe ordenar por año descendente: GET /movies?sort=year&order=desc', async () => {
-        //ARRANGE
-        const model = new MovieModel(db)
-        const app = createApp(model)
+        const app = createApp(createTestService())
 
-        // 1. Hacer GET a /movies?sort=year&order=desc
-        // 2. Assert: status 200
-        // 3. Assert: los años deben estar en orden descendente
-        //    Ej: res.body[i].year >= res.body[i+1].year para cada i
-
-        //ACT
         const res = await request(app).get('/movies?sort=year&order=desc')
-        
-         // Assert: Validar orden descendente de los datos recibidos
+
         const movies = res.body.data
         for (let i = 0; i < movies.length - 1; i++) {
             expect(movies[i].year).toBeGreaterThanOrEqual(movies[i + 1].year)
@@ -42,8 +36,7 @@ describe('GET /movies?sort=&order= (integración)', () => {
     })
 
     test('debe ordenar por rating ascendente: GET /movies?sort=rating&order=asc', async () => {
-        const model = new MovieModel(db)
-        const app = createApp(model)
+        const app = createApp(createTestService())
 
         const res = await request(app).get('/movies?sort=rating&order=asc')
 
@@ -56,8 +49,7 @@ describe('GET /movies?sort=&order= (integración)', () => {
     })
 
     test('debe ordenar por título ascendente por defecto: GET /movies?sort=title', async () => {
-        const model = new MovieModel(db)
-        const app = createApp(model)
+        const app = createApp(createTestService())
 
         const res = await request(app).get('/movies?sort=title')
 
@@ -70,8 +62,7 @@ describe('GET /movies?sort=&order= (integración)', () => {
     })
 
     test('debe devolver 400 si sort es inválido: GET /movies?sort=invalido', async () => {
-        const model = new MovieModel(db)
-        const app = createApp(model)
+        const app = createApp(createTestService())
 
         const res = await request(app).get('/movies?sort=invalido')
 
@@ -80,8 +71,7 @@ describe('GET /movies?sort=&order= (integración)', () => {
     })
 
     test('debe funcionar sin sort (comportamiento actual): GET /movies', async () => {
-        const model = new MovieModel(db)
-        const app = createApp(model)
+        const app = createApp(createTestService())
 
         const res = await request(app).get('/movies')
 
@@ -90,8 +80,7 @@ describe('GET /movies?sort=&order= (integración)', () => {
     })
 
     test('debe combinar sort con filtros existentes: GET /movies?sort=year&order=desc&genre=action', async () => {
-        const model = new MovieModel(db)
-        const app = createApp(model)
+        const app = createApp(createTestService())
 
         const res = await request(app).get('/movies?sort=year&order=desc&genre=action')
 
@@ -99,7 +88,7 @@ describe('GET /movies?sort=&order= (integración)', () => {
 
         const movies = res.body.data
         expect(movies.length).toBeGreaterThan(0)
-        movies.forEach((m: any) => expect(m.genres.toLowerCase()).toMatch(/action/))
+        movies.forEach((m: any) => expect(m.genres.map((g: string) => g.toLowerCase())).toContain('action'))
 
         for (let i = 0; i < movies.length - 1; i++) {
             expect(movies[i].year).toBeGreaterThanOrEqual(movies[i + 1].year)
@@ -107,8 +96,7 @@ describe('GET /movies?sort=&order= (integración)', () => {
     })
 
     test('debe ordenar por rating descendente: GET /movies?sort=rating&order=desc', async () => {
-        const model = new MovieModel(db)
-        const app = createApp(model)
+        const app = createApp(createTestService())
 
         const res = await request(app).get('/movies?sort=rating&order=desc')
 
@@ -121,8 +109,7 @@ describe('GET /movies?sort=&order= (integración)', () => {
     })
 
     test('debe ordenar por título descendente: GET /movies?sort=title&order=desc', async () => {
-        const model = new MovieModel(db)
-        const app = createApp(model)
+        const app = createApp(createTestService())
 
         const res = await request(app).get('/movies?sort=title&order=desc')
 
@@ -135,8 +122,7 @@ describe('GET /movies?sort=&order= (integración)', () => {
     })
 
     test('debe ordenar por año ascendente: GET /movies?sort=year&order=asc', async () => {
-        const model = new MovieModel(db)
-        const app = createApp(model)
+        const app = createApp(createTestService())
 
         const res = await request(app).get('/movies?sort=year&order=asc')
 
@@ -149,8 +135,7 @@ describe('GET /movies?sort=&order= (integración)', () => {
     })
 
     test('debe ignorar order si no hay sort: GET /movies?order=desc', async () => {
-        const model = new MovieModel(db)
-        const app = createApp(model)
+        const app = createApp(createTestService())
 
         const res = await request(app).get('/movies?order=desc')
 
@@ -159,8 +144,7 @@ describe('GET /movies?sort=&order= (integración)', () => {
     })
 
     test('debe combinar sort=year con filtro year: GET /movies?sort=year&order=desc&year=1994', async () => {
-        const model = new MovieModel(db)
-        const app = createApp(model)
+        const app = createApp(createTestService())
 
         const res = await request(app).get('/movies?sort=year&order=desc&year=1994')
 
@@ -170,8 +154,7 @@ describe('GET /movies?sort=&order= (integración)', () => {
     })
 
     test('debe combinar sort=year con filtro title: GET /movies?sort=year&order=desc&title=dark', async () => {
-        const model = new MovieModel(db)
-        const app = createApp(model)
+        const app = createApp(createTestService())
 
         const res = await request(app).get('/movies?sort=year&order=desc&title=dark')
 
@@ -186,11 +169,10 @@ describe('GET /movies?sort=&order= (integración)', () => {
         }
     })
 
-    describe('🧨 Corner cases agresivos — intentos de romper', () => {
+    describe('Corner cases agresivos — intentos de romper', () => {
 
         test('SQL injection en sort: ?sort=year; DROP TABLE movies;-- debe dar 400', async () => {
-            const model = new MovieModel(db)
-            const app = createApp(model)
+            const app = createApp(createTestService())
 
             const res = await request(app).get('/movies?sort=year; DROP TABLE movies;--')
 
@@ -198,8 +180,7 @@ describe('GET /movies?sort=&order= (integración)', () => {
         })
 
         test('SQL injection en order: ?sort=year&order=desc; DROP TABLE movies;-- debe dar 400', async () => {
-            const model = new MovieModel(db)
-            const app = createApp(model)
+            const app = createApp(createTestService())
 
             const res = await request(app).get("/movies?sort=year&order=desc'; DROP TABLE movies;--")
 
@@ -207,8 +188,7 @@ describe('GET /movies?sort=&order= (integración)', () => {
         })
 
         test('order=DESC mayúsculas debe ordenar descendente igual que desc', async () => {
-            const model = new MovieModel(db)
-            const app = createApp(model)
+            const app = createApp(createTestService())
 
             const res = await request(app).get('/movies?sort=year&order=DESC')
 
@@ -221,8 +201,7 @@ describe('GET /movies?sort=&order= (integración)', () => {
         })
 
         test('sort con espacio al inicio: ?sort=%20year debe dar 400', async () => {
-            const model = new MovieModel(db)
-            const app = createApp(model)
+            const app = createApp(createTestService())
 
             const res = await request(app).get('/movies?sort=%20year')
 
@@ -230,8 +209,7 @@ describe('GET /movies?sort=&order= (integración)', () => {
         })
 
         test('sort vacío: ?sort= debe ser tratado como si no hubiera sort', async () => {
-            const model = new MovieModel(db)
-            const app = createApp(model)
+            const app = createApp(createTestService())
 
             const res = await request(app).get('/movies?sort=')
 
@@ -240,8 +218,7 @@ describe('GET /movies?sort=&order= (integración)', () => {
         })
 
         test('sort duplicado: ?sort=year&sort=rating debe dar 400 (valor array)', async () => {
-            const model = new MovieModel(db)
-            const app = createApp(model)
+            const app = createApp(createTestService())
 
             const res = await request(app).get('/movies?sort=year&sort=rating')
 
@@ -249,14 +226,11 @@ describe('GET /movies?sort=&order= (integración)', () => {
         })
 
         test('sort con caracteres especiales: ?sort=year\'" OR 1=1 -- debe dar 400', async () => {
-            const model = new MovieModel(db)
-            const app = createApp(model)
+            const app = createApp(createTestService())
 
             const res = await request(app).get('/movies?sort=year%27%22%20OR%201=1%20--')
 
             expect(res.status).toBe(400)
         })
-
     })
-
 })

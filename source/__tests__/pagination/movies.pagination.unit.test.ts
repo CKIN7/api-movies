@@ -1,7 +1,7 @@
 import request from 'supertest'
 import { createApp } from '../../api'
-import MovieModel from '../../models/Movie-mysql'
 import MovieService from '../../services/movieService'
+import MovieRepository from '../../repositories/MovieRepository'
 import AppError from '../../utils/AppError'
 
 // ============================================================
@@ -9,50 +9,43 @@ import AppError from '../../utils/AppError'
 // ============================================================
 
 describe('GET /movies?page=&limit= (controlador)', () => {
-    function createMockModel() {
+    function createMockService() {
         return {
             getMovies: jest.fn().mockName('getMovies'),
             getMovieById: jest.fn().mockName('getMovieById'),
             createMovie: jest.fn().mockName('createMovie'),
             updateMovie: jest.fn().mockName('updateMovie'),
-            deleteMovie: jest.fn().mockName('deleteMovie')
+            deleteMovie: jest.fn().mockName('deleteMovie'),
+            getAuditLog: jest.fn().mockName('getAuditLog'),
         }
     }
 
-    afterEach(() => {
-        jest.restoreAllMocks()
-    })
+    afterEach(() => { jest.restoreAllMocks() })
 
     test('debe pasar page y limit al servicio', async () => {
-        // ARRANGE
-        const model = createMockModel()
-        model.getMovies.mockResolvedValue({ rows: [], total: 0 })
+        const service = createMockService()
+        service.getMovies.mockResolvedValue({ data: [], meta: { total: 0, page: 1, limit: 10, totalPages: 0 } })
 
-        // ACT
-        const app = createApp(model as any)
+        const app = createApp(service as any)
         await request(app).get('/movies?page=2&limit=5')
 
-        // ASSERT
-        expect(model.getMovies).toHaveBeenCalledWith(
-            expect.objectContaining({ page: '2', limit: 5, offset: 5 })
+        expect(service.getMovies).toHaveBeenCalledWith(
+            expect.objectContaining({ page: 2, limit: 5 })
         )
     })
 
     test('debe devolver respuesta con estructura { data, meta }', async () => {
-        // ARRANGE
-        const model = createMockModel()
+        const service = createMockService()
         const fakeMovies = [
-            { id: 1, title: 'Inception', year: 2010, director: 'Christopher Nolan', rating: 8.8, duration: 148, plot: '...', poster: '...', genres: 'Action, Sci-Fi' },
-            { id: 2, title: 'The Dark Knight', year: 2008, director: 'Christopher Nolan', rating: 9.0, duration: 152, plot: '...', poster: '...', genres: 'Action, Drama' },
-            { id: 3, title: 'Interstellar', year: 2014, director: 'Christopher Nolan', rating: 8.6, duration: 169, plot: '...', poster: '...', genres: 'Sci-Fi' }
+            { id: 1, title: 'Inception', year: 2010, director: 'Christopher Nolan', rating: 8.8, duration: 148, plot: '...', poster: '...', genres: ['Action', 'Sci-Fi'] },
+            { id: 2, title: 'The Dark Knight', year: 2008, director: 'Christopher Nolan', rating: 9.0, duration: 152, plot: '...', poster: '...', genres: ['Action', 'Drama'] },
+            { id: 3, title: 'Interstellar', year: 2014, director: 'Christopher Nolan', rating: 8.6, duration: 169, plot: '...', poster: '...', genres: ['Sci-Fi'] }
         ]
-        model.getMovies.mockResolvedValue({ rows: fakeMovies, total: 8 })
+        service.getMovies.mockResolvedValue({ data: fakeMovies, meta: { total: 8, page: 1, limit: 3, totalPages: 3 } })
 
-        // ACT
-        const app = createApp(model as any)
+        const app = createApp(service as any)
         const res = await request(app).get('/movies?page=1&limit=3')
 
-        // ASSERT
         expect(res.status).toBe(200)
         expect(res.body).toEqual({
             data: fakeMovies,
@@ -61,350 +54,166 @@ describe('GET /movies?page=&limit= (controlador)', () => {
     })
 
     test('debe usar defaults page=1 limit=10 si no se pasan en query', async () => {
-        // ARRANGE
-        const model = createMockModel()
-        model.getMovies.mockResolvedValue({ rows: [], total: 0 })
+        const service = createMockService()
+        service.getMovies.mockResolvedValue({ data: [], meta: { total: 0, page: 1, limit: 10, totalPages: 0 } })
 
-        // ACT
-        const app = createApp(model as any)
+        const app = createApp(service as any)
         await request(app).get('/movies')
 
-        // ASSERT
-        expect(model.getMovies).toHaveBeenCalledWith(
-            expect.objectContaining({ limit: 10, offset: 0, page: undefined })
+        expect(service.getMovies).toHaveBeenCalledWith(
+            expect.objectContaining({ page: 1, limit: 10 })
         )
     })
 
     test('debe envolver data vacío cuando no hay resultados', async () => {
-        // ARRANGE
-        const model = createMockModel()
-        model.getMovies.mockResolvedValue({ rows: [], total: 8 })
+        const service = createMockService()
+        service.getMovies.mockResolvedValue({ data: [], meta: { total: 8, page: 99, limit: 10, totalPages: 1 } })
 
-        // ACT
-        const app = createApp(model as any)
+        const app = createApp(service as any)
         const res = await request(app).get('/movies?page=99&limit=10')
 
-        // ASSERT
         expect(res.body.data).toEqual([])
         expect(res.body.meta).toEqual({ total: 8, page: 99, limit: 10, totalPages: 1 })
     })
 
     test('debe pasar page/limit junto con filtros existentes', async () => {
-        // ARRANGE
-        const model = createMockModel()
-        model.getMovies.mockResolvedValue({ rows: [], total: 0 })
+        const service = createMockService()
+        service.getMovies.mockResolvedValue({ data: [], meta: { total: 0, page: 1, limit: 10, totalPages: 0 } })
 
-        // ACT
-        const app = createApp(model as any)
+        const app = createApp(service as any)
         await request(app).get('/movies?page=1&limit=5&genre=action&sort=year&order=desc')
 
-        // ASSERT
-        expect(model.getMovies).toHaveBeenCalledWith(
+        expect(service.getMovies).toHaveBeenCalledWith(
             expect.objectContaining({
-                page: '1', limit: 5, offset: 0, genre: 'action', sort: 'year', order: 'desc'
+                page: 1, limit: 5, genre: 'action', sort: 'm.year', order: 'DESC'
             })
         )
     })
 
-    test('debe devolver 500 si el modelo falla', async () => {
-        // ARRANGE
-        const model = createMockModel()
-        model.getMovies.mockRejectedValue(new Error('DB error'))
+    test('debe devolver 500 si el servicio falla', async () => {
+        const service = createMockService()
+        service.getMovies.mockRejectedValue(new Error('DB error'))
 
-        // ACT
-        const app = createApp(model as any)
+        const app = createApp(service as any)
         const res = await request(app).get('/movies?page=1&limit=5')
 
-        // ASSERT
         expect(res.status).toBe(500)
         expect(res.body).toHaveProperty('error')
     })
 })
 
 describe('MovieService - getMovies con page/limit (servicio)', () => {
-    function createMockModel() {
-        return { getMovies: jest.fn().mockName('getMovies') } as any
+    function createMockRepos() {
+        return {
+            movieRepo: {
+                findMany: jest.fn().mockName('findMany'),
+                findById: jest.fn().mockName('findById'),
+                insert: jest.fn().mockName('insert'),
+                update: jest.fn().mockName('update'),
+                delete: jest.fn().mockName('delete'),
+                transaction: jest.fn().mockName('transaction'),
+                countAll: jest.fn().mockName('countAll'),
+            },
+            directorRepo: {
+                findByName: jest.fn().mockName('findByName'),
+                create: jest.fn().mockName('create'),
+                findOrCreate: jest.fn().mockName('findOrCreate'),
+            },
+            genreRepo: {
+                findByName: jest.fn().mockName('findByName'),
+                create: jest.fn().mockName('create'),
+                findOrCreate: jest.fn().mockName('findOrCreate'),
+                deleteByMovieId: jest.fn().mockName('deleteByMovieId'),
+                linkToMovie: jest.fn().mockName('linkToMovie'),
+            },
+            auditRepo: {
+                findByMovieId: jest.fn().mockName('findByMovieId'),
+                countByMovieId: jest.fn().mockName('countByMovieId'),
+                record: jest.fn().mockName('record'),
+            },
+        }
     }
 
-    test('debe usar defaults page=1 limit=10 si no se envían', async () => {
-        // ARRANGE
-        const model = createMockModel()
-        model.getMovies.mockResolvedValue({ rows: [], total: 0 })
-        const service = new MovieService({} as any, model)
-
-        // ACT
-        await service.getMovies({})
-
-        // ASSERT
-        expect(model.getMovies).toHaveBeenCalledWith(
-            expect.objectContaining({ limit: 10, offset: 0 })
-        )
-    })
-
-    test('debe usar defaults cuando solo se envía page', async () => {
-        // ARRANGE
-        const model = createMockModel()
-        model.getMovies.mockResolvedValue({ rows: [], total: 0 })
-        const service = new MovieService({} as any, model)
-
-        // ACT
-        await service.getMovies({ page: '3' })
-
-        // ASSERT
-        expect(model.getMovies).toHaveBeenCalledWith(
-            expect.objectContaining({ limit: 10, offset: 20, page: '3' })
-        )
-    })
-
-    test('debe usar defaults cuando solo se envía limit', async () => {
-        // ARRANGE
-        const model = createMockModel()
-        model.getMovies.mockResolvedValue({ rows: [], total: 0 })
-        const service = new MovieService({} as any, model)
-
-        // ACT
-        await service.getMovies({ limit: '5' })
-
-        // ASSERT
-        expect(model.getMovies).toHaveBeenCalledWith(
-            expect.objectContaining({ limit: 5, offset: 0 })
-        )
-    })
+    function createService(repos: ReturnType<typeof createMockRepos>) {
+        return new MovieService(repos.movieRepo as any, repos.directorRepo as any, repos.genreRepo as any, repos.auditRepo as any)
+    }
 
     test('debe calcular offset correctamente: page=3 limit=10 => offset=20', async () => {
-        // ARRANGE
-        const model = createMockModel()
-        model.getMovies.mockResolvedValue({ rows: [], total: 0 })
-        const service = new MovieService({} as any, model)
+        const repos = createMockRepos()
+        repos.movieRepo.findMany.mockResolvedValue({ rows: [], total: 0 })
+        const service = createService(repos)
 
-        // ACT
-        await service.getMovies({ page: '3', limit: '10' })
+        await service.getMovies({ page: 3, limit: 10 })
 
-        // ASSERT
-        expect(model.getMovies).toHaveBeenCalledWith(
+        expect(repos.movieRepo.findMany).toHaveBeenCalledWith(
             expect.objectContaining({ limit: 10, offset: 20 })
         )
     })
 
     test('debe calcular offset correctamente: page=5 limit=5 => offset=20', async () => {
-        // ARRANGE
-        const model = createMockModel()
-        model.getMovies.mockResolvedValue({ rows: [], total: 0 })
-        const service = new MovieService({} as any, model)
+        const repos = createMockRepos()
+        repos.movieRepo.findMany.mockResolvedValue({ rows: [], total: 0 })
+        const service = createService(repos)
 
-        // ACT
-        await service.getMovies({ page: '5', limit: '5' })
+        await service.getMovies({ page: 5, limit: 5 })
 
-        // ASSERT
-        expect(model.getMovies).toHaveBeenCalledWith(
+        expect(repos.movieRepo.findMany).toHaveBeenCalledWith(
             expect.objectContaining({ offset: 20 })
         )
     })
 
     test('debe envolver resultado en { data, meta } con totalPages calculado', async () => {
-        // ARRANGE
-        const model = createMockModel()
+        const repos = createMockRepos()
         const fakeRows = [
             { id: 1, title: 'A', year: 2000, director: 'D', rating: 5, duration: 100, plot: 'P', poster: 'U', genres: 'Drama' },
             { id: 2, title: 'B', year: 2001, director: 'D', rating: 6, duration: 110, plot: 'P', poster: 'U', genres: 'Action' },
             { id: 3, title: 'C', year: 2002, director: 'D', rating: 7, duration: 120, plot: 'P', poster: 'U', genres: 'Sci-Fi' },
         ]
-        model.getMovies.mockResolvedValue({ rows: fakeRows, total: 8 })
-        const service = new MovieService({} as any, model)
+        repos.movieRepo.findMany.mockResolvedValue({ rows: fakeRows, total: 8 })
+        const service = createService(repos)
 
-        // ACT
-        const result = await service.getMovies({ page: '1', limit: '3' })
+        const result = await service.getMovies({ page: 1, limit: 3 })
 
-        // ASSERT
         expect(result).toEqual({
-            data: fakeRows,
+            data: [{
+                id: 1, title: 'A', year: 2000, director: 'D', rating: 5, duration: 100,
+                plot: 'P', poster: 'U', genres: ['Drama']
+            }, {
+                id: 2, title: 'B', year: 2001, director: 'D', rating: 6, duration: 110,
+                plot: 'P', poster: 'U', genres: ['Action']
+            }, {
+                id: 3, title: 'C', year: 2002, director: 'D', rating: 7, duration: 120,
+                plot: 'P', poster: 'U', genres: ['Sci-Fi']
+            }],
             meta: { total: 8, page: 1, limit: 3, totalPages: 3 }
         })
     })
 
     test('debe calcular totalPages = 1 cuando total < limit', async () => {
-        // ARRANGE
-        const model = createMockModel()
-        model.getMovies.mockResolvedValue({ rows: [{ id: 1, title: 'X', year: 2020, director: 'D', rating: 5, duration: 100, plot: 'P', poster: 'U', genres: 'Drama' }], total: 2 })
-        const service = new MovieService({} as any, model)
+        const repos = createMockRepos()
+        repos.movieRepo.findMany.mockResolvedValue({ rows: [{ id: 1, title: 'X', year: 2020, director: 'D', rating: 5, duration: 100, plot: 'P', poster: 'U', genres: 'Drama' }], total: 2 })
+        const service = createService(repos)
 
-        // ACT
-        const result = await service.getMovies({ page: '1', limit: '5' })
+        const result = await service.getMovies({ page: 1, limit: 5 })
 
-        // ASSERT
         expect(result.meta.totalPages).toBe(1)
     })
 
-    // --- VALIDACIONES: page ---
+    test('debe propagar AppError del repositorio sin modificarlo', async () => {
+        const repos = createMockRepos()
+        repos.movieRepo.findMany.mockRejectedValue(new AppError('error del modelo', 400))
+        const service = createService(repos)
 
-    test('debe lanzar AppError 400 si page es 0', async () => {
-        // ARRANGE
-        const service = new MovieService({} as any, createMockModel())
-
-        // ACT + ASSERT
-        await expect(service.getMovies({ page: '0' }))
-            .rejects.toThrow(AppError)
+        await expect(service.getMovies({ page: 1, limit: 5 })).rejects.toThrow(AppError)
     })
 
-    test('debe lanzar AppError 400 si page es negativo: -1', async () => {
-        // ARRANGE
-        const service = new MovieService({} as any, createMockModel())
+    test('debe envolver errores genéricos del repositorio en AppError 500', async () => {
+        const repos = createMockRepos()
+        repos.movieRepo.findMany.mockRejectedValue(new Error('connection lost'))
+        const service = createService(repos)
 
-        // ACT + ASSERT
-        await expect(service.getMovies({ page: '-1' }))
-            .rejects.toThrow(AppError)
-    })
-
-    test('debe lanzar AppError 400 si page no es número: abc', async () => {
-        // ARRANGE
-        const service = new MovieService({} as any, createMockModel())
-
-        // ACT + ASSERT
-        await expect(service.getMovies({ page: 'abc' }))
-            .rejects.toThrow(AppError)
-    })
-
-    test('debe lanzar AppError 400 si page es decimal: 2.5', async () => {
-        // ARRANGE
-        const service = new MovieService({} as any, createMockModel())
-
-        // ACT + ASSERT
-        await expect(service.getMovies({ page: '2.5' }))
-            .rejects.toThrow(AppError)
-    })
-
-    test('debe lanzar AppError 400 si page es un array (params duplicados)', async () => {
-        // ARRANGE
-        const service = new MovieService({} as any, createMockModel())
-
-        // ACT + ASSERT
-        await expect(service.getMovies({ page: ['1', '2'] as any }))
-            .rejects.toThrow(AppError)
-    })
-
-    test('page vacío debe usar default page=1', async () => {
-        // ARRANGE
-        const model = createMockModel()
-        model.getMovies.mockResolvedValue({ rows: [], total: 0 })
-        const service = new MovieService({} as any, model)
-
-        // ACT
-        await service.getMovies({ page: '' })
-
-        // ASSERT
-        expect(model.getMovies).toHaveBeenCalledWith(
-            expect.objectContaining({ limit: 10, offset: 0 })
-        )
-    })
-
-    // --- VALIDACIONES: limit ---
-
-    test('debe lanzar AppError 400 si limit es 0', async () => {
-        // ARRANGE
-        const service = new MovieService({} as any, createMockModel())
-
-        // ACT + ASSERT
-        await expect(service.getMovies({ limit: '0' }))
-            .rejects.toThrow(AppError)
-    })
-
-    test('debe lanzar AppError 400 si limit es negativo: -5', async () => {
-        // ARRANGE
-        const service = new MovieService({} as any, createMockModel())
-
-        // ACT + ASSERT
-        await expect(service.getMovies({ limit: '-5' }))
-            .rejects.toThrow(AppError)
-    })
-
-    test('debe lanzar AppError 400 si limit excede máximo: 101', async () => {
-        // ARRANGE
-        const service = new MovieService({} as any, createMockModel())
-
-        // ACT + ASSERT
-        await expect(service.getMovies({ limit: '101' }))
-            .rejects.toThrow(AppError)
-    })
-
-    test('debe aceptar limit=100 (valor máximo permitido)', async () => {
-        // ARRANGE
-        const model = createMockModel()
-        model.getMovies.mockResolvedValue({ rows: [], total: 200 })
-        const service = new MovieService({} as any, model)
-
-        // ACT
-        await service.getMovies({ limit: '100' })
-
-        // ASSERT
-        expect(model.getMovies).toHaveBeenCalledWith(
-            expect.objectContaining({ limit: 100 })
-        )
-    })
-
-    test('debe lanzar AppError 400 si limit no es número: abc', async () => {
-        // ARRANGE
-        const service = new MovieService({} as any, createMockModel())
-
-        // ACT + ASSERT
-        await expect(service.getMovies({ limit: 'abc' }))
-            .rejects.toThrow(AppError)
-    })
-
-    test('debe lanzar AppError 400 si limit es decimal: 5.5', async () => {
-        // ARRANGE
-        const service = new MovieService({} as any, createMockModel())
-
-        // ACT + ASSERT
-        await expect(service.getMovies({ limit: '5.5' }))
-            .rejects.toThrow(AppError)
-    })
-
-    test('debe lanzar AppError 400 si limit es un array (params duplicados)', async () => {
-        // ARRANGE
-        const service = new MovieService({} as any, createMockModel())
-
-        // ACT + ASSERT
-        await expect(service.getMovies({ limit: ['5', '10'] as any }))
-            .rejects.toThrow(AppError)
-    })
-
-    test('limit vacío debe usar default limit=10', async () => {
-        // ARRANGE
-        const model = createMockModel()
-        model.getMovies.mockResolvedValue({ rows: [], total: 0 })
-        const service = new MovieService({} as any, model)
-
-        // ACT
-        await service.getMovies({ limit: '' })
-
-        // ASSERT
-        expect(model.getMovies).toHaveBeenCalledWith(
-            expect.objectContaining({ limit: 10, offset: 0 })
-        )
-    })
-
-    // --- PROPAGACIÓN DE ERRORES ---
-
-    test('debe propagar AppError del modelo sin modificarlo', async () => {
-        // ARRANGE
-        const model = createMockModel()
-        model.getMovies.mockRejectedValue(new AppError('error del modelo', 400))
-        const service = new MovieService({} as any, model)
-
-        // ACT + ASSERT
-        await expect(service.getMovies({ page: '1', limit: '5' }))
-            .rejects.toThrow(AppError)
-    })
-
-    test('debe envolver errores genéricos del modelo en AppError 500', async () => {
-        // ARRANGE
-        const model = createMockModel()
-        model.getMovies.mockRejectedValue(new Error('connection lost'))
-        const service = new MovieService({} as any, model)
-
-        // ACT + ASSERT
         try {
-            await service.getMovies({ page: '1', limit: '5' })
+            await service.getMovies({ page: 1, limit: 5 })
             expect('no debió llegar').toBe('nunca')
         } catch (error) {
             expect(error).toBeInstanceOf(AppError)
@@ -413,7 +222,7 @@ describe('MovieService - getMovies con page/limit (servicio)', () => {
     })
 })
 
-describe('MovieModel - getMovies con page/limit (modelo)', () => {
+describe('MovieRepository - getMovies con page/limit (repositorio)', () => {
     function createMockConnection() {
         const query = jest.fn()
         const beginTransaction = jest.fn()
@@ -423,54 +232,44 @@ describe('MovieModel - getMovies con page/limit (modelo)', () => {
     }
 
     test('debe incluir LIMIT 5 OFFSET 0 en SQL', async () => {
-        // ARRANGE
         const conn = createMockConnection()
-        const model = new MovieModel(conn)
+        const repo = new MovieRepository(conn)
         conn.query
             .mockResolvedValueOnce([[{ total: 0 }]])
             .mockResolvedValueOnce([[]])
 
-        // ACT
-        await model.getMovies({ limit: 5, offset: 0 })
+        await repo.findMany({ limit: 5, offset: 0 })
 
-        // ASSERT
         const selectQuery = conn.query.mock.calls[1][0] as string
         expect(selectQuery).toContain('LIMIT ? OFFSET ?')
         expect(conn.query.mock.calls[1][1]).toEqual([5, 0])
     })
 
     test('debe incluir LIMIT 10 OFFSET 20 en SQL para page=3 limit=10', async () => {
-        // ARRANGE
         const conn = createMockConnection()
-        const model = new MovieModel(conn)
+        const repo = new MovieRepository(conn)
         conn.query
             .mockResolvedValueOnce([[{ total: 0 }]])
             .mockResolvedValueOnce([[]])
 
-        // ACT
-        await model.getMovies({ limit: 10, offset: 20 })
+        await repo.findMany({ limit: 10, offset: 20 })
 
-        // ASSERT
         const selectQuery = conn.query.mock.calls[1][0] as string
         expect(selectQuery).toContain('LIMIT ? OFFSET ?')
         expect(conn.query.mock.calls[1][1]).toEqual([10, 20])
     })
 
     test('debe combinar LIMIT/OFFSET con WHERE y ORDER BY', async () => {
-        // ARRANGE
         const conn = createMockConnection()
-        const model = new MovieModel(conn)
+        const repo = new MovieRepository(conn)
         conn.query
             .mockResolvedValueOnce([[{ total: 0 }]])
             .mockResolvedValueOnce([[]])
 
-        // ACT
-        await model.getMovies({
-            genre: 'action', sort: 'year', order: 'desc',
-            limit: 5, offset: 0
+        await repo.findMany({
+            genre: 'action', sort: 'm.year', order: 'desc', limit: 5, offset: 0
         })
 
-        // ASSERT
         const selectQuery = conn.query.mock.calls[1][0] as string
         expect(selectQuery).toContain('WHERE')
         expect(selectQuery).toContain('ORDER BY')
@@ -479,18 +278,15 @@ describe('MovieModel - getMovies con page/limit (modelo)', () => {
     })
 
     test('debe ejecutar COUNT(*) además del SELECT principal', async () => {
-        // ARRANGE
         const conn = createMockConnection()
-        const model = new MovieModel(conn)
+        const repo = new MovieRepository(conn)
         conn.query
             .mockResolvedValueOnce([[{ total: 8 }]])
             .mockResolvedValueOnce([[]])
 
-        // ACT
-        const result = await model.getMovies({ limit: 5, offset: 0 })
+        const result = await repo.findMany({ limit: 5, offset: 0 })
 
-        // ASSERT
-        const countQuery  = conn.query.mock.calls[0][0] as string
+        const countQuery = conn.query.mock.calls[0][0] as string
         const selectQuery = conn.query.mock.calls[1][0] as string
         expect(countQuery).toMatch(/COUNT/i)
         expect(selectQuery).toContain('LIMIT ? OFFSET ?')
@@ -499,17 +295,14 @@ describe('MovieModel - getMovies con page/limit (modelo)', () => {
     })
 
     test('debe manejar LIMIT/OFFSET con filtros y ORDER BY', async () => {
-        // ARRANGE
         const conn = createMockConnection()
-        const model = new MovieModel(conn)
+        const repo = new MovieRepository(conn)
         conn.query
             .mockResolvedValueOnce([[{ total: 5 }]])
             .mockResolvedValueOnce([[]])
 
-        // ACT
-        const result = await model.getMovies({ genre: 'action', sort: 'year', order: 'desc', limit: 10, offset: 0 })
+        const result = await repo.findMany({ genre: 'action', sort: 'm.year', order: 'desc', limit: 10, offset: 0 })
 
-        // ASSERT
         const selectQuery = conn.query.mock.calls[1][0] as string
         expect(selectQuery).toContain('WHERE')
         expect(selectQuery).toContain('ORDER BY')

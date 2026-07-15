@@ -1,28 +1,30 @@
 import request from 'supertest'
 import { createApp } from '../../api'
-import MovieModel from '../../models/Movie-mysql'
+import MovieService from '../../services/movieService'
+import MovieRepository from '../../repositories/MovieRepository'
+import DirectorRepository from '../../repositories/DirectorRepository'
+import GenreRepository from '../../repositories/GenreRepository'
+import AuditLogRepository from '../../repositories/AuditLogRepository'
 import { setupTestDb, teardownTestDb, clearTestData, seedTestData } from '../helpers/db'
 import type { Connection } from 'mysql2/promise'
 
 let db: Connection
 
-beforeAll(async () => {
-    db = await setupTestDb()
-})
+beforeAll(async () => { db = await setupTestDb() })
+afterAll(async () => { await teardownTestDb(db) })
+beforeEach(async () => { await clearTestData(db); await seedTestData(db) })
 
-afterAll(async () => {
-    await teardownTestDb(db)
-})
-
-beforeEach(async () => {
-    await clearTestData(db)
-    await seedTestData(db)
-})
+function createTestService() {
+    const movieRepo = new MovieRepository(db)
+    const directorRepo = new DirectorRepository(db)
+    const genreRepo = new GenreRepository(db)
+    const auditRepo = new AuditLogRepository(db)
+    return new MovieService(movieRepo, directorRepo, genreRepo, auditRepo)
+}
 
 describe('GET /movies?title= (búsqueda por título)', () => {
     test('debe filtrar por título parcial (case-insensitive)', async () => {
-        const model = new MovieModel(db)
-        const app = createApp(model)
+        const app = createApp(createTestService())
 
         const res = await request(app).get('/movies?title=incept')
 
@@ -32,8 +34,7 @@ describe('GET /movies?title= (búsqueda por título)', () => {
     })
 
     test('debe devolver array vacío si no hay coincidencias', async () => {
-        const model = new MovieModel(db)
-        const app = createApp(model)
+        const app = createApp(createTestService())
 
         const res = await request(app).get('/movies?title=xyzxyz')
 
@@ -42,8 +43,7 @@ describe('GET /movies?title= (búsqueda por título)', () => {
     })
 
     test('debe devolver múltiples resultados para término compartido', async () => {
-        const model = new MovieModel(db)
-        const app = createApp(model)
+        const app = createApp(createTestService())
 
         const res = await request(app).get('/movies?title=dark')
 
@@ -53,8 +53,7 @@ describe('GET /movies?title= (búsqueda por título)', () => {
     })
 
     test('debe combinar title con year reduciendo resultados', async () => {
-        const model = new MovieModel(db)
-        const app = createApp(model)
+        const app = createApp(createTestService())
 
         const res = await request(app).get('/movies?title=dark&year=1994')
 
@@ -65,8 +64,7 @@ describe('GET /movies?title= (búsqueda por título)', () => {
     })
 
     test('debe combinar title con genre', async () => {
-        const model = new MovieModel(db)
-        const app = createApp(model)
+        const app = createApp(createTestService())
 
         const res = await request(app).get('/movies?title=dark&genre=action')
 
@@ -74,13 +72,12 @@ describe('GET /movies?title= (búsqueda por título)', () => {
         expect(res.body.data.length).toBeGreaterThanOrEqual(2)
         res.body.data.forEach((m: any) => {
             expect(m.title.toLowerCase()).toMatch(/dark/)
-            expect(m.genres.toLowerCase()).toMatch(/action/)
+            expect(m.genres.map((g: string) => g.toLowerCase())).toContain('action')
         })
     })
 
     test('debe combinar title, genre y year simultáneamente', async () => {
-        const model = new MovieModel(db)
-        const app = createApp(model)
+        const app = createApp(createTestService())
 
         const res = await request(app).get('/movies?title=knight&genre=action&year=2008')
 
@@ -88,6 +85,6 @@ describe('GET /movies?title= (búsqueda por título)', () => {
         expect(res.body.data).toHaveLength(1)
         expect(res.body.data[0].title).toBe('The Dark Knight')
         expect(res.body.data[0].year).toBe(2008)
-        expect(res.body.data[0].genres.toLowerCase()).toMatch(/action/)
+        expect(res.body.data[0].genres.map((g: string) => g.toLowerCase())).toContain('action')
     })
 })

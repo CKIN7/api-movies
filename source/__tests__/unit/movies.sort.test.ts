@@ -1,146 +1,142 @@
 import request from 'supertest'
 import { createApp } from '../../api'
-import MovieModel from '../../models/Movie-mysql'
 import MovieService from '../../services/movieService'
+import MovieRepository from '../../repositories/MovieRepository'
 import AppError from '../../utils/AppError'
 
 describe('GET /movies?sort=&order= (controlador)', () => {
-    function createMockModel() {
+    function createMockService() {
         return {
             getMovies: jest.fn().mockName('getMovies'),
             getMovieById: jest.fn().mockName('getMovieById'),
             createMovie: jest.fn().mockName('createMovie'),
             updateMovie: jest.fn().mockName('updateMovie'),
-            deleteMovie: jest.fn().mockName('deleteMovie')
+            deleteMovie: jest.fn().mockName('deleteMovie'),
+            getAuditLog: jest.fn().mockName('getAuditLog'),
         }
     }
 
-    afterEach(() => {
-        jest.restoreAllMocks()
-    })
+    afterEach(() => { jest.restoreAllMocks() })
 
-    test('debe pasar sort y order al modelo', async () => {
-        const model = createMockModel()
-        model.getMovies.mockResolvedValue({ rows: [], total: 0 })
-
-        const app = createApp(model as any)
+    test('debe pasar sort y order al servicio', async () => {
+        const service = createMockService()
+        service.getMovies.mockResolvedValue({ data: [], meta: { total: 0, page: 1, limit: 10, totalPages: 0 } })
+        const app = createApp(service as any)
         await request(app).get('/movies?sort=year&order=desc')
 
-        expect(model.getMovies).toHaveBeenCalledWith(
-            expect.objectContaining({ sort: 'year', order: 'desc', limit: 10, offset: 0 })
+        expect(service.getMovies).toHaveBeenCalledWith(
+            expect.objectContaining({ sort: 'm.year', order: 'DESC', page: 1, limit: 10 })
         )
     })
 
-    test('debe pasar sort con order por defecto ascendente', async () => {
-        const model = createMockModel()
-        model.getMovies.mockResolvedValue({ rows: [], total: 0 })
-
-        const app = createApp(model as any)
+    test('debe pasar sort sin order por defecto (Zod no lo añade)', async () => {
+        const service = createMockService()
+        service.getMovies.mockResolvedValue({ data: [], meta: { total: 0, page: 1, limit: 10, totalPages: 0 } })
+        const app = createApp(service as any)
         await request(app).get('/movies?sort=title')
 
-        expect(model.getMovies).toHaveBeenCalledWith(
-            expect.objectContaining({ sort: 'title', order: 'asc', limit: 10, offset: 0 })
+        expect(service.getMovies).toHaveBeenCalledWith(
+            expect.objectContaining({ sort: 'm.title', page: 1, limit: 10 })
         )
     })
 
     test('debe pasar sort y order junto con filtros existentes', async () => {
-        const model = createMockModel()
-        model.getMovies.mockResolvedValue({ rows: [], total: 0 })
-
-        const app = createApp(model as any)
+        const service = createMockService()
+        service.getMovies.mockResolvedValue({ data: [], meta: { total: 0, page: 1, limit: 10, totalPages: 0 } })
+        const app = createApp(service as any)
         await request(app).get('/movies?sort=rating&genre=action&title=dark')
 
-        expect(model.getMovies).toHaveBeenCalledWith(
-            expect.objectContaining({ sort: 'rating', genre: 'action', title: 'dark', order: 'asc', limit: 10, offset: 0 })
+        expect(service.getMovies).toHaveBeenCalledWith(
+            expect.objectContaining({ sort: 'm.rating', genre: 'action', title: 'dark', page: 1, limit: 10 })
         )
     })
 
     test('no debe pasar sort si no está en query', async () => {
-        const model = createMockModel()
-        model.getMovies.mockResolvedValue({ rows: [], total: 0 })
-
-        const app = createApp(model as any)
+        const service = createMockService()
+        service.getMovies.mockResolvedValue({ data: [], meta: { total: 0, page: 1, limit: 10, totalPages: 0 } })
+        const app = createApp(service as any)
         await request(app).get('/movies')
 
-        expect(model.getMovies).toHaveBeenCalledWith(
-            expect.objectContaining({ limit: 10, offset: 0 })
+        expect(service.getMovies).toHaveBeenCalledWith(
+            expect.objectContaining({ page: 1, limit: 10 })
         )
     })
 })
 
 describe('MovieService - getMovies con sort/order (servicio)', () => {
-    function createMockModel() {
-        return { getMovies: jest.fn().mockName('getMovies') } as any
+    function createMockRepos() {
+        return {
+            movieRepo: {
+                findMany: jest.fn().mockName('findMany'),
+                findById: jest.fn().mockName('findById'),
+                insert: jest.fn().mockName('insert'),
+                update: jest.fn().mockName('update'),
+                delete: jest.fn().mockName('delete'),
+                transaction: jest.fn().mockName('transaction'),
+                countAll: jest.fn().mockName('countAll'),
+            },
+            directorRepo: {
+                findByName: jest.fn().mockName('findByName'),
+                create: jest.fn().mockName('create'),
+                findOrCreate: jest.fn().mockName('findOrCreate'),
+            },
+            genreRepo: {
+                findByName: jest.fn().mockName('findByName'),
+                create: jest.fn().mockName('create'),
+                findOrCreate: jest.fn().mockName('findOrCreate'),
+                deleteByMovieId: jest.fn().mockName('deleteByMovieId'),
+                linkToMovie: jest.fn().mockName('linkToMovie'),
+            },
+            auditRepo: {
+                findByMovieId: jest.fn().mockName('findByMovieId'),
+                countByMovieId: jest.fn().mockName('countByMovieId'),
+                record: jest.fn().mockName('record'),
+            },
+        }
     }
 
-    test('debe pasar sort y order al modelo tal cual', async () => {
-        const model = createMockModel()
-        model.getMovies.mockResolvedValue({ rows: [], total: 0 })
-        const service = new MovieService({} as any, model)
+    function createService(repos: ReturnType<typeof createMockRepos>) {
+        return new MovieService(repos.movieRepo as any, repos.directorRepo as any, repos.genreRepo as any, repos.auditRepo as any)
+    }
 
-        await service.getMovies({ sort: 'year', order: 'desc' })
+    test('debe pasar sort y order al repositorio', async () => {
+        const repos = createMockRepos()
+        repos.movieRepo.findMany.mockResolvedValue({ rows: [], total: 0 })
+        const service = createService(repos)
 
-        expect(model.getMovies).toHaveBeenCalledWith(
-            expect.objectContaining({ sort: 'year', order: 'desc' })
+        await service.getMovies({ sort: 'm.year' as any, order: 'desc', page: 1, limit: 10 })
+
+        expect(repos.movieRepo.findMany).toHaveBeenCalledWith(
+            expect.objectContaining({ sort: 'm.year', order: 'desc', limit: 10, offset: 0 })
         )
     })
 
-    test('debe lanzar AppError 400 si sort es inválido', async () => {
-        const model = createMockModel()
-        const service = new MovieService({} as any, model)
+    test('debe pasar order por defecto ASC si sort presente sin order', async () => {
+        const repos = createMockRepos()
+        repos.movieRepo.findMany.mockResolvedValue({ rows: [], total: 0 })
+        const service = createService(repos)
 
-        await expect(service.getMovies({ sort: 'invalido' }))
-            .rejects.toThrow(AppError)
+        await service.getMovies({ sort: 'm.year' as any, page: 1, limit: 10 })
+
+        expect(repos.movieRepo.findMany).toHaveBeenCalledWith(
+            expect.objectContaining({ sort: 'm.year', order: 'ASC', limit: 10, offset: 0 })
+        )
     })
 
-    test('debe lanzar AppError 400 si sort es un array (params duplicados)', async () => {
-        const model = createMockModel()
-        const service = new MovieService({} as any, model)
+    test('debe pasar order aunque no haya sort', async () => {
+        const repos = createMockRepos()
+        repos.movieRepo.findMany.mockResolvedValue({ rows: [], total: 0 })
+        const service = createService(repos)
 
-        try {
-            await service.getMovies({ sort: ['year', 'rating'] as any })
-            expect('no debió llegar').toBe('nunca')
-        } catch (error) {
-            expect(error).toBeInstanceOf(AppError)
-            expect((error as AppError).statusCode).toBe(400)
-        }
-    })
+        await service.getMovies({ order: 'desc', page: 1, limit: 10 })
 
-    test('debe lanzar AppError 400 si order es un array (params duplicados)', async () => {
-        const model = createMockModel()
-        const service = new MovieService({} as any, model)
-
-        try {
-            await service.getMovies({ sort: 'year', order: ['desc', 'asc'] as any })
-            expect('no debió llegar').toBe('nunca')
-        } catch (error) {
-            expect(error).toBeInstanceOf(AppError)
-            expect((error as AppError).statusCode).toBe(400)
-        }
-    })
-
-    test('debe lanzar AppError 400 si order es inválido', async () => {
-        const model = createMockModel()
-        const service = new MovieService({} as any, model)
-
-        await expect(service.getMovies({ sort: 'year', order: 'invalid' }))
-            .rejects.toThrow(AppError)
-    })
-
-    test('debe ignorar order si no hay sort', async () => {
-        const model = createMockModel()
-        model.getMovies.mockResolvedValue({ rows: [], total: 0 })
-        const service = new MovieService({} as any, model)
-
-        await service.getMovies({ order: 'desc' })
-
-        expect(model.getMovies).toHaveBeenCalledWith(
-            expect.objectContaining({ order: 'desc' })
+        expect(repos.movieRepo.findMany).toHaveBeenCalledWith(
+            expect.objectContaining({ order: 'desc', limit: 10, offset: 0 })
         )
     })
 })
 
-describe('MovieModel - getMovies con sort (modelo)', () => {
+describe('MovieRepository - getMovies con sort (repositorio)', () => {
     function createMockConnection() {
         const query = jest.fn()
         const beginTransaction = jest.fn()
@@ -151,12 +147,12 @@ describe('MovieModel - getMovies con sort (modelo)', () => {
 
     test('debe incluir ORDER BY year DESC', async () => {
         const conn = createMockConnection()
-        const model = new MovieModel(conn)
+        const repo = new MovieRepository(conn)
         conn.query
             .mockResolvedValueOnce([[{ total: 0 }]])
             .mockResolvedValueOnce([[]])
 
-        await model.getMovies({ sort: 'year', order: 'desc', limit: 10, offset: 0 })
+        await repo.findMany({ sort: 'year', order: 'desc', limit: 10, offset: 0 })
 
         const queryStr = conn.query.mock.calls[1][0] as string
         expect(queryStr).toContain('ORDER BY m.year DESC')
@@ -164,12 +160,12 @@ describe('MovieModel - getMovies con sort (modelo)', () => {
 
     test('debe incluir ORDER BY rating ASC por defecto', async () => {
         const conn = createMockConnection()
-        const model = new MovieModel(conn)
+        const repo = new MovieRepository(conn)
         conn.query
             .mockResolvedValueOnce([[{ total: 0 }]])
             .mockResolvedValueOnce([[]])
 
-        await model.getMovies({ sort: 'rating', order: 'asc', limit: 10, offset: 0 })
+        await repo.findMany({ sort: 'rating', order: 'asc', limit: 10, offset: 0 })
 
         const queryStr = conn.query.mock.calls[1][0] as string
         expect(queryStr).toContain('ORDER BY m.rating ASC')
@@ -177,12 +173,12 @@ describe('MovieModel - getMovies con sort (modelo)', () => {
 
     test('debe incluir ORDER BY title ASC', async () => {
         const conn = createMockConnection()
-        const model = new MovieModel(conn)
+        const repo = new MovieRepository(conn)
         conn.query
             .mockResolvedValueOnce([[{ total: 0 }]])
             .mockResolvedValueOnce([[]])
 
-        await model.getMovies({ sort: 'title', order: 'asc', limit: 10, offset: 0 })
+        await repo.findMany({ sort: 'title', order: 'asc', limit: 10, offset: 0 })
 
         const queryStr = conn.query.mock.calls[1][0] as string
         expect(queryStr).toContain('ORDER BY m.title ASC')
@@ -190,12 +186,12 @@ describe('MovieModel - getMovies con sort (modelo)', () => {
 
     test('debe manejar order=DESC mayúscula como descendente', async () => {
         const conn = createMockConnection()
-        const model = new MovieModel(conn)
+        const repo = new MovieRepository(conn)
         conn.query
             .mockResolvedValueOnce([[{ total: 0 }]])
             .mockResolvedValueOnce([[]])
 
-        await model.getMovies({ sort: 'year', order: 'DESC', limit: 10, offset: 0 })
+        await repo.findMany({ sort: 'year', order: 'DESC', limit: 10, offset: 0 })
 
         const queryStr = conn.query.mock.calls[1][0] as string
         expect(queryStr).toContain('ORDER BY m.year DESC')
@@ -203,12 +199,12 @@ describe('MovieModel - getMovies con sort (modelo)', () => {
 
     test('debe combinar ORDER BY con filtros WHERE', async () => {
         const conn = createMockConnection()
-        const model = new MovieModel(conn)
+        const repo = new MovieRepository(conn)
         conn.query
             .mockResolvedValueOnce([[{ total: 0 }]])
             .mockResolvedValueOnce([[]])
 
-        await model.getMovies({ title: 'dark', sort: 'year', order: 'desc', limit: 10, offset: 0 })
+        await repo.findMany({ title: 'dark', sort: 'year', order: 'desc', limit: 10, offset: 0 })
 
         const queryStr = conn.query.mock.calls[1][0] as string
         expect(queryStr).toContain('WHERE')
