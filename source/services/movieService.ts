@@ -1,174 +1,180 @@
-import AuditLogModel from "../models/AuditLog";
-import MovieModel from "../models/Movie-mysql";
-import { AuditLogEntry, AuditLogQuery } from "../types/auditLog";
-import { GetMoviesParams, MovieInput, MovieRow, PaginatedResponse } from "../types/movie";
-import AppError from "../utils/AppError";
-import logger from "../utils/logger";
+import type { MovieQueryDTO } from '../schemas/movieQuery'
+import type { AuditLogQuery, AuditLogEntry } from '../types/auditLog'
+import type { PaginatedResponse, MovieRow } from '../types/movie'
+import type { CreateMovieDTO, UpdateMovieDTO } from '../types/movie'
+import MovieRepository from '../repositories/MovieRepository'
+import DirectorRepository from '../repositories/DirectorRepository'
+import GenreRepository from '../repositories/GenreRepository'
+import AuditLogRepository from '../repositories/AuditLogRepository'
+import { Movie, type MovieResponse } from '../domain/Movie'
+import AppError from '../utils/AppError'
+import logger from '../utils/logger'
 
 class MovieService {
-    private movieModel: MovieModel
-    private auditLogModel: AuditLogModel
-    
-    constructor(auditLogModel: AuditLogModel, movieModels?: MovieModel) { 
-        this.movieModel = movieModels || new MovieModel()
-        this.auditLogModel = auditLogModel
-    }
+    constructor(
+        private movieRepo: MovieRepository,
+        private directorRepo: DirectorRepository,
+        private genreRepo: GenreRepository,
+        private auditRepo: AuditLogRepository,
+    ) {}
 
-    private calcOffset(page: number, limit: number): number {
-        return (page - 1) * limit
-    }
-
-
-
-    getMovies = async (params: GetMoviesParams): Promise<PaginatedResponse<MovieRow[]>> => {
+    async getMovies(params: MovieQueryDTO): Promise<PaginatedResponse<MovieResponse[]>> {
         try {
-
-            if(params.sort !== undefined && typeof params.sort !== "string"){
-                throw new AppError('No se permiten parámetros duplicados en "sort"',400)
+            if (params.sort && !params.order) {
+                params.order = 'ASC'
             }
 
-            if(params.order !== undefined && typeof params.order !== "string"){
-                throw new AppError('No se permiten parámetros duplicados en "order"',400)
-            }
+            const offset = (params.page - 1) * params.limit
 
-            if(params.page === "") delete params.page
+            const result = await this.movieRepo.findMany({
+                genre: params.genre,
+                year: params.year !== undefined ? String(params.year) : undefined,
+                title: params.title,
+                sort: params.sort,
+                order: params.order,
+                limit: params.limit,
+                offset,
+            })
 
-            if(params.page !== undefined){
-                
-                if(typeof params.page !== "string"){
-                    throw new AppError('No se permiten parámetros duplicados en "page"',400)
-                }
+            const totalPages = Math.ceil(result.total / params.limit)
+            const movies = result.rows.map(Movie.fromRow).map(m => m.toResponse())
 
-                
-
-                const pageNum = Number(params.page)
-
-                if(!Number.isInteger(pageNum) || pageNum < 1){
-                    throw new AppError("page debe ser un entero positivo", 400)
-                }
-                
-            }
-
-            if(params.limit === "") delete params.limit
-
-            if (params.limit !== undefined) {
-                
-                if(typeof params.limit !== "string"){
-                    throw new AppError('No se permiten parámetros duplicados en "limit"',400)
-                }
-
-                if (params.limit === "") {
-                    throw new AppError("limit no puede estar vacío", 400)
-                }
-
-                const limitNum = Number(params.limit)
-
-                if(!Number.isInteger(limitNum) || limitNum < 1 || limitNum > 100){
-                    throw new AppError("limit debe ser un entero entre 1 y 100", 400)
-                }
-            }
-
-            const page = params.page !== undefined ? parseInt(params.page, 10) : 1
-            const limit = params.limit !== undefined ? parseInt(params.limit, 10) : 10
-
-            const offset = this.calcOffset(page,limit);
-
-
-
-
-            const sort = params.sort?.toLowerCase();
-            let order = params.order?.toLowerCase();
-            
-            const whiteListSet = new Set<string>(['year', 'rating', 'title']);
-            const allowedOrders = new Set(['asc', 'desc'])
-            
-            if(sort && !whiteListSet.has(sort)){
-            throw new AppError('el valor del parametro sort es invalido', 400)
-            }
-            
-            if(order && !allowedOrders.has(order)){
-              throw new AppError('el valor del parametro order es invalido', 400)
-            }
-
-            if(sort && !order){
-                order = 'asc'
-            }
-
-            const normalizedParams = {
-                ...params,
-                order,
-                limit,
-                offset
-            }
-            
-            const result = await this.movieModel.getMovies(normalizedParams)
-
-            const totalPages = Math.ceil(result.total / limit)
-            
             return {
-                data: result.rows, meta: {total: result.total, page, limit, totalPages}
+                data: movies,
+                meta: { total: result.total, page: params.page, limit: params.limit, totalPages }
             }
-
         } catch (error) {
-         // 1. Si el error ya es una instancia de AppError, déjalo pasar sin modificarlo
-         if (error instanceof AppError) {
-            throw error
-         }
-
-         // 2. Si es cualquier otro error inesperado (base de datos, etc.), entonces sí devuelves el 500
+            if (error instanceof AppError) throw error
             logger.error(`Error en getMovies: ${(error as Error).message}`)
-            throw new AppError('Pelicula no encontrada (msg personalizado con status code para el cliente)', 500)
+            throw new AppError('Error al obtener películas', 500)
         }
     }
 
-    createMovie = async (inputData: MovieInput) => {
+    async getMovieById(id: number): Promise<MovieResponse> {
+        const row = await this.movieRepo.findById(id)
+        if (!row) throw new AppError('Película no encontrada', 404)
+        return Movie.fromRow(row).toResponse()
+    }
 
+    async createMovie(dto: CreateMovieDTO): Promise<MovieResponse> {
         try {
-            
-        
+            return await this.movieRepo.transaction(async () => {
+                const directorId = await this.directorRepo.findOrCreate(dto.director)
 
-        return await this.movieModel.createMovie({ result: { data: inputData } })
+                const movieId = await this.movieRepo.insert({
+                    title: dto.title,
+                    year: dto.year,
+                    rating: dto.rating,
+                    duration: dto.duration,
+                    plot: dto.plot,
+                    poster: dto.poster,
+                    directorId,
+                })
 
+                const uniqueGenreIds = [...new Set(
+                    await Promise.all(dto.genre.map(g => this.genreRepo.findOrCreate(g)))
+                )]
+                for (const genreId of uniqueGenreIds) {
+                    await this.genreRepo.linkToMovie(movieId, genreId)
+                }
+
+                await this.auditRepo.record(movieId, 'rating', null, String(dto.rating))
+
+                const row = await this.movieRepo.findById(movieId)
+                return Movie.fromRow(row!).toResponse()
+            })
         } catch (error) {
-            if(error instanceof AppError){
-                throw error
-            }
-
+            if (error instanceof AppError) throw error
             logger.error(`Error en createMovie: ${(error as Error).message}`)
-            throw new AppError('Pelicula no encontrada (msg personalizado con status code para el cliente)', 500)
+            throw new AppError('Error al crear la película', 500)
         }
     }
 
-    getAuditLog = async (query: AuditLogQuery): Promise<PaginatedResponse<AuditLogEntry[]>> => {
-        
+    async updateMovie(id: number, dto: UpdateMovieDTO): Promise<MovieResponse> {
         try {
-            
-            const movie = await this.movieModel.getMovieById(String(query.id));
+            const existing = await this.movieRepo.findById(id)
+            if (!existing) throw new AppError('Película no encontrada', 404)
 
-            if(!movie) throw new AppError('Película no encontrada', 404);
+            return await this.movieRepo.transaction(async () => {
+                if (dto.director) {
+                    const directorId = await this.directorRepo.findOrCreate(dto.director)
+                    await this.movieRepo.update(id, { directorId })
+                }
 
-            const offset = this.calcOffset(query.page, query.limit)
+                const fieldsToUpdate: Record<string, unknown> = {}
+                for (const key of ['title', 'year', 'rating', 'duration', 'plot', 'poster'] as const) {
+                    if ((dto as Record<string, unknown>)[key] !== undefined) {
+                        fieldsToUpdate[key] = (dto as Record<string, unknown>)[key]
+                    }
+                }
+                if (Object.keys(fieldsToUpdate).length > 0) {
+                    await this.movieRepo.update(id, fieldsToUpdate as any)
+                }
 
-            const { id: movieId, field, page, limit } = query
-            const data = await this.auditLogModel.getByMovieId({movieId, field, limit, offset})
-            
-            const total = await this.auditLogModel.countByMovieId(movieId, query.field)
+                if (dto.rating !== undefined && dto.rating !== existing.rating) {
+                    await this.auditRepo.record(id, 'rating', String(existing.rating), String(dto.rating))
+                }
 
-            const totalPages = Math.ceil(total / limit)
+                if (dto.genre) {
+                    const uniqueGenreIds = [...new Set(
+                        await Promise.all(dto.genre.map(g => this.genreRepo.findOrCreate(g)))
+                    )]
+                    await this.genreRepo.deleteByMovieId(id)
+                    for (const genreId of uniqueGenreIds) {
+                        await this.genreRepo.linkToMovie(id, genreId)
+                    }
+                }
+
+                const row = await this.movieRepo.findById(id)
+                return Movie.fromRow(row!).toResponse()
+            })
+        } catch (error) {
+            if (error instanceof AppError) throw error
+            logger.error(`Error en updateMovie: ${(error as Error).message}`)
+            throw new AppError('Error al actualizar la película', 500)
+        }
+    }
+
+    async deleteMovie(id: number): Promise<void> {
+        try {
+            const existing = await this.movieRepo.findById(id)
+            if (!existing) throw new AppError('Película no encontrada', 404)
+
+            await this.movieRepo.transaction(async () => {
+                await this.genreRepo.deleteByMovieId(id)
+                await this.movieRepo.delete(id)
+            })
+        } catch (error) {
+            if (error instanceof AppError) throw error
+            logger.error(`Error en deleteMovie: ${(error as Error).message}`)
+            throw new AppError('Error al eliminar la película', 500)
+        }
+    }
+
+    async getAuditLog(query: AuditLogQuery): Promise<PaginatedResponse<AuditLogEntry[]>> {
+        try {
+            const movie = await this.movieRepo.findById(query.id)
+            if (!movie) throw new AppError('Película no encontrada', 404)
+
+            const offset = (query.page - 1) * query.limit
+            const data = await this.auditRepo.findByMovieId({
+                movieId: query.id,
+                field: query.field,
+                limit: query.limit,
+                offset,
+            })
+            const total = await this.auditRepo.countByMovieId(query.id, query.field)
+            const totalPages = Math.ceil(total / query.limit)
 
             return {
-                data: data, meta: {total: total, page, limit, totalPages}
+                data,
+                meta: { total, page: query.page, limit: query.limit, totalPages }
             }
-            
         } catch (error) {
-            if(error instanceof AppError){
-                throw error
-            }
-
-            logger.error(`Error en createMovie: ${(error as Error).message}`)
-            throw new AppError('Log no encontrado (msg personalizado con status code para el cliente)', 500)
+            if (error instanceof AppError) throw error
+            logger.error(`Error en getAuditLog: ${(error as Error).message}`)
+            throw new AppError('Error al obtener el log de auditoría', 500)
         }
-        
     }
 }
 

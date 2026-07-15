@@ -152,6 +152,18 @@ class MovieRepository {
         const [rows] = await this.query('SELECT COUNT(*) as total FROM movies')
         return rows[0].total as number
     }
+
+    async transaction<T>(fn: () => Promise<T>): Promise<T> {
+        await this.conn.beginTransaction()
+        try {
+            const result = await fn()
+            await this.conn.commit()
+            return result
+        } catch (error) {
+            await this.conn.rollback()
+            throw error
+        }
+    }
 }
 
 export default MovieRepository
