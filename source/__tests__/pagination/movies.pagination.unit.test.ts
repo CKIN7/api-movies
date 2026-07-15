@@ -130,7 +130,7 @@ describe('MovieService - getMovies con page/limit (servicio)', () => {
         // ARRANGE
         const model = createMockModel()
         model.getMovies.mockResolvedValue({ rows: [], total: 0 })
-        const service = new MovieService(model)
+        const service = new MovieService({} as any, model)
 
         // ACT
         await service.getMovies({})
@@ -145,7 +145,7 @@ describe('MovieService - getMovies con page/limit (servicio)', () => {
         // ARRANGE
         const model = createMockModel()
         model.getMovies.mockResolvedValue({ rows: [], total: 0 })
-        const service = new MovieService(model)
+        const service = new MovieService({} as any, model)
 
         // ACT
         await service.getMovies({ page: '3' })
@@ -160,7 +160,7 @@ describe('MovieService - getMovies con page/limit (servicio)', () => {
         // ARRANGE
         const model = createMockModel()
         model.getMovies.mockResolvedValue({ rows: [], total: 0 })
-        const service = new MovieService(model)
+        const service = new MovieService({} as any, model)
 
         // ACT
         await service.getMovies({ limit: '5' })
@@ -175,7 +175,7 @@ describe('MovieService - getMovies con page/limit (servicio)', () => {
         // ARRANGE
         const model = createMockModel()
         model.getMovies.mockResolvedValue({ rows: [], total: 0 })
-        const service = new MovieService(model)
+        const service = new MovieService({} as any, model)
 
         // ACT
         await service.getMovies({ page: '3', limit: '10' })
@@ -190,7 +190,7 @@ describe('MovieService - getMovies con page/limit (servicio)', () => {
         // ARRANGE
         const model = createMockModel()
         model.getMovies.mockResolvedValue({ rows: [], total: 0 })
-        const service = new MovieService(model)
+        const service = new MovieService({} as any, model)
 
         // ACT
         await service.getMovies({ page: '5', limit: '5' })
@@ -210,7 +210,7 @@ describe('MovieService - getMovies con page/limit (servicio)', () => {
             { id: 3, title: 'C', year: 2002, director: 'D', rating: 7, duration: 120, plot: 'P', poster: 'U', genres: 'Sci-Fi' },
         ]
         model.getMovies.mockResolvedValue({ rows: fakeRows, total: 8 })
-        const service = new MovieService(model)
+        const service = new MovieService({} as any, model)
 
         // ACT
         const result = await service.getMovies({ page: '1', limit: '3' })
@@ -226,7 +226,7 @@ describe('MovieService - getMovies con page/limit (servicio)', () => {
         // ARRANGE
         const model = createMockModel()
         model.getMovies.mockResolvedValue({ rows: [{ id: 1, title: 'X', year: 2020, director: 'D', rating: 5, duration: 100, plot: 'P', poster: 'U', genres: 'Drama' }], total: 2 })
-        const service = new MovieService(model)
+        const service = new MovieService({} as any, model)
 
         // ACT
         const result = await service.getMovies({ page: '1', limit: '5' })
@@ -239,7 +239,7 @@ describe('MovieService - getMovies con page/limit (servicio)', () => {
 
     test('debe lanzar AppError 400 si page es 0', async () => {
         // ARRANGE
-        const service = new MovieService(createMockModel())
+        const service = new MovieService({} as any, createMockModel())
 
         // ACT + ASSERT
         await expect(service.getMovies({ page: '0' }))
@@ -248,7 +248,7 @@ describe('MovieService - getMovies con page/limit (servicio)', () => {
 
     test('debe lanzar AppError 400 si page es negativo: -1', async () => {
         // ARRANGE
-        const service = new MovieService(createMockModel())
+        const service = new MovieService({} as any, createMockModel())
 
         // ACT + ASSERT
         await expect(service.getMovies({ page: '-1' }))
@@ -257,7 +257,7 @@ describe('MovieService - getMovies con page/limit (servicio)', () => {
 
     test('debe lanzar AppError 400 si page no es número: abc', async () => {
         // ARRANGE
-        const service = new MovieService(createMockModel())
+        const service = new MovieService({} as any, createMockModel())
 
         // ACT + ASSERT
         await expect(service.getMovies({ page: 'abc' }))
@@ -266,7 +266,7 @@ describe('MovieService - getMovies con page/limit (servicio)', () => {
 
     test('debe lanzar AppError 400 si page es decimal: 2.5', async () => {
         // ARRANGE
-        const service = new MovieService(createMockModel())
+        const service = new MovieService({} as any, createMockModel())
 
         // ACT + ASSERT
         await expect(service.getMovies({ page: '2.5' }))
@@ -275,7 +275,7 @@ describe('MovieService - getMovies con page/limit (servicio)', () => {
 
     test('debe lanzar AppError 400 si page es un array (params duplicados)', async () => {
         // ARRANGE
-        const service = new MovieService(createMockModel())
+        const service = new MovieService({} as any, createMockModel())
 
         // ACT + ASSERT
         await expect(service.getMovies({ page: ['1', '2'] as any }))
@@ -286,7 +286,7 @@ describe('MovieService - getMovies con page/limit (servicio)', () => {
         // ARRANGE
         const model = createMockModel()
         model.getMovies.mockResolvedValue({ rows: [], total: 0 })
-        const service = new MovieService(model)
+        const service = new MovieService({} as any, model)
 
         // ACT
         await service.getMovies({ page: '' })
@@ -301,7 +301,7 @@ describe('MovieService - getMovies con page/limit (servicio)', () => {
 
     test('debe lanzar AppError 400 si limit es 0', async () => {
         // ARRANGE
-        const service = new MovieService(createMockModel())
+        const service = new MovieService({} as any, createMockModel())
 
         // ACT + ASSERT
         await expect(service.getMovies({ limit: '0' }))
@@ -310,7 +310,7 @@ describe('MovieService - getMovies con page/limit (servicio)', () => {
 
     test('debe lanzar AppError 400 si limit es negativo: -5', async () => {
         // ARRANGE
-        const service = new MovieService(createMockModel())
+        const service = new MovieService({} as any, createMockModel())
 
         // ACT + ASSERT
         await expect(service.getMovies({ limit: '-5' }))
@@ -319,7 +319,7 @@ describe('MovieService - getMovies con page/limit (servicio)', () => {
 
     test('debe lanzar AppError 400 si limit excede máximo: 101', async () => {
         // ARRANGE
-        const service = new MovieService(createMockModel())
+        const service = new MovieService({} as any, createMockModel())
 
         // ACT + ASSERT
         await expect(service.getMovies({ limit: '101' }))
@@ -330,7 +330,7 @@ describe('MovieService - getMovies con page/limit (servicio)', () => {
         // ARRANGE
         const model = createMockModel()
         model.getMovies.mockResolvedValue({ rows: [], total: 200 })
-        const service = new MovieService(model)
+        const service = new MovieService({} as any, model)
 
         // ACT
         await service.getMovies({ limit: '100' })
@@ -343,7 +343,7 @@ describe('MovieService - getMovies con page/limit (servicio)', () => {
 
     test('debe lanzar AppError 400 si limit no es número: abc', async () => {
         // ARRANGE
-        const service = new MovieService(createMockModel())
+        const service = new MovieService({} as any, createMockModel())
 
         // ACT + ASSERT
         await expect(service.getMovies({ limit: 'abc' }))
@@ -352,7 +352,7 @@ describe('MovieService - getMovies con page/limit (servicio)', () => {
 
     test('debe lanzar AppError 400 si limit es decimal: 5.5', async () => {
         // ARRANGE
-        const service = new MovieService(createMockModel())
+        const service = new MovieService({} as any, createMockModel())
 
         // ACT + ASSERT
         await expect(service.getMovies({ limit: '5.5' }))
@@ -361,7 +361,7 @@ describe('MovieService - getMovies con page/limit (servicio)', () => {
 
     test('debe lanzar AppError 400 si limit es un array (params duplicados)', async () => {
         // ARRANGE
-        const service = new MovieService(createMockModel())
+        const service = new MovieService({} as any, createMockModel())
 
         // ACT + ASSERT
         await expect(service.getMovies({ limit: ['5', '10'] as any }))
@@ -372,7 +372,7 @@ describe('MovieService - getMovies con page/limit (servicio)', () => {
         // ARRANGE
         const model = createMockModel()
         model.getMovies.mockResolvedValue({ rows: [], total: 0 })
-        const service = new MovieService(model)
+        const service = new MovieService({} as any, model)
 
         // ACT
         await service.getMovies({ limit: '' })
@@ -389,7 +389,7 @@ describe('MovieService - getMovies con page/limit (servicio)', () => {
         // ARRANGE
         const model = createMockModel()
         model.getMovies.mockRejectedValue(new AppError('error del modelo', 400))
-        const service = new MovieService(model)
+        const service = new MovieService({} as any, model)
 
         // ACT + ASSERT
         await expect(service.getMovies({ page: '1', limit: '5' }))
@@ -400,7 +400,7 @@ describe('MovieService - getMovies con page/limit (servicio)', () => {
         // ARRANGE
         const model = createMockModel()
         model.getMovies.mockRejectedValue(new Error('connection lost'))
-        const service = new MovieService(model)
+        const service = new MovieService({} as any, model)
 
         // ACT + ASSERT
         try {

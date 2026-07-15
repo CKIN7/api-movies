@@ -33,7 +33,7 @@ describe('MovieService — error propagation', () => {
         const mockModel = createMockModel()
         const originalError = new AppError('Conflicto: título duplicado', 409)
         mockModel.createMovie.mockRejectedValue(originalError)
-        const service = new (await import('../../services/movieService')).default(mockModel as any)
+        const service = new (await import('../../services/movieService')).default({} as any, mockModel as any)
 
         // Act / Assert
         await expect(service.createMovie(sampleInput)).rejects.toThrow(AppError)
@@ -47,7 +47,7 @@ describe('MovieService — error propagation', () => {
         // Arrange
         const mockModel = createMockModel()
         mockModel.createMovie.mockRejectedValue(new Error('DB connection lost'))
-        const service = new (await import('../../services/movieService')).default(mockModel as any)
+        const service = new (await import('../../services/movieService')).default({} as any, mockModel as any)
 
         // Act / Assert
         await expect(service.createMovie(sampleInput)).rejects.toThrow(AppError)
@@ -58,7 +58,7 @@ describe('MovieService — error propagation', () => {
         // Arrange
         const mockModel = createMockModel()
         mockModel.createMovie.mockResolvedValue({ id: 10, ...sampleInput, genres: 'drama' })
-        const service = new (await import('../../services/movieService')).default(mockModel as any)
+        const service = new (await import('../../services/movieService')).default({} as any, mockModel as any)
         const input = {
             ...sampleInput,
             title: 'Movie <script>alert("xss")</script>',
@@ -78,7 +78,7 @@ describe('MovieService — error propagation', () => {
         // Arrange
         const mockModel = createMockModel()
         mockModel.createMovie.mockResolvedValue({ id: 11, ...sampleInput, genres: 'drama' })
-        const service = new (await import('../../services/movieService')).default(mockModel as any)
+        const service = new (await import('../../services/movieService')).default({} as any, mockModel as any)
         const input = { ...sampleInput, director: '  Christopher Nolan  ' }
 
         // Act

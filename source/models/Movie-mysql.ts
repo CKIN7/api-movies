@@ -6,9 +6,9 @@ import AuditLogModel from './AuditLog'
 
 class MovieModel {
     private conn: any
-    private auditLog: AuditLogModel
+    private auditLog?: AuditLogModel
 
-    constructor(auditLogModel: AuditLogModel, conn?: any) {
+    constructor(conn?: any, auditLogModel?: AuditLogModel) {
         this.conn = conn;
         this.auditLog = auditLogModel
     }
@@ -148,8 +148,10 @@ class MovieModel {
         }
 
         }
-        
-        await this.auditLog.record(movieId, 'rating', null, rating)
+
+        if (this.auditLog) {
+            await this.auditLog.record(movieId, 'rating', null, String(rating))
+        }
 
         await this.conn.commit()
         
@@ -168,8 +170,9 @@ class MovieModel {
 
         try {
         
-         const [rows] = await this.query('SELECT id FROM movies WHERE id = ?',[id])
+         const [rows] = await this.query('SELECT id, rating FROM movies WHERE id = ?',[id])
          if(rows.length === 0) return null
+         const oldRating = rows[0].rating
           
         await this.conn.beginTransaction()
           
@@ -201,6 +204,9 @@ class MovieModel {
                 await this.query(`UPDATE movies SET ${fields.join(', ')} WHERE id = ?`,values)
               }
           
+          if (this.auditLog && result.data.rating !== undefined && result.data.rating !== oldRating) {
+              await this.auditLog.record(Number(id), 'rating', String(oldRating), String(result.data.rating))
+          }
 
           if(result.data.genre){
             await this.query('DELETE FROM movie_genres WHERE movie_id = ?', [id])

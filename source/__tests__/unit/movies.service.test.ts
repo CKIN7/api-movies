@@ -18,7 +18,7 @@ describe('MovieService - getMovies', () => {
             { id: 1, title: 'Inception', year: 2010, director: 'Christopher Nolan', rating: 8.8, duration: 148, plot: '...', poster: '...', genres: 'Action, Sci-Fi' }
         ]
         mockModel.getMovies.mockResolvedValue({ rows: fakeMovies, total: 1 })
-        const service = new MovieService(mockModel as any)
+        const service = new MovieService({} as any, mockModel as any)
 
         const result = await service.getMovies({ genre: 'action' })
 
@@ -34,7 +34,7 @@ describe('MovieService - getMovies', () => {
     test('debe llamar al modelo con los parámetros correctos', async () => {
         const mockModel = createMockModel()
         mockModel.getMovies.mockResolvedValue({ rows: [], total: 0 })
-        const service = new MovieService(mockModel as any)
+        const service = new MovieService({} as any, mockModel as any)
 
         await service.getMovies({ title: 'incept', year: '2010' })
 
@@ -46,7 +46,7 @@ describe('MovieService - getMovies', () => {
     test('debe llamar al modelo sin parámetros cuando no se pasan filtros', async () => {
         const mockModel = createMockModel()
         mockModel.getMovies.mockResolvedValue({ rows: [], total: 0 })
-        const service = new MovieService(mockModel as any)
+        const service = new MovieService({} as any, mockModel as any)
 
         await service.getMovies({})
 
@@ -58,7 +58,7 @@ describe('MovieService - getMovies', () => {
     test('debe lanzar AppError con status 500 si el modelo falla', async () => {
         const mockModel = createMockModel()
         mockModel.getMovies.mockRejectedValue(new Error('DB error'))
-        const service = new MovieService(mockModel as any)
+        const service = new MovieService({} as any, mockModel as any)
 
         await expect(service.getMovies({})).rejects.toThrow(AppError)
     })

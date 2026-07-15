@@ -27,7 +27,7 @@ describe('MovieService - createMovie', () => {
         }
         mockModel.createMovie.mockResolvedValue(fakeCreatedMovie)
 
-        const service = new (await import('../../services/movieService')).default(mockModel as any)
+        const service = new (await import('../../services/movieService')).default({} as any, mockModel as any)
 
         const inputData = {
             title: 'Nueva Película',
@@ -51,7 +51,7 @@ describe('MovieService - createMovie', () => {
         const mockModel = createMockModel()
         mockModel.createMovie.mockRejectedValue(new Error('DB error'))
 
-        const service = new (await import('../../services/movieService')).default(mockModel as any)
+        const service = new (await import('../../services/movieService')).default({} as any, mockModel as any)
 
         const inputData = {
             title: 'Fallo',
