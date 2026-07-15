@@ -23,12 +23,14 @@ export async function teardownTestDb(conn: Connection): Promise<void> {
 
 export async function clearTestData(conn: Connection): Promise<void> {
     await conn.execute('DELETE FROM movie_genres')
+    await conn.execute('DELETE FROM audit_log')
     await conn.execute('DELETE FROM movies')
     await conn.execute('DELETE FROM directors')
     await conn.execute('DELETE FROM genres')
     await conn.execute('ALTER TABLE directors AUTO_INCREMENT = 1')
     await conn.execute('ALTER TABLE genres AUTO_INCREMENT = 1')
     await conn.execute('ALTER TABLE movies AUTO_INCREMENT = 1')
+    await conn.execute('ALTER TABLE audit_log AUTO_INCREMENT = 1')
 }
 
 export async function seedTestData(conn: Connection): Promise<void> {
