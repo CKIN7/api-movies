@@ -1,7 +1,11 @@
 import { z } from 'zod'
 import { movieSchema } from '../schemas/movie'
+import type { MovieQueryDTO } from '../schemas/movieQuery'
 
 export type MovieInput = z.infer<typeof movieSchema>
+export type CreateMovieDTO = MovieInput
+export type UpdateMovieDTO = Partial<MovieInput>
+export type { MovieQueryDTO }
 
 export interface MovieRow {
     id: number
