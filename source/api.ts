@@ -1,26 +1,32 @@
 import express from 'express'
 import { createMovieRoutes } from './routes/movieRoutes'
 import MovieController from './controllers/movieController'
-import MovieModel from './models/Movie-mysql'
+import MovieService from './services/movieService'
+import MovieRepository from './repositories/MovieRepository'
+import DirectorRepository from './repositories/DirectorRepository'
+import GenreRepository from './repositories/GenreRepository'
+import AuditLogRepository from './repositories/AuditLogRepository'
 import AppError from './utils/AppError'
 import logger from './utils/logger'
 import { requestLogger } from './middleware/requestLogger'
 import type { Request, Response, NextFunction } from 'express'
 import connection from './db/connection'
-import AuditLogModel from './models/AuditLog'
 
-export function createApp(movieModel?: MovieModel) {
+export function createApp(movieService?: MovieService) {
     const app = express()
 
     app.disable('x-powered-by')
     app.use(express.json())
     app.use(requestLogger)
-    
+
     const conn = connection
 
-    const auditLogModel = new AuditLogModel(conn)
-    const model = movieModel || new MovieModel(conn, auditLogModel)
-    const controller = new MovieController(auditLogModel, model)
+    const movieRepo = new MovieRepository(conn)
+    const directorRepo = new DirectorRepository(conn)
+    const genreRepo = new GenreRepository(conn)
+    const auditRepo = new AuditLogRepository(conn)
+    const _service = movieService || new MovieService(movieRepo, directorRepo, genreRepo, auditRepo)
+    const controller = new MovieController(_service)
     const router = createMovieRoutes(controller)
 
     app.use('/movies', router)

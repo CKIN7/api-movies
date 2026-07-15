@@ -1,105 +1,68 @@
 import { movieSchema } from '../schemas/movie'
-import MovieModel from '../models/Movie-mysql'
+import { movieQuerySchema } from '../schemas/movieQuery'
+import { auditLogQuerySchema } from '../schemas/auditLogQuerySchema'
 import type { Request, Response } from 'express'
 import MovieService from '../services/movieService'
 import logger from '../utils/logger'
-import { GetMoviesParams } from '../types/movie'
-import AuditLogModel from '../models/AuditLog'
-import { auditLogQuerySchema } from '../schemas/auditLogQuerySchema'
 
 class MovieController {
-    private movieModel: MovieModel
-    private movieService: MovieService
-    private auditLogModel: AuditLogModel
-
-    constructor(auditLogModel: AuditLogModel, movieModel?: MovieModel) {
-        this.movieModel = movieModel || new MovieModel()
-        this.auditLogModel = auditLogModel
-        this.movieService = new MovieService(this.auditLogModel,this.movieModel)
-    }
+    constructor(private movieService: MovieService) {}
 
     getAll = async (req: Request, resp: Response) => {
-
-    const { genre, year, title, sort, order, page, limit } = req.query as GetMoviesParams
-
-    const movieFiltered = await this.movieService.getMovies({genre, year, title, sort, order, page, limit})
-
-    resp.json(movieFiltered)
-}
+        const parsed = movieQuerySchema.parse(req.query)
+        const result = await this.movieService.getMovies(parsed)
+        resp.json(result)
+    }
 
     getById = async (req: Request, resp: Response) => {
-    
-    const {id}  = req.params as { id: string }
-    const movie = await this.movieModel.getMovieById(id)
-
-    if (!movie) {
-        return resp.status(404).json({ error: 'Pelicula no encontrada' })
+        const id = Number(req.params.id)
+        const movie = await this.movieService.getMovieById(id)
+        resp.json(movie)
     }
 
-    resp.send(movie)
+    createMovie = async (req: Request, resp: Response) => {
+        const result = movieSchema.safeParse(req.body)
+        if (result.error) {
+            return resp.status(400).json({ error: result.error.message })
+        }
 
-} 
-
-    createMovie = async (req: Request, resp: Response) => { 
-
-    const result = movieSchema.safeParse(req.body)
-    logger.debug('Request body', { body: req.body })
-    
-    if (result.error) {
-        return resp.status(400).json({ error: result.error.message })
+        const newMovie = await this.movieService.createMovie(result.data)
+        resp.status(201).json({
+            message: 'Pelicula creada con exito',
+            data: newMovie
+        })
     }
-
-    const newMovie = await this.movieService.createMovie(result.data)
-
-    resp.status(201).json({
-        message: 'Pelicula creada con exito',
-        data: newMovie
-    })
-}
 
     updateMovie = async (req: Request, resp: Response) => {
-        const { id } = req.params as { id: string }
+        const id = Number(req.params.id)
 
-    const result = movieSchema.partial().safeParse(req.body)
-    if (result.error) {
-        return resp.status(400).json({ message: result.error.message })
-    }
-    
-    const updateMovie = await this.movieModel.updateMovie({id, result})
-    logger.info(`Película actualizada: ${id}`, { movie: updateMovie })
-    
-    if(!updateMovie){
-    return resp.status(404).json({ message: 'Pelicula no encontrada' })
-    }
-    
-    resp.status(200).json({ message: 'Pelicula actualizada con exito PATCH', movie: updateMovie })
+        const result = movieSchema.partial().safeParse(req.body)
+        if (result.error) {
+            return resp.status(400).json({ message: result.error.message })
+        }
+
+        const movie = await this.movieService.updateMovie(id, result.data)
+        logger.info(`Película actualizada: ${id}`, { movie })
+        resp.status(200).json({ message: 'Pelicula actualizada con exito', movie })
     }
 
     deleteMovie = async (req: Request, resp: Response) => {
-        const { id } = req.params as { id: string }
-
-    const movie = await this.movieModel.deleteMovie(id)
-    if(!movie){
-        return resp.status(404).json({ message: 'Pelicula no encontrada desde delete' })
+        const id = Number(req.params.id)
+        await this.movieService.deleteMovie(id)
+        resp.status(200).json({ message: 'Pelicula borrada con exito' })
     }
 
-
-    resp.status(200).json({ message: 'Pelicula borrada con exito' })
-    }
-    
     getAuditLog = async (req: Request, resp: Response) => {
+        const { id } = req.params
+        const { field, page, limit } = req.query
 
-        const {id} = req.params
-        const {field, page, limit} = req.query
+        const parsed = auditLogQuerySchema.safeParse({ id, field, page, limit })
 
-        const parsed = auditLogQuerySchema.safeParse({id, field, page, limit})
-
-        if(parsed.error){
+        if (parsed.error) {
             return resp.status(400).json({ error: parsed.error.message })
         }
 
         const result = await this.movieService.getAuditLog(parsed.data)
-
         resp.json(result)
     }
 }
