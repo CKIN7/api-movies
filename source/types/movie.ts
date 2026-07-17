@@ -37,6 +37,7 @@ export interface GetMoviesQuery {
     order?: string
     limit: number
     offset: number
+    q?: string
 }
 
 export interface PaginatedResponse<T> {

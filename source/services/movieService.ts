@@ -34,6 +34,7 @@ class MovieService {
                 order: params.order,
                 limit: params.limit,
                 offset,
+                q: params.q
             })
 
             const totalPages = Math.ceil(result.total / params.limit)

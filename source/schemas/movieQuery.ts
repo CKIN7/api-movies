@@ -14,6 +14,7 @@ export const movieQuerySchema = z.object({
         .pipe(z.enum(['asc', 'desc']).transform(s => s.toUpperCase()).optional()),
     page: z.preprocess(emptyToUndefined, z.coerce.number().int().positive().optional()).default(1),
     limit: z.preprocess(emptyToUndefined, z.coerce.number().int().min(1).max(100).optional()).default(10),
+    q: z.preprocess(emptyToUndefined, z.string().optional())
 })
 
 export type MovieQueryDTO = z.infer<typeof movieQuerySchema>

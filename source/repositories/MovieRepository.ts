@@ -50,6 +50,20 @@ class MovieRepository {
             params.push(`%${query.title}%`)
         }
 
+        if (query.q) {
+            const like = `%${query.q}%`
+            conditions.push(`
+                (m.title LIKE ? OR m.plot LIKE ? OR d.director_name LIKE ?
+                OR EXISTS (
+                    SELECT 1 FROM movie_genres mg2
+                    JOIN genres g2 ON mg2.genre_id = g2.id_genre
+                    WHERE mg2.movie_id = m.id AND g2.genre_name LIKE ?
+                ))
+            `)
+            params.push(like, like, like, like)
+
+        }
+
         let countSql = `SELECT COUNT(DISTINCT m.id) as total FROM movies m
             JOIN directors d ON m.id_director = d.director_id
             JOIN movie_genres mg ON m.id = mg.movie_id
