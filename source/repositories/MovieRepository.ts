@@ -2,12 +2,6 @@ import type { MovieRow } from '../types/movie'
 import type { GetMoviesQuery } from '../types/movie'
 import { DbLogger } from '../utils/DbLogger'
 
-const SORT_COLUMNS: Record<string, string> = {
-    year: 'm.year',
-    rating: 'm.rating',
-    title: 'm.title',
-}
-
 class MovieRepository {
     constructor(private conn: any) {}
 
@@ -81,11 +75,8 @@ class MovieRepository {
         sql += ` GROUP BY m.id`
 
         if (query.sort) {
-            const column = SORT_COLUMNS[query.sort]
             const direction = query.order === 'asc' ? 'ASC' : 'DESC'
-            if (column) {
-                sql += ` ORDER BY ${column} ${direction}`
-            }
+            sql += ` ORDER BY ${query.sort} ${direction}`
         }
 
         sql += ` LIMIT ? OFFSET ?`

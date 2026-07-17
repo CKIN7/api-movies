@@ -85,7 +85,7 @@ describe('GET /movies?page=&limit= (controlador)', () => {
 
         expect(service.getMovies).toHaveBeenCalledWith(
             expect.objectContaining({
-                page: 1, limit: 5, genre: 'action', sort: 'm.year', order: 'DESC'
+                genre: 'action', limit: 5, order: 'desc', sort: 'm.year',  page: 1 
             })
         )
     })

@@ -21,7 +21,7 @@ class MovieService {
     async getMovies(params: MovieQueryDTO): Promise<PaginatedResponse<MovieResponse[]>> {
         try {
             if (params.sort && !params.order) {
-                params.order = 'ASC'
+                params.order = 'asc'
             }
 
             const offset = (params.page - 1) * params.limit

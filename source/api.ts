@@ -7,6 +7,7 @@ import DirectorRepository from './repositories/DirectorRepository'
 import GenreRepository from './repositories/GenreRepository'
 import AuditLogRepository from './repositories/AuditLogRepository'
 import AppError from './utils/AppError'
+import { ZodError } from 'zod'
 import logger from './utils/logger'
 import { requestLogger } from './middleware/requestLogger'
 import type { Request, Response, NextFunction } from 'express'
@@ -32,7 +33,7 @@ export function createApp(movieService?: MovieService) {
     app.use('/movies', router)
 
     app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
-        const statusCode = err instanceof AppError ? err.statusCode : 500
+        const statusCode = err instanceof AppError ? err.statusCode : err instanceof ZodError ? 400 : 500
         logger.error(`Error handler: ${err.message}`, { statusCode, stack: err.stack })
         res.status(statusCode).json({ error: err.message })
     })
