@@ -19,20 +19,11 @@ export interface MovieRow {
     genres: string
 }
 
-export interface GetMoviesParams {
-    genre?: string
-    year?: string
-    title?: string
-    sort?: string
-    order?: string
-    page?: string
-    limit?: string
-}
-
 export interface GetMoviesQuery {
     genre?: string
     year?: number
     title?: string
+    director?: string
     sort?: string
     order?: string
     limit: number

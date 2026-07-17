@@ -30,6 +30,7 @@ class MovieService {
                 genre: params.genre,
                 year: params.year,
                 title: params.title,
+                director: params.director,
                 sort: params.sort,
                 order: params.order,
                 limit: params.limit,

@@ -142,3 +142,38 @@ describe('GET /movies?q= (búsqueda full-text)', () => {
         expect(res.body.data).toHaveLength(8)
     })
 })
+
+describe('GET /movies?director= (búsqueda por director)', () => {
+    test('?director=Nolan encuentra películas de Christopher Nolan', async () => {
+        const app = createApp(createTestService())
+
+        const res = await request(app).get('/movies?director=Nolan')
+
+        expect(res.status).toBe(200)
+        expect(res.body.data.length).toBeGreaterThanOrEqual(4)
+        res.body.data.forEach((m: any) => {
+            expect(m.director).toBe('Christopher Nolan')
+        })
+    })
+
+    test('?director=christ busca parcialmente en director_name', async () => {
+        const app = createApp(createTestService())
+
+        const res = await request(app).get('/movies?director=christ')
+
+        expect(res.status).toBe(200)
+        expect(res.body.data.length).toBeGreaterThanOrEqual(1)
+        res.body.data.forEach((m: any) => {
+            expect(m.director.toLowerCase()).toMatch(/christ/)
+        })
+    })
+
+    test('?director= (vacío) no filtra, devuelve todas', async () => {
+        const app = createApp(createTestService())
+
+        const res = await request(app).get('/movies?director=')
+
+        expect(res.status).toBe(200)
+        expect(res.body.data).toHaveLength(8)
+    })
+})

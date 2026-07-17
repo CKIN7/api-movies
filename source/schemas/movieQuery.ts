@@ -6,6 +6,7 @@ export const movieQuerySchema = z.object({
     genre: z.preprocess(emptyToUndefined, z.string().optional()),
     year: z.preprocess(emptyToUndefined, z.coerce.number().int().min(1895).max(2026).optional()),
     title: z.preprocess(emptyToUndefined, z.string().optional()),
+    director: z.preprocess(emptyToUndefined, z.string().optional()),
     sort: z.preprocess(emptyToUndefined, z.enum(['year', 'rating', 'title']).transform(s => `m.${s}`).optional()),
     order: z.preprocess(val => {
         const v = emptyToUndefined(val)

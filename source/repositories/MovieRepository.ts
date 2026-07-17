@@ -44,6 +44,11 @@ class MovieRepository {
             params.push(`%${query.title}%`)
         }
 
+        if(query.director){
+            conditions.push('d.director_name LIKE ?')
+            params.push(`%${query.director}%`)
+        }
+
         if (query.q) {
             const like = `%${query.q}%`
             conditions.push(`

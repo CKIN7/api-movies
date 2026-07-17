@@ -60,6 +60,28 @@ describe('GET /movies?title= (controlador)', () => {
         )
     })
 
+    test('debe pasar director al servicio cuando está en query', async () => {
+        const service = createMockService()
+        service.getMovies.mockResolvedValue({ data: [], meta: { total: 0, page: 1, limit: 10, totalPages: 0 } })
+        const app = createApp(service as any)
+        await request(app).get('/movies?director=Nolan')
+
+        expect(service.getMovies).toHaveBeenCalledWith(
+            expect.objectContaining({ director: 'Nolan' })
+        )
+    })
+
+    test('no debe pasar director si está vacío', async () => {
+        const service = createMockService()
+        service.getMovies.mockResolvedValue({ data: [], meta: { total: 0, page: 1, limit: 10, totalPages: 0 } })
+        const app = createApp(service as any)
+        await request(app).get('/movies?director=')
+
+        expect(service.getMovies).toHaveBeenCalledWith(
+            expect.not.objectContaining({ director: expect.anything() })
+        )
+    })
+
     test('no debe pasar q si está vacío', async () => {
         const service = createMockService()
         service.getMovies.mockResolvedValue({ data: [], meta: { total: 0, page: 1, limit: 10, totalPages: 0 } })
