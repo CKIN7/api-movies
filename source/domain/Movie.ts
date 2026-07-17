@@ -30,7 +30,7 @@ export class Movie {
             row.id,
             row.title,
             row.year,
-            row.rating,
+            Number(row.rating),
             row.director,
             row.genres.split(',').map(g => g.trim()).filter(Boolean),
             row.duration,

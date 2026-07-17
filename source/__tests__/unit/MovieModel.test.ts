@@ -60,6 +60,35 @@ describe('MovieRepository - findMany', () => {
 
         await expect(repo.findMany({ limit: 10, offset: 0 })).rejects.toThrow()
     })
+
+    test('debe incluir triple LIKE y EXISTS en la query cuando se filtra por q', async () => {
+        const conn = createMockConnection()
+        const repo = new MovieRepository(conn)
+        conn.query
+            .mockResolvedValueOnce([[{ total: 0 }]])
+            .mockResolvedValueOnce([[]])
+
+        await repo.findMany({ q: 'batman', limit: 10, offset: 0 })
+
+        const queryStr = conn.query.mock.calls[1][0] as string
+        expect(queryStr).toContain('m.title LIKE ?')
+        expect(queryStr).toContain('m.plot LIKE ?')
+        expect(queryStr).toContain('d.director_name LIKE ?')
+        expect(queryStr).toContain('EXISTS')
+        expect(queryStr).toContain('genre_name LIKE ?')
+    })
+
+    test('debe pasar 4 parámetros con %...% para q', async () => {
+        const conn = createMockConnection()
+        const repo = new MovieRepository(conn)
+        conn.query
+            .mockResolvedValueOnce([[{ total: 0 }]])
+            .mockResolvedValueOnce([[]])
+
+        await repo.findMany({ q: 'batman', limit: 10, offset: 0 })
+
+        expect(conn.query.mock.calls[0][1]).toEqual(['%batman%', '%batman%', '%batman%', '%batman%'])
+    })
 })
 
 describe('MovieRepository - findById', () => {

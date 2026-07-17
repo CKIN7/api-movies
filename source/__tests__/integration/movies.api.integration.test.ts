@@ -175,7 +175,7 @@ describe('PATCH /movies/:id (integración con DB)', () => {
         const res = await request(app).patch('/movies/9999').send({ title: 'Nope' })
 
         expect(res.status).toBe(404)
-        expect(res.body).toHaveProperty('message')
+        expect(res.body).toHaveProperty('error')
     })
 })
 

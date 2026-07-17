@@ -48,6 +48,28 @@ describe('GET /movies?title= (controlador)', () => {
             expect.objectContaining({ page: 1, limit: 10 })
         )
     })
+
+    test('debe pasar q al servicio cuando está en query', async () => {
+        const service = createMockService()
+        service.getMovies.mockResolvedValue({ data: [], meta: { total: 0, page: 1, limit: 10, totalPages: 0 } })
+        const app = createApp(service as any)
+        await request(app).get('/movies?q=incept')
+
+        expect(service.getMovies).toHaveBeenCalledWith(
+            expect.objectContaining({ q: 'incept' })
+        )
+    })
+
+    test('no debe pasar q si está vacío', async () => {
+        const service = createMockService()
+        service.getMovies.mockResolvedValue({ data: [], meta: { total: 0, page: 1, limit: 10, totalPages: 0 } })
+        const app = createApp(service as any)
+        await request(app).get('/movies?q=')
+
+        expect(service.getMovies).toHaveBeenCalledWith(
+            expect.not.objectContaining({ q: expect.anything() })
+        )
+    })
 })
 
 describe('MovieRepository - getMovies con title (repositorio)', () => {

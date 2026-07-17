@@ -88,3 +88,57 @@ describe('GET /movies?title= (búsqueda por título)', () => {
         expect(res.body.data[0].genres.map((g: string) => g.toLowerCase())).toContain('action')
     })
 })
+
+describe('GET /movies?q= (búsqueda full-text)', () => {
+    test('?q=incept encuentra Inception por título', async () => {
+        const app = createApp(createTestService())
+
+        const res = await request(app).get('/movies?q=incept')
+
+        expect(res.status).toBe(200)
+        expect(res.body.data).toHaveLength(1)
+        expect(res.body.data[0].title).toBe('Inception')
+    })
+
+    test('?q=Nolan encuentra películas por director', async () => {
+        const app = createApp(createTestService())
+
+        const res = await request(app).get('/movies?q=Nolan')
+
+        expect(res.status).toBe(200)
+        expect(res.body.data.length).toBeGreaterThanOrEqual(3)
+        res.body.data.forEach((m: any) => {
+            expect(m.director).toBe('Christopher Nolan')
+        })
+    })
+
+    test('?q=crime encuentra películas por género', async () => {
+        const app = createApp(createTestService())
+
+        const res = await request(app).get('/movies?q=crime')
+
+        expect(res.status).toBe(200)
+        expect(res.body.data.length).toBeGreaterThanOrEqual(1)
+        res.body.data.forEach((m: any) => {
+            expect(m.genres.map((g: string) => g.toLowerCase())).toContain('crime')
+        })
+    })
+
+    test('?q=xyzxyz devuelve array vacío', async () => {
+        const app = createApp(createTestService())
+
+        const res = await request(app).get('/movies?q=xyzxyz')
+
+        expect(res.status).toBe(200)
+        expect(res.body.data).toEqual([])
+    })
+
+    test('?q= (vacío) no filtra, devuelve todas', async () => {
+        const app = createApp(createTestService())
+
+        const res = await request(app).get('/movies?q=')
+
+        expect(res.status).toBe(200)
+        expect(res.body.data).toHaveLength(8)
+    })
+})
