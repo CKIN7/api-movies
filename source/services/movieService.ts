@@ -6,6 +6,7 @@ import MovieRepository from '../repositories/MovieRepository'
 import DirectorRepository from '../repositories/DirectorRepository'
 import GenreRepository from '../repositories/GenreRepository'
 import AuditLogRepository from '../repositories/AuditLogRepository'
+import CastRepository from '../repositories/CastRepository'
 import { Movie, type MovieResponse } from '../domain/Movie'
 import AppError from '../utils/AppError'
 import logger from '../utils/logger'
@@ -16,6 +17,7 @@ class MovieService {
         private directorRepo: DirectorRepository,
         private genreRepo: GenreRepository,
         private auditRepo: AuditLogRepository,
+        private castRepo: CastRepository,
     ) {}
 
     async getMovies(params: MovieQueryDTO): Promise<PaginatedResponse<MovieResponse[]>> {
@@ -86,6 +88,13 @@ class MovieService {
                     await this.genreRepo.linkToMovie(movieId, genreId)
                 }
 
+                if (dto.cast && dto.cast.length > 0) {
+                    for (const member of dto.cast) {
+                        const actorId = await this.castRepo.findOrCreate(member.actor)
+                        await this.castRepo.linkToMovie(movieId, actorId, member.character)
+                    }
+                }
+
                 await this.auditRepo.record(movieId, 'rating', null, String(dto.rating))
 
                 const row = await this.movieRepo.findById(movieId)
@@ -133,6 +142,14 @@ class MovieService {
                     }
                 }
 
+                if (dto.cast) {
+                    await this.castRepo.deleteByMovieId(id)
+                    for (const member of dto.cast) {
+                        const actorId = await this.castRepo.findOrCreate(member.actor)
+                        await this.castRepo.linkToMovie(id, actorId, member.character)
+                    }
+                }
+
                 const row = await this.movieRepo.findById(id)
                 return Movie.fromRow(row!).toResponse()
             })
@@ -150,6 +167,7 @@ class MovieService {
 
             await this.movieRepo.transaction(async () => {
                 await this.genreRepo.deleteByMovieId(id)
+                await this.castRepo.deleteByMovieId(id)
                 await this.movieRepo.delete(id)
             })
         } catch (error) {
