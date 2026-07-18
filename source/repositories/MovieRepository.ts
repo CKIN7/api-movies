@@ -1,6 +1,7 @@
 import type { MovieRow } from '../types/movie'
 import type { GetMoviesQuery } from '../types/movie'
 import { DbLogger } from '../utils/DbLogger'
+import MovieQueryBuilder from './MovieQueryBuilder';
 
 class MovieRepository {
     constructor(private conn: any) {}
@@ -19,49 +20,7 @@ class MovieRepository {
             JOIN genres g ON mg.genre_id = g.id_genre
         `
 
-        const params: (string | number)[] = []
-        const conditions: string[] = []
-
-        if (query.year) {
-            conditions.push('m.year = ?')
-            params.push(query.year)
-        }
-
-        if (query.genre) {
-            conditions.push(`
-                m.id IN (
-                    SELECT mg2.movie_id
-                    FROM movie_genres mg2
-                    JOIN genres g2 ON mg2.genre_id = g2.id_genre
-                    WHERE g2.genre_name = ?
-                )
-            `)
-            params.push(query.genre)
-        }
-
-        if (query.title) {
-            conditions.push('m.title LIKE ?')
-            params.push(`%${query.title}%`)
-        }
-
-        if(query.director){
-            conditions.push('d.director_name LIKE ?')
-            params.push(`%${query.director}%`)
-        }
-
-        if (query.q) {
-            const like = `%${query.q}%`
-            conditions.push(`
-                (m.title LIKE ? OR m.plot LIKE ? OR d.director_name LIKE ?
-                OR EXISTS (
-                    SELECT 1 FROM movie_genres mg2
-                    JOIN genres g2 ON mg2.genre_id = g2.id_genre
-                    WHERE mg2.movie_id = m.id AND g2.genre_name LIKE ?
-                ))
-            `)
-            params.push(like, like, like, like)
-
-        }
+        const {conditions, params} = new MovieQueryBuilder(query).build()
 
         let countSql = `SELECT COUNT(DISTINCT m.id) as total FROM movies m
             JOIN directors d ON m.id_director = d.director_id

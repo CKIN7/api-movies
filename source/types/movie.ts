@@ -21,7 +21,12 @@ export interface MovieRow {
 
 export interface GetMoviesQuery {
     genre?: string
-    year?: number
+    minYear?: number
+    maxYear?: number
+    minRating?: number
+    maxRating?: number
+    minDuration?: number
+    maxDuration?: number
     title?: string
     director?: string
     sort?: string
