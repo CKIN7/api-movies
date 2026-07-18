@@ -22,15 +22,18 @@ export async function teardownTestDb(conn: Connection): Promise<void> {
 }
 
 export async function clearTestData(conn: Connection): Promise<void> {
+    await conn.execute('DELETE FROM movie_actors')
     await conn.execute('DELETE FROM movie_genres')
     await conn.execute('DELETE FROM audit_log')
     await conn.execute('DELETE FROM movies')
     await conn.execute('DELETE FROM directors')
     await conn.execute('DELETE FROM genres')
+    await conn.execute('DELETE FROM actors')
     await conn.execute('ALTER TABLE directors AUTO_INCREMENT = 1')
     await conn.execute('ALTER TABLE genres AUTO_INCREMENT = 1')
     await conn.execute('ALTER TABLE movies AUTO_INCREMENT = 1')
     await conn.execute('ALTER TABLE audit_log AUTO_INCREMENT = 1')
+    await conn.execute('ALTER TABLE actors AUTO_INCREMENT = 1')
 }
 
 export async function seedTestData(conn: Connection): Promise<void> {
@@ -68,4 +71,26 @@ export async function seedTestData(conn: Connection): Promise<void> {
     await conn.execute(`INSERT INTO movie_genres (movie_id, genre_id) VALUES (7, 6)`)
     await conn.execute(`INSERT INTO movie_genres (movie_id, genre_id) VALUES (8, 1)`)
     await conn.execute(`INSERT INTO movie_genres (movie_id, genre_id) VALUES (8, 3)`)
+
+    await conn.execute(`INSERT INTO actors (actor_id, actor_name) VALUES (1, 'Leonardo DiCaprio')`)
+    await conn.execute(`INSERT INTO actors (actor_id, actor_name) VALUES (2, 'Joseph Gordon-Levitt')`)
+    await conn.execute(`INSERT INTO actors (actor_id, actor_name) VALUES (3, 'Christian Bale')`)
+    await conn.execute(`INSERT INTO actors (actor_id, actor_name) VALUES (4, 'Matthew McConaughey')`)
+    await conn.execute(`INSERT INTO actors (actor_id, actor_name) VALUES (5, 'Tim Robbins')`)
+    await conn.execute(`INSERT INTO actors (actor_id, actor_name) VALUES (6, 'John Travolta')`)
+    await conn.execute(`INSERT INTO actors (actor_id, actor_name) VALUES (7, 'Johnny Depp')`)
+    await conn.execute(`INSERT INTO actors (actor_id, actor_name) VALUES (8, 'Rufus Sewell')`)
+    await conn.execute(`INSERT INTO actors (actor_id, actor_name) VALUES (9, 'Tom Hardy')`)
+
+    await conn.execute(`INSERT INTO movie_actors (movie_id, actor_id, character_name) VALUES (1, 1, 'Dom Cobb')`)
+    await conn.execute(`INSERT INTO movie_actors (movie_id, actor_id, character_name) VALUES (1, 2, 'Arthur')`)
+    await conn.execute(`INSERT INTO movie_actors (movie_id, actor_id, character_name) VALUES (2, 3, 'Bruce Wayne')`)
+    await conn.execute(`INSERT INTO movie_actors (movie_id, actor_id, character_name) VALUES (2, 9, 'Bane')`)
+    await conn.execute(`INSERT INTO movie_actors (movie_id, actor_id, character_name) VALUES (3, 4, 'Joseph Cooper')`)
+    await conn.execute(`INSERT INTO movie_actors (movie_id, actor_id, character_name) VALUES (4, 5, 'Andy Dufresne')`)
+    await conn.execute(`INSERT INTO movie_actors (movie_id, actor_id, character_name) VALUES (5, 6, 'Vincent Vega')`)
+    await conn.execute(`INSERT INTO movie_actors (movie_id, actor_id, character_name) VALUES (6, 7, 'Barnabas Collins')`)
+    await conn.execute(`INSERT INTO movie_actors (movie_id, actor_id, character_name) VALUES (7, 8, 'John Murdoch')`)
+    await conn.execute(`INSERT INTO movie_actors (movie_id, actor_id, character_name) VALUES (8, 3, 'Bruce Wayne')`)
+    await conn.execute(`INSERT INTO movie_actors (movie_id, actor_id, character_name) VALUES (8, 9, 'Bane')`)
 }
