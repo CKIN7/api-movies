@@ -5,6 +5,7 @@ import MovieRepository from '../../repositories/MovieRepository'
 import DirectorRepository from '../../repositories/DirectorRepository'
 import GenreRepository from '../../repositories/GenreRepository'
 import AuditLogRepository from '../../repositories/AuditLogRepository'
+import CastRepository from '../../repositories/CastRepository'
 import { setupTestDb, teardownTestDb, clearTestData, seedTestData } from '../helpers/db'
 import type { Connection } from 'mysql2/promise'
 
@@ -19,7 +20,8 @@ function createTestService() {
     const directorRepo = new DirectorRepository(db)
     const genreRepo = new GenreRepository(db)
     const auditRepo = new AuditLogRepository(db)
-    return new MovieService(movieRepo, directorRepo, genreRepo, auditRepo)
+    const castRepo = new CastRepository(db)
+    return new MovieService(movieRepo, directorRepo, genreRepo, auditRepo, castRepo)
 }
 
 describe('GET /movies?sort=&order= (integración)', () => {
