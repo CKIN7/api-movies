@@ -28,6 +28,7 @@ class MovieService {
 
             const result = await this.movieRepo.findMany({
                 genre: params.genre,
+                genreMode: params.genreMode,
                 minYear: params.minYear,
                 minRating: params.minRating,
                 maxRating: params.maxRating,

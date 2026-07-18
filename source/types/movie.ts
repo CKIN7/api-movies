@@ -20,7 +20,8 @@ export interface MovieRow {
 }
 
 export interface GetMoviesQuery {
-    genre?: string
+    genre?: string[]
+    genreMode?: 'and' | 'or'
     minYear?: number
     maxYear?: number
     minRating?: number

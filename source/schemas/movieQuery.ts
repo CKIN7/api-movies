@@ -3,7 +3,21 @@ import { z } from 'zod'
 const emptyToUndefined = (val: unknown) => (val === '' ? undefined : val)
 
 export const movieQuerySchema = z.object({
-    genre: z.preprocess(emptyToUndefined, z.string().optional()),
+    genre: z.preprocess(
+    (val) => {
+        const v = emptyToUndefined(val)
+        if (v === undefined) return undefined
+        const arr = Array.isArray(v) ? v : [v]
+        const cleaned = [...new Set(
+            arr
+                .filter(s => typeof s === 'string' && s.trim().length > 0)
+                .map(s => s.trim().toLowerCase())
+        )]
+        return cleaned.length > 0 ? cleaned : undefined
+    },
+    z.array(z.string()).min(1).max(10).optional()
+    ),
+    genreMode: z.preprocess(emptyToUndefined, z.enum(['and', 'or']).optional()).default('and'),
     title: z.preprocess(emptyToUndefined, z.string().optional()),
     director: z.preprocess(emptyToUndefined, z.string().optional()),
     sort: z.preprocess(emptyToUndefined, z.enum(['year', 'rating', 'title']).transform(s => `m.${s}`).optional()),

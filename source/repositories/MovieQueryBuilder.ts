@@ -51,16 +51,34 @@ class MovieQueryBuilder {
     }
 
     private addGenreFilter() {
-        if (this.query.genre) {
-            this.conditions.push(`
-                m.id IN (
-                    SELECT mg2.movie_id
-                    FROM movie_genres mg2
-                    JOIN genres g2 ON mg2.genre_id = g2.id_genre
-                    WHERE g2.genre_name = ?
+        if (this.query.genre && this.query.genre.length > 0 ) {
+            const placeholders = this.query.genre.map(() => '?').join(', ')
+
+            if (this.query.genreMode === 'and'){
+                this.conditions.push(`
+                    m.id IN (
+                        SELECT mg2.movie_id
+                        FROM movie_genres mg2
+                        JOIN genres g2 ON mg2.genre_id = g2.id_genre
+                        WHERE g2.genre_name IN (${placeholders})
+                        GROUP BY mg2.movie_id
+                        HAVING COUNT(DISTINCT mg2.genre_id) = ?
                 )
             `)
-            this.params.push(this.query.genre)
+            this.params.push(...this.query.genre, this.query.genre.length)
+            } else {
+                this.conditions.push(`
+                    m.id IN (
+                        SELECT mg2.movie_id
+                        FROM movie_genres mg2
+                        JOIN genres g2 ON mg2.genre_id = g2.id_genre
+                        WHERE g2.genre_name IN (${placeholders})
+                )
+            `)
+            this.params.push(...this.query.genre)
+            }
+            
+            
         }
     }
 
