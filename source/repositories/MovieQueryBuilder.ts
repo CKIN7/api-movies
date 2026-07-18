@@ -105,9 +105,14 @@ class MovieQueryBuilder {
                     SELECT 1 FROM movie_genres mg2
                     JOIN genres g2 ON mg2.genre_id = g2.id_genre
                     WHERE mg2.movie_id = m.id AND g2.genre_name LIKE ?
+                )
+                OR EXISTS (
+                    SELECT 1 FROM movie_actors ma2
+                    JOIN actors a2 ON ma2.actor_id = a2.actor_id
+                    WHERE ma2.movie_id = m.id AND a2.actor_name LIKE ?
                 ))
             `)
-            this.params.push(like, like, like, like)
+            this.params.push(like, like, like, like, like)
         }
     }
 }
