@@ -45,7 +45,7 @@ describe('GET /movies (integración real con DB)', () => {
     test('debe filtrar por año', async () => {
         const app = createApp(createTestService())
 
-        const res = await request(app).get('/movies?year=1994')
+        const res = await request(app).get('/movies?minYear=1994&maxYear=1994')
 
         expect(res.status).toBe(200)
         expect(res.body.data).toHaveLength(3)

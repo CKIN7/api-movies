@@ -47,7 +47,7 @@ describe('GET /movies?sort=&order= (controlador)', () => {
         await request(app).get('/movies?sort=rating&genre=action&title=dark')
 
         expect(service.getMovies).toHaveBeenCalledWith(
-            expect.objectContaining({ sort: 'm.rating', genre: 'action', title: 'dark', page: 1, limit: 10 })
+            expect.objectContaining({ sort: 'm.rating', genre: ['action'], genreMode: 'and', title: 'dark', page: 1, limit: 10 })
         )
     })
 
@@ -104,7 +104,7 @@ describe('MovieService - getMovies con sort/order (servicio)', () => {
         repos.movieRepo.findMany.mockResolvedValue({ rows: [], total: 0 })
         const service = createService(repos)
 
-        await service.getMovies({ sort: 'm.year' as any, order: 'desc', page: 1, limit: 10 })
+        await service.getMovies({ genreMode: 'and', sort: 'm.year' as any, order: 'desc', page: 1, limit: 10 })
 
         expect(repos.movieRepo.findMany).toHaveBeenCalledWith(
             expect.objectContaining({ sort: 'm.year', order: 'desc', limit: 10, offset: 0 })
@@ -116,7 +116,7 @@ describe('MovieService - getMovies con sort/order (servicio)', () => {
         repos.movieRepo.findMany.mockResolvedValue({ rows: [], total: 0 })
         const service = createService(repos)
 
-        await service.getMovies({ sort: 'm.year' as any, page: 1, limit: 10 })
+        await service.getMovies({ genreMode: 'and', sort: 'm.year' as any, page: 1, limit: 10 })
 
         expect(repos.movieRepo.findMany).toHaveBeenCalledWith(
             expect.objectContaining({ sort: 'm.year', order: 'asc', limit: 10, offset: 0 })
@@ -128,7 +128,7 @@ describe('MovieService - getMovies con sort/order (servicio)', () => {
         repos.movieRepo.findMany.mockResolvedValue({ rows: [], total: 0 })
         const service = createService(repos)
 
-        await service.getMovies({ order: 'desc', page: 1, limit: 10 })
+        await service.getMovies({ genreMode: 'and', order: 'desc', page: 1, limit: 10 })
 
         expect(repos.movieRepo.findMany).toHaveBeenCalledWith(
             expect.objectContaining({ order: 'desc', limit: 10, offset: 0 })

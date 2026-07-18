@@ -246,10 +246,10 @@ describe('GET /movies?page=&limit= (integración)', () => {
         expect(res.body.meta.total).toBe(3)
     })
 
-    test('combinar paginación con filtro year: page=1&limit=5&year=1994', async () => {
+    test('combinar paginación con filtro year: page=1&limit=5&minYear=1994&maxYear=1994', async () => {
         const app = createApp(createTestService())
 
-        const res = await request(app).get('/movies?page=1&limit=5&year=1994')
+        const res = await request(app).get('/movies?page=1&limit=5&minYear=1994&maxYear=1994')
 
         expect(res.status).toBe(200)
         expect(res.body.data).toHaveLength(3)
@@ -390,10 +390,10 @@ describe('GET /movies?page=&limit= (integración)', () => {
         expect(res.body.data).toHaveLength(5)
     })
 
-    test('combinar paginación con todos los filtros: genre+year+title+sort+page+limit', async () => {
+    test('combinar paginación con todos los filtros: genre+minYear/maxYear+title+sort+page+limit', async () => {
         const app = createApp(createTestService())
 
-        const res = await request(app).get('/movies?page=1&limit=2&genre=action&year=2008&title=knight&sort=rating&order=desc')
+        const res = await request(app).get('/movies?page=1&limit=2&genre=action&minYear=2008&maxYear=2008&title=knight&sort=rating&order=desc')
 
         expect(res.status).toBe(200)
 

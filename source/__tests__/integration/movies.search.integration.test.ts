@@ -52,10 +52,10 @@ describe('GET /movies?title= (búsqueda por título)', () => {
         res.body.data.forEach((m: any) => expect(m.title.toLowerCase()).toMatch(/dark/))
     })
 
-    test('debe combinar title con year reduciendo resultados', async () => {
+    test('debe combinar title con rango de year reduciendo resultados', async () => {
         const app = createApp(createTestService())
 
-        const res = await request(app).get('/movies?title=dark&year=1994')
+        const res = await request(app).get('/movies?title=dark&minYear=1994&maxYear=1994')
 
         expect(res.status).toBe(200)
         expect(res.body.data).toHaveLength(1)
@@ -76,10 +76,10 @@ describe('GET /movies?title= (búsqueda por título)', () => {
         })
     })
 
-    test('debe combinar title, genre y year simultáneamente', async () => {
+    test('debe combinar title, genre y rango de year simultáneamente', async () => {
         const app = createApp(createTestService())
 
-        const res = await request(app).get('/movies?title=knight&genre=action&year=2008')
+        const res = await request(app).get('/movies?title=knight&genre=action&minYear=2008&maxYear=2008')
 
         expect(res.status).toBe(200)
         expect(res.body.data).toHaveLength(1)

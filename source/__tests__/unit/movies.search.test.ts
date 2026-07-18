@@ -27,14 +27,14 @@ describe('GET /movies?title= (controlador)', () => {
         )
     })
 
-    test('debe pasar title junto con genre y year', async () => {
+    test('debe pasar title junto con genre y rango de año', async () => {
         const service = createMockService()
         service.getMovies.mockResolvedValue({ data: [], meta: { total: 0, page: 1, limit: 10, totalPages: 0 } })
         const app = createApp(service as any)
-        await request(app).get('/movies?title=dark&genre=action&year=2008')
+        await request(app).get('/movies?title=dark&genre=action&minYear=2008&maxYear=2008')
 
         expect(service.getMovies).toHaveBeenCalledWith(
-            expect.objectContaining({ title: 'dark', genre: 'action', year: 2008, page: 1, limit: 10 })
+            expect.objectContaining({ title: 'dark', genre: ['action'], genreMode: 'and', minYear: 2008, maxYear: 2008, page: 1, limit: 10 })
         )
     })
 
@@ -124,12 +124,12 @@ describe('MovieRepository - getMovies con title (repositorio)', () => {
             .mockResolvedValueOnce([[{ total: 0 }]])
             .mockResolvedValueOnce([[]])
 
-        await repo.findMany({ title: 'dark', genre: 'action', year: 2008, limit: 10, offset: 0 })
+        await repo.findMany({ title: 'dark', genre: ['action'], genreMode: 'and', minYear: 2008, maxYear: 2008, limit: 10, offset: 0 })
 
         const queryStr = conn.query.mock.calls[1][0] as string
         expect(queryStr).toContain('m.title LIKE ?')
-        expect(queryStr).toContain('m.year = ?')
-        expect(queryStr).toContain('genre_name = ?')
+        expect(queryStr).toContain('m.year >= ?')
+        expect(queryStr).toContain('genre_name IN (?)')
         expect(queryStr).toContain('AND')
     })
 })

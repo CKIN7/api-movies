@@ -41,7 +41,7 @@ describe('MovieService - getMovies', () => {
         repos.movieRepo.findMany.mockResolvedValue({ rows: fakeMovies, total: 1 })
         const service = new MovieService(repos.movieRepo as any, repos.directorRepo as any, repos.genreRepo as any, repos.auditRepo as any)
 
-        const result = await service.getMovies({ genre: 'action', page: 1, limit: 10 })
+        const result = await service.getMovies({ genre: ['action'], genreMode: 'and', page: 1, limit: 10 })
 
         expect(result).toEqual({
             data: [{
@@ -58,7 +58,7 @@ describe('MovieService - getMovies', () => {
             meta: { total: 1, page: 1, limit: 10, totalPages: 1 }
         })
         expect(repos.movieRepo.findMany).toHaveBeenCalledWith(
-            expect.objectContaining({ genre: 'action', limit: 10, offset: 0 })
+            expect.objectContaining({ genre: ['action'], genreMode: 'and', limit: 10, offset: 0 })
         )
     })
 
@@ -67,7 +67,7 @@ describe('MovieService - getMovies', () => {
         repos.movieRepo.findMany.mockResolvedValue({ rows: [], total: 0 })
         const service = new MovieService(repos.movieRepo as any, repos.directorRepo as any, repos.genreRepo as any, repos.auditRepo as any)
 
-        await service.getMovies({ title: 'incept', year: 2010, page: 1, limit: 10 })
+        await service.getMovies({ title: 'incept', genreMode: 'and', minYear: 2010, maxYear: 2010, page: 1, limit: 10 })
 
         expect(repos.movieRepo.findMany).toHaveBeenCalledWith(
             expect.objectContaining({ title: 'incept', limit: 10, offset: 0 })
@@ -79,7 +79,7 @@ describe('MovieService - getMovies', () => {
         repos.movieRepo.findMany.mockResolvedValue({ rows: [], total: 0 })
         const service = new MovieService(repos.movieRepo as any, repos.directorRepo as any, repos.genreRepo as any, repos.auditRepo as any)
 
-        await service.getMovies({ page: 1, limit: 10 })
+        await service.getMovies({ genreMode: 'and', page: 1, limit: 10 })
 
         expect(repos.movieRepo.findMany).toHaveBeenCalledWith(
             expect.objectContaining({ limit: 10, offset: 0 })
@@ -91,6 +91,6 @@ describe('MovieService - getMovies', () => {
         repos.movieRepo.findMany.mockRejectedValue(new Error('DB error'))
         const service = new MovieService(repos.movieRepo as any, repos.directorRepo as any, repos.genreRepo as any, repos.auditRepo as any)
 
-        await expect(service.getMovies({ page: 1, limit: 10 })).rejects.toThrow(AppError)
+        await expect(service.getMovies({ genreMode: 'and', page: 1, limit: 10 })).rejects.toThrow(AppError)
     })
 })

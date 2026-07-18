@@ -85,7 +85,7 @@ describe('GET /movies?page=&limit= (controlador)', () => {
 
         expect(service.getMovies).toHaveBeenCalledWith(
             expect.objectContaining({
-                genre: 'action', limit: 5, order: 'desc', sort: 'm.year',  page: 1 
+                genre: ['action'], genreMode: 'and', limit: 5, order: 'desc', sort: 'm.year',  page: 1 
             })
         )
     })
@@ -143,7 +143,7 @@ describe('MovieService - getMovies con page/limit (servicio)', () => {
         repos.movieRepo.findMany.mockResolvedValue({ rows: [], total: 0 })
         const service = createService(repos)
 
-        await service.getMovies({ page: 3, limit: 10 })
+        await service.getMovies({ genreMode: 'and', page: 3, limit: 10 })
 
         expect(repos.movieRepo.findMany).toHaveBeenCalledWith(
             expect.objectContaining({ limit: 10, offset: 20 })
@@ -155,7 +155,7 @@ describe('MovieService - getMovies con page/limit (servicio)', () => {
         repos.movieRepo.findMany.mockResolvedValue({ rows: [], total: 0 })
         const service = createService(repos)
 
-        await service.getMovies({ page: 5, limit: 5 })
+        await service.getMovies({ genreMode: 'and', page: 5, limit: 5 })
 
         expect(repos.movieRepo.findMany).toHaveBeenCalledWith(
             expect.objectContaining({ offset: 20 })
@@ -172,7 +172,7 @@ describe('MovieService - getMovies con page/limit (servicio)', () => {
         repos.movieRepo.findMany.mockResolvedValue({ rows: fakeRows, total: 8 })
         const service = createService(repos)
 
-        const result = await service.getMovies({ page: 1, limit: 3 })
+        const result = await service.getMovies({ genreMode: 'and', page: 1, limit: 3 })
 
         expect(result).toEqual({
             data: [{
@@ -194,7 +194,7 @@ describe('MovieService - getMovies con page/limit (servicio)', () => {
         repos.movieRepo.findMany.mockResolvedValue({ rows: [{ id: 1, title: 'X', year: 2020, director: 'D', rating: 5, duration: 100, plot: 'P', poster: 'U', genres: 'Drama' }], total: 2 })
         const service = createService(repos)
 
-        const result = await service.getMovies({ page: 1, limit: 5 })
+        const result = await service.getMovies({ genreMode: 'and', page: 1, limit: 5 })
 
         expect(result.meta.totalPages).toBe(1)
     })
@@ -204,7 +204,7 @@ describe('MovieService - getMovies con page/limit (servicio)', () => {
         repos.movieRepo.findMany.mockRejectedValue(new AppError('error del modelo', 400))
         const service = createService(repos)
 
-        await expect(service.getMovies({ page: 1, limit: 5 })).rejects.toThrow(AppError)
+        await expect(service.getMovies({ genreMode: 'and', page: 1, limit: 5 })).rejects.toThrow(AppError)
     })
 
     test('debe envolver errores genéricos del repositorio en AppError 500', async () => {
@@ -213,7 +213,7 @@ describe('MovieService - getMovies con page/limit (servicio)', () => {
         const service = createService(repos)
 
         try {
-            await service.getMovies({ page: 1, limit: 5 })
+            await service.getMovies({ genreMode: 'and', page: 1, limit: 5 })
             expect('no debió llegar').toBe('nunca')
         } catch (error) {
             expect(error).toBeInstanceOf(AppError)
@@ -267,7 +267,7 @@ describe('MovieRepository - getMovies con page/limit (repositorio)', () => {
             .mockResolvedValueOnce([[]])
 
         await repo.findMany({
-            genre: 'action', sort: 'm.year', order: 'desc', limit: 5, offset: 0
+            genre: ['action'], genreMode: 'and', sort: 'm.year', order: 'desc', limit: 5, offset: 0
         })
 
         const selectQuery = conn.query.mock.calls[1][0] as string
@@ -301,13 +301,13 @@ describe('MovieRepository - getMovies con page/limit (repositorio)', () => {
             .mockResolvedValueOnce([[{ total: 5 }]])
             .mockResolvedValueOnce([[]])
 
-        const result = await repo.findMany({ genre: 'action', sort: 'm.year', order: 'desc', limit: 10, offset: 0 })
+        const result = await repo.findMany({ genre: ['action'], genreMode: 'and', sort: 'm.year', order: 'desc', limit: 10, offset: 0 })
 
         const selectQuery = conn.query.mock.calls[1][0] as string
         expect(selectQuery).toContain('WHERE')
         expect(selectQuery).toContain('ORDER BY')
         expect(selectQuery).toContain('LIMIT ? OFFSET ?')
-        expect(conn.query.mock.calls[1][1]).toEqual(['action', 10, 0])
+        expect(conn.query.mock.calls[1][1]).toEqual(['action', 1, 10, 0])
         expect(result).toEqual({ rows: [], total: 5 })
     })
 })

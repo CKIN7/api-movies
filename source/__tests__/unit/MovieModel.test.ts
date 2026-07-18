@@ -25,31 +25,32 @@ describe('MovieRepository - findMany', () => {
         expect(conn.query).toHaveBeenCalledTimes(2)
     })
 
-    test('debe filtrar por año', async () => {
+    test('debe filtrar por rango de año', async () => {
         const conn = createMockConnection()
         const repo = new MovieRepository(conn)
         conn.query
             .mockResolvedValueOnce([[{ total: 0 }]])
             .mockResolvedValueOnce([[]])
 
-        await repo.findMany({ year: 1994, limit: 10, offset: 0 })
+        await repo.findMany({ minYear: 1994, maxYear: 1994, limit: 10, offset: 0 })
 
         const queryStr = conn.query.mock.calls[1][0] as string
-        expect(queryStr).toContain('m.year = ?')
-        expect(conn.query.mock.calls[1][1]).toContain(1994)
+        expect(queryStr).toContain('m.year >= ?')
+        expect(queryStr).toContain('m.year <= ?')
     })
 
-    test('debe filtrar por género', async () => {
+    test('debe filtrar por género (modo AND con un género)', async () => {
         const conn = createMockConnection()
         const repo = new MovieRepository(conn)
         conn.query
             .mockResolvedValueOnce([[{ total: 0 }]])
             .mockResolvedValueOnce([[]])
 
-        await repo.findMany({ genre: 'Action', limit: 10, offset: 0 })
+        await repo.findMany({ genre: ['Action'], genreMode: 'and', limit: 10, offset: 0 })
 
         const queryStr = conn.query.mock.calls[1][0] as string
-        expect(queryStr).toContain('genre_name = ?')
+        expect(queryStr).toContain('genre_name IN (?)')
+        expect(queryStr).toContain('HAVING COUNT')
         expect(conn.query.mock.calls[1][1]).toContain('Action')
     })
 
@@ -82,11 +83,12 @@ describe('MovieRepository - findMany', () => {
             .mockResolvedValueOnce([[{ total: 0 }]])
             .mockResolvedValueOnce([[]])
 
-        await repo.findMany({ director: 'Nolan', year: 2010, limit: 10, offset: 0 })
+        await repo.findMany({ director: 'Nolan', minYear: 2010, maxYear: 2010, limit: 10, offset: 0 })
 
         const queryStr = conn.query.mock.calls[1][0] as string
         expect(queryStr).toContain('d.director_name LIKE ?')
-        expect(queryStr).toContain('m.year = ?')
+        expect(queryStr).toContain('m.year >= ?')
+        expect(queryStr).toContain('m.year <= ?')
         expect(queryStr).toContain('AND')
     })
 
@@ -117,6 +119,123 @@ describe('MovieRepository - findMany', () => {
         await repo.findMany({ q: 'batman', limit: 10, offset: 0 })
 
         expect(conn.query.mock.calls[0][1]).toEqual(['%batman%', '%batman%', '%batman%', '%batman%'])
+    })
+
+    test('debe filtrar por múltiples géneros en modo AND', async () => {
+        const conn = createMockConnection()
+        const repo = new MovieRepository(conn)
+        conn.query
+            .mockResolvedValueOnce([[{ total: 0 }]])
+            .mockResolvedValueOnce([[]])
+
+        await repo.findMany({ genre: ['action', 'crime'], genreMode: 'and', limit: 10, offset: 0 })
+
+        const queryStr = conn.query.mock.calls[1][0] as string
+        expect(queryStr).toContain('genre_name IN (?, ?)')
+        expect(queryStr).toContain('HAVING COUNT(DISTINCT mg2.genre_id) = ?')
+        expect(conn.query.mock.calls[1][1]).toContain('action')
+        expect(conn.query.mock.calls[1][1]).toContain('crime')
+        expect(conn.query.mock.calls[1][1]).toContain(2)
+    })
+
+    test('debe filtrar por múltiples géneros en modo OR', async () => {
+        const conn = createMockConnection()
+        const repo = new MovieRepository(conn)
+        conn.query
+            .mockResolvedValueOnce([[{ total: 0 }]])
+            .mockResolvedValueOnce([[]])
+
+        await repo.findMany({ genre: ['action', 'comedy'], genreMode: 'or', limit: 10, offset: 0 })
+
+        const queryStr = conn.query.mock.calls[1][0] as string
+        expect(queryStr).toContain('genre_name IN (?, ?)')
+        expect(queryStr).not.toContain('HAVING COUNT')
+        expect(conn.query.mock.calls[1][1]).toContain('action')
+        expect(conn.query.mock.calls[1][1]).toContain('comedy')
+    })
+
+    test('debe usar modo AND cuando se especifica genreMode=and', async () => {
+        const conn = createMockConnection()
+        const repo = new MovieRepository(conn)
+        conn.query
+            .mockResolvedValueOnce([[{ total: 0 }]])
+            .mockResolvedValueOnce([[]])
+
+        await repo.findMany({ genre: ['drama'], genreMode: 'and', limit: 10, offset: 0 })
+
+        const queryStr = conn.query.mock.calls[1][0] as string
+        expect(queryStr).toContain('HAVING COUNT')
+    })
+
+    test('debe filtrar por minRating', async () => {
+        const conn = createMockConnection()
+        const repo = new MovieRepository(conn)
+        conn.query
+            .mockResolvedValueOnce([[{ total: 0 }]])
+            .mockResolvedValueOnce([[]])
+
+        await repo.findMany({ minRating: 8, limit: 10, offset: 0 })
+
+        const queryStr = conn.query.mock.calls[1][0] as string
+        expect(queryStr).toContain('m.rating >= ?')
+        expect(conn.query.mock.calls[1][1]).toContain(8)
+    })
+
+    test('debe filtrar por maxRating', async () => {
+        const conn = createMockConnection()
+        const repo = new MovieRepository(conn)
+        conn.query
+            .mockResolvedValueOnce([[{ total: 0 }]])
+            .mockResolvedValueOnce([[]])
+
+        await repo.findMany({ maxRating: 9, limit: 10, offset: 0 })
+
+        const queryStr = conn.query.mock.calls[1][0] as string
+        expect(queryStr).toContain('m.rating <= ?')
+        expect(conn.query.mock.calls[1][1]).toContain(9)
+    })
+
+    test('debe filtrar por minDuration', async () => {
+        const conn = createMockConnection()
+        const repo = new MovieRepository(conn)
+        conn.query
+            .mockResolvedValueOnce([[{ total: 0 }]])
+            .mockResolvedValueOnce([[]])
+
+        await repo.findMany({ minDuration: 120, limit: 10, offset: 0 })
+
+        const queryStr = conn.query.mock.calls[1][0] as string
+        expect(queryStr).toContain('m.duration >= ?')
+        expect(conn.query.mock.calls[1][1]).toContain(120)
+    })
+
+    test('debe filtrar por maxDuration', async () => {
+        const conn = createMockConnection()
+        const repo = new MovieRepository(conn)
+        conn.query
+            .mockResolvedValueOnce([[{ total: 0 }]])
+            .mockResolvedValueOnce([[]])
+
+        await repo.findMany({ maxDuration: 150, limit: 10, offset: 0 })
+
+        const queryStr = conn.query.mock.calls[1][0] as string
+        expect(queryStr).toContain('m.duration <= ?')
+        expect(conn.query.mock.calls[1][1]).toContain(150)
+    })
+
+    test('debe combinar min y max para un mismo campo', async () => {
+        const conn = createMockConnection()
+        const repo = new MovieRepository(conn)
+        conn.query
+            .mockResolvedValueOnce([[{ total: 0 }]])
+            .mockResolvedValueOnce([[]])
+
+        await repo.findMany({ minDuration: 100, maxDuration: 200, limit: 10, offset: 0 })
+
+        const queryStr = conn.query.mock.calls[1][0] as string
+        expect(queryStr).toContain('m.duration >= ?')
+        expect(queryStr).toContain('m.duration <= ?')
+        expect(queryStr).toContain('AND')
     })
 })
 
