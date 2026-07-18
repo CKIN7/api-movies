@@ -177,3 +177,35 @@ describe('GET /movies?director= (búsqueda por director)', () => {
         expect(res.body.data).toHaveLength(8)
     })
 })
+
+describe('GET /movies?q=+director+rangos+genre (combinación total)', () => {
+    test('todos los filtros juntos: q+director+minRating+genre', async () => {
+        const app = createApp(createTestService())
+
+        const res = await request(app).get('/movies?q=dark&director=Nolan&minRating=8&genre=action')
+
+        expect(res.status).toBe(200)
+        expect(res.body.data).toHaveLength(2)
+        res.body.data.forEach((m: any) => {
+            expect(m.director).toBe('Christopher Nolan')
+            expect(m.rating).toBeGreaterThanOrEqual(8)
+            expect(m.genres.map((g: string) => g.toLowerCase())).toContain('action')
+            expect(m.title.toLowerCase()).toMatch(/dark/)
+        })
+    })
+
+    test('todos los filtros + multi-género AND + paginación', async () => {
+        const app = createApp(createTestService())
+
+        const res = await request(app).get('/movies?q=knight&director=Nolan&minYear=2010&maxYear=2015&genre=action&genre=drama&genreMode=and&sort=year&order=desc&page=1&limit=1')
+
+        expect(res.status).toBe(200)
+        expect(res.body.data).toHaveLength(1)
+        expect(res.body.data[0].title).toBe('The Dark Knight Rises')
+        expect(res.body.data[0].year).toBe(2012)
+        expect(res.body.data[0].director).toBe('Christopher Nolan')
+        const genres = res.body.data[0].genres.map((g: string) => g.toLowerCase())
+        expect(genres).toContain('action')
+        expect(genres).toContain('drama')
+    })
+})
