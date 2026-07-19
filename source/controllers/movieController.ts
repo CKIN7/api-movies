@@ -20,6 +20,14 @@ class MovieController {
         resp.json(movie)
     }
 
+    getSimilar = async (req: Request, resp: Response) => {
+        const id = Number(req.params.id)
+        const page = Number(req.query.page) || 1
+        const limit = Number(req.query.limit) || 10
+        const result = await this.movieService.getSimilarMovies(id, page, limit)
+        resp.json(result)
+    }
+
     createMovie = async (req: Request, resp: Response) => {
         const result = movieSchema.safeParse(req.body)
         if (result.error) {
