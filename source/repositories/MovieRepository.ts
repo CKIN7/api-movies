@@ -12,7 +12,7 @@ class MovieRepository {
 
     async findMany(query: GetMoviesQuery): Promise<{ rows: MovieRow[]; total: number }> {
         let sql = `
-            SELECT m.id, m.title, m.year, d.director_name as director, m.rating, m.duration, m.plot, m.poster,
+            SELECT m.id, m.title, m.year, d.director_name as director, m.rating, m.duration, m.plot, m.poster, m.age_rating,
             GROUP_CONCAT(DISTINCT genre_name ORDER BY genre_name SEPARATOR ', ') AS genres,
             GROUP_CONCAT(DISTINCT CONCAT(a.actor_name, '||', ma.character_name) ORDER BY a.actor_name SEPARATOR '|||') AS \`cast\`
             FROM movies m
@@ -55,7 +55,7 @@ class MovieRepository {
 
     async findById(id: number): Promise<MovieRow | null> {
         const [rows] = await this.query(
-            `SELECT id, title, year, director_name as director, rating, duration, plot, poster,
+            `SELECT id, title, year, director_name as director, rating, duration, plot, poster, age_rating,
             GROUP_CONCAT(DISTINCT genre_name ORDER BY genre_name SEPARATOR ', ') AS genres,
             GROUP_CONCAT(DISTINCT CONCAT(a.actor_name, '||', ma.character_name) ORDER BY a.actor_name SEPARATOR '|||') AS \`cast\`
             FROM movies
@@ -124,10 +124,11 @@ class MovieRepository {
         plot: string
         poster: string
         directorId: number
+        ageRating: string
     }): Promise<number> {
         const [result] = await this.query(
-            'INSERT INTO movies(title, year, rating, duration, plot, poster, id_director) VALUES(?, ?, ?, ?, ?, ?, ?)',
-            [data.title, data.year, data.rating, data.duration, data.plot, data.poster, data.directorId]
+            'INSERT INTO movies(title, year, rating, duration, plot, poster, id_director, age_rating) VALUES(?, ?, ?, ?, ?, ?, ?, ?)',
+            [data.title, data.year, data.rating, data.duration, data.plot, data.poster, data.directorId, data.ageRating]
         )
         return result.insertId as number
     }
@@ -140,14 +141,15 @@ class MovieRepository {
         plot: string
         poster: string
         directorId: number
+        ageRating: string
     }>): Promise<boolean> {
         const fields: string[] = []
         const values: string[] = []
 
-        for (const key of ['title', 'year', 'rating', 'duration', 'plot', 'poster', 'directorId']) {
+        for (const key of ['title', 'year', 'rating', 'duration', 'plot', 'poster', 'directorId', 'ageRating']) {
             const value = (data as Record<string, unknown>)[key]
             if (value !== undefined) {
-                const column = key === 'directorId' ? 'id_director' : key
+                const column = key === 'directorId' ? 'id_director' : key === 'ageRating' ? 'age_rating' : key
                 fields.push(`${column} = ?`)
                 values.push(value as string)
             }
