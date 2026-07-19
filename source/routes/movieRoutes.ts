@@ -5,6 +5,7 @@ export function createMovieRoutes(controller: MovieController) {
     const router = express.Router()
     router.get('/', controller.getAll)
     router.get('/:id', controller.getById)
+    router.get('/:id/similar', controller.getSimilar)
     router.get('/:id/audit-log', controller.getAuditLog)
     router.post('/', controller.createMovie)
     router.patch('/:id', controller.updateMovie)

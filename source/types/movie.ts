@@ -38,6 +38,26 @@ export interface GetMoviesQuery {
     q?: string
 }
 
+export interface SimilarMovieRow {
+    id: number
+    title: string
+    year: number
+    director: string
+    rating: number
+    genres: string
+    similarityScore: number
+}
+
+export interface SimilarMovieResponse {
+    id: number
+    title: string
+    year: number
+    rating: number
+    genres: string[]
+    director: string
+    similarityScore: number
+}
+
 export interface PaginatedResponse<T> {
   data: T
   meta: { total: number; page: number; limit: number; totalPages: number }

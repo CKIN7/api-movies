@@ -9,6 +9,7 @@ function createMockService() {
         updateMovie: jest.fn().mockName('updateMovie'),
         deleteMovie: jest.fn().mockName('deleteMovie'),
         getAuditLog: jest.fn().mockName('getAuditLog'),
+        getSimilarMovies: jest.fn().mockName('getSimilarMovies'),
     }
 }
 
@@ -188,6 +189,66 @@ describe('DELETE /movies/:id', () => {
         const res = await request(app).delete('/movies/999')
 
         expect(res.status).toBe(404)
+    })
+})
+
+describe('GET /movies/:id/similar', () => {
+    test('debe devolver status 200 con la estructura esperada', async () => {
+        const service = createMockService()
+        const fakeSimilar = [
+            { id: 8, title: 'The Dark Knight Rises', year: 2012, rating: 8.4, genres: ['action', 'drama'], director: 'Christopher Nolan', similarityScore: 6 },
+        ]
+        service.getSimilarMovies.mockResolvedValue({
+            data: fakeSimilar,
+            meta: { total: 1, page: 1, limit: 10, totalPages: 1 }
+        })
+
+        const app = createApp(service as any)
+        const res = await request(app).get('/movies/2/similar')
+
+        expect(res.status).toBe(200)
+        expect(res.body).toEqual({
+            data: fakeSimilar,
+            meta: { total: 1, page: 1, limit: 10, totalPages: 1 }
+        })
+    })
+
+    test('debe pasar page y limit como query params', async () => {
+        const service = createMockService()
+        service.getSimilarMovies.mockResolvedValue({
+            data: [],
+            meta: { total: 0, page: 2, limit: 5, totalPages: 0 }
+        })
+
+        const app = createApp(service as any)
+        const res = await request(app).get('/movies/2/similar?page=2&limit=5')
+
+        expect(service.getSimilarMovies).toHaveBeenCalledWith(2, 2, 5)
+        expect(res.status).toBe(200)
+    })
+
+    test('debe devolver 404 si la película no existe', async () => {
+        const service = createMockService()
+        service.getSimilarMovies.mockRejectedValue(
+            new (require('../../utils/AppError').default)('Película no encontrada', 404)
+        )
+
+        const app = createApp(service as any)
+        const res = await request(app).get('/movies/999/similar')
+
+        expect(res.status).toBe(404)
+        expect(res.body).toHaveProperty('error')
+    })
+
+    test('debe devolver 500 si el servicio falla', async () => {
+        const service = createMockService()
+        service.getSimilarMovies.mockRejectedValue(new Error('DB error'))
+
+        const app = createApp(service as any)
+        const res = await request(app).get('/movies/1/similar')
+
+        expect(res.status).toBe(500)
+        expect(res.body).toHaveProperty('error')
     })
 })
 

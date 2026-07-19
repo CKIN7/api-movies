@@ -69,7 +69,8 @@ describe('MovieService - createMovie', () => {
             poster: 'https://example.com/poster.jpg',
             director: 'Nuevo Director',
             genre: ['drama'],
-            available: true
+            available: true,
+            cast: [{actor: 'leo', character: 'test'}]
         }
 
         const result = await service.createMovie(inputData)
@@ -83,7 +84,8 @@ describe('MovieService - createMovie', () => {
             duration: 120,
             plot: 'Un argumento de prueba',
             poster: 'https://example.com/poster.jpg',
-            genres: ['drama']
+            genres: ['drama'],
+            cast: []
         })
         expect(repos.movieRepo.insert).toHaveBeenCalledWith(
             expect.objectContaining({ title: 'Nueva Película', directorId: 1 })
@@ -105,7 +107,8 @@ describe('MovieService - createMovie', () => {
             poster: 'https://example.com/p.jpg',
             director: 'Alguien',
             genre: ['drama'],
-            available: true
+            available: true,
+            cast: [{actor: 'Leo', character: 'prueba'}]
         }
 
         await expect(service.createMovie(inputData)).rejects.toThrow(AppError)

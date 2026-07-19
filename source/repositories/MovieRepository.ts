@@ -1,4 +1,4 @@
-import type { MovieRow } from '../types/movie'
+import type { MovieRow, SimilarMovieRow } from '../types/movie'
 import type { GetMoviesQuery } from '../types/movie'
 import { DbLogger } from '../utils/DbLogger'
 import MovieQueryBuilder from './MovieQueryBuilder';
@@ -69,6 +69,51 @@ class MovieRepository {
             [id]
         )
         return (rows as MovieRow[])[0] || null
+    }
+
+    async findSimilar(id: number, limit: number, offset: number): Promise<{ rows: SimilarMovieRow[], total: number }>{
+        const [sourceRows] = await this.query(
+            `SELECT id, id_director, year FROM movies WHERE id = ?`, [id]
+        )
+
+        if (sourceRows.length === 0) {
+            return { rows: [], total: 0 }
+        }
+
+        const sourceDirectorId = sourceRows[0].id_director
+        const sourceYear = sourceRows[0].year
+
+        const similarSql = `
+            SELECT m.id, m.title, m.year, m.rating, d.director_name AS director,
+                   GROUP_CONCAT(DISTINCT g.genre_name ORDER BY g.genre_name SEPARATOR ', ') AS genres,
+                   (
+                       COALESCE(SUM(CASE WHEN mg2.genre_id IS NOT NULL THEN 2 ELSE 0 END), 0)
+                       + CASE WHEN m.id_director = ? THEN 3 ELSE 0 END
+                       + CASE WHEN ABS(m.year - ?) <= 5 THEN 1 ELSE 0 END
+                   ) AS similarityScore
+            FROM movies m
+            JOIN directors d ON m.id_director = d.director_id
+            JOIN movie_genres mg ON m.id = mg.movie_id
+            JOIN genres g ON mg.genre_id = g.id_genre
+            LEFT JOIN movie_genres mg2
+                ON m.id = mg2.movie_id
+                AND mg2.genre_id IN (SELECT genre_id FROM movie_genres WHERE movie_id = ?)
+            WHERE m.id != ?
+            GROUP BY m.id
+            HAVING similarityScore > 0
+            ORDER BY similarityScore DESC, m.rating DESC
+        `
+
+        const params: any[] = [sourceDirectorId, sourceYear, id, id]
+
+        const countSql = `SELECT COUNT(*) AS total FROM (${similarSql}) AS similar`
+        const [countResult] = await this.query(countSql, params)
+        const total = countResult[0].total
+
+        const limitParams = [...params, limit, offset]
+        const [rows] = await this.query(`${similarSql} LIMIT ? OFFSET ?`, limitParams)
+
+        return { rows: rows as SimilarMovieRow[], total }
     }
 
     async insert(data: {

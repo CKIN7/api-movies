@@ -1,6 +1,6 @@
 import type { MovieQueryDTO } from '../schemas/movieQuery'
 import type { AuditLogQuery, AuditLogEntry } from '../types/auditLog'
-import type { PaginatedResponse, MovieRow } from '../types/movie'
+import type { PaginatedResponse, MovieRow, SimilarMovieRow, SimilarMovieResponse } from '../types/movie'
 import type { CreateMovieDTO, UpdateMovieDTO } from '../types/movie'
 import MovieRepository from '../repositories/MovieRepository'
 import DirectorRepository from '../repositories/DirectorRepository'
@@ -8,6 +8,7 @@ import GenreRepository from '../repositories/GenreRepository'
 import AuditLogRepository from '../repositories/AuditLogRepository'
 import CastRepository from '../repositories/CastRepository'
 import { Movie, type MovieResponse } from '../domain/Movie'
+import { SimilarMovie } from '../domain/SimilarMovie'
 import AppError from '../utils/AppError'
 import logger from '../utils/logger'
 
@@ -64,6 +65,29 @@ class MovieService {
         const row = await this.movieRepo.findById(id)
         if (!row) throw new AppError('Película no encontrada', 404)
         return Movie.fromRow(row).toResponse()
+    }
+
+    async getSimilarMovies(id: number, page: number, limit: number): Promise<PaginatedResponse<SimilarMovieResponse[]>> {
+        try {
+            const movie = await this.movieRepo.findById(id)
+            if (!movie) throw new AppError('Película no encontrada', 404)
+
+            const offset = (page - 1) * limit
+            const result = await this.movieRepo.findSimilar(id, limit, offset)
+
+            const data = result.rows.map(SimilarMovie.fromRow).map(m => m.toResponse())
+
+            const totalPages = Math.ceil(result.total / limit)
+
+            return {
+                data,
+                meta: { total: result.total, page, limit, totalPages }
+            }
+        } catch (error) {
+            if (error instanceof AppError) throw error
+            logger.error(`Error en getSimilarMovies: ${(error as Error).message}`)
+            throw new AppError('Error al obtener películas similares', 500)
+        }
     }
 
     async createMovie(dto: CreateMovieDTO): Promise<MovieResponse> {

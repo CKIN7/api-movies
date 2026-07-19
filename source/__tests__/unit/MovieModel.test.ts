@@ -109,7 +109,7 @@ describe('MovieRepository - findMany', () => {
         expect(queryStr).toContain('genre_name LIKE ?')
     })
 
-    test('debe pasar 4 parámetros con %...% para q', async () => {
+    test('debe pasar 5 parámetros con %...% para q', async () => {
         const conn = createMockConnection()
         const repo = new MovieRepository(conn)
         conn.query
@@ -118,7 +118,7 @@ describe('MovieRepository - findMany', () => {
 
         await repo.findMany({ q: 'batman', limit: 10, offset: 0 })
 
-        expect(conn.query.mock.calls[0][1]).toEqual(['%batman%', '%batman%', '%batman%', '%batman%'])
+        expect(conn.query.mock.calls[0][1]).toEqual(['%batman%', '%batman%', '%batman%', '%batman%', '%batman%'])
     })
 
     test('debe filtrar por múltiples géneros en modo AND', async () => {
@@ -259,5 +259,117 @@ describe('MovieRepository - findById', () => {
 
         const result = await repo.findById(999)
         expect(result).toBeNull()
+    })
+})
+
+describe('MovieRepository - findSimilar', () => {
+    test('debe devolver películas similares con la estructura correcta', async () => {
+        const conn = createMockConnection()
+        const repo = new MovieRepository(conn)
+
+        const fakeRows = [
+            { id: 8, title: 'The Dark Knight Rises', year: 2012, director: 'Christopher Nolan', rating: 8.4, genres: 'action, drama', similarityScore: 6 },
+        ]
+        conn.query
+            .mockResolvedValueOnce([[{ id: 2, id_director: 1, year: 2008 }]])
+            .mockResolvedValueOnce([[{ total: 1 }]])
+            .mockResolvedValueOnce([fakeRows])
+
+        const result = await repo.findSimilar(2, 10, 0)
+
+        expect(result).toEqual({ rows: fakeRows, total: 1 })
+    })
+
+    test('debe excluir la película origen en la query', async () => {
+        const conn = createMockConnection()
+        const repo = new MovieRepository(conn)
+        conn.query
+            .mockResolvedValueOnce([[{ id: 2, id_director: 1, year: 2008 }]])
+            .mockResolvedValueOnce([[{ total: 0 }]])
+            .mockResolvedValueOnce([[]])
+
+        await repo.findSimilar(2, 10, 0)
+
+        const selectSql = conn.query.mock.calls[2][0] as string
+        expect(selectSql).toContain('m.id != ?')
+    })
+
+    test('debe calcular similarityScore en la consulta', async () => {
+        const conn = createMockConnection()
+        const repo = new MovieRepository(conn)
+        conn.query
+            .mockResolvedValueOnce([[{ id: 1, id_director: 1, year: 2010 }]])
+            .mockResolvedValueOnce([[{ total: 0 }]])
+            .mockResolvedValueOnce([[]])
+
+        await repo.findSimilar(1, 10, 0)
+
+        const sql = conn.query.mock.calls[2][0] as string
+        expect(sql).toContain('similarityScore')
+    })
+
+    test('debe ordenar por similarityScore DESC y rating DESC', async () => {
+        const conn = createMockConnection()
+        const repo = new MovieRepository(conn)
+        conn.query
+            .mockResolvedValueOnce([[{ id: 1, id_director: 1, year: 2010 }]])
+            .mockResolvedValueOnce([[{ total: 0 }]])
+            .mockResolvedValueOnce([[]])
+
+        await repo.findSimilar(1, 10, 0)
+
+        const sql = conn.query.mock.calls[2][0] as string
+        expect(sql).toContain('ORDER BY')
+        expect(sql).toContain('similarityScore DESC')
+        expect(sql).toContain('m.rating DESC')
+    })
+
+    test('debe incluir LIMIT y OFFSET con valores correctos', async () => {
+        const conn = createMockConnection()
+        const repo = new MovieRepository(conn)
+        conn.query
+            .mockResolvedValueOnce([[{ id: 1, id_director: 1, year: 2010 }]])
+            .mockResolvedValueOnce([[{ total: 0 }]])
+            .mockResolvedValueOnce([[]])
+
+        await repo.findSimilar(1, 5, 10)
+
+        const selectSql = conn.query.mock.calls[2][0] as string
+        const selectParams = conn.query.mock.calls[2][1] as any[]
+        expect(selectSql).toContain('LIMIT')
+        expect(selectSql).toContain('OFFSET')
+        expect(selectParams.slice(-2)).toEqual([5, 10])
+    })
+
+    test('debe devolver películas con múltiples géneros compartidos', async () => {
+        const conn = createMockConnection()
+        const repo = new MovieRepository(conn)
+
+        const fakeRows = [
+            { id: 80, title: 'Tenet', year: 2020, director: 'Christopher Nolan', rating: 7.3, genres: 'action, sci-fi', similarityScore: 7 },
+        ]
+        conn.query
+            .mockResolvedValueOnce([[{ id: 1, id_director: 1, year: 2010 }]])
+            .mockResolvedValueOnce([[{ total: 1 }]])
+            .mockResolvedValueOnce([fakeRows])
+
+        const result = await repo.findSimilar(1, 10, 0)
+
+        expect(result.rows[0].similarityScore).toBe(7)
+    })
+
+    test('debe devolver array vacío cuando no hay películas similares', async () => {
+        const conn = createMockConnection()
+        const repo = new MovieRepository(conn)
+
+        conn.query
+            .mockResolvedValueOnce([[{ id: 999, id_director: 99, year: 1900 }]])
+            .mockResolvedValueOnce([[{ total: 0 }]])
+            .mockResolvedValueOnce([[]])
+
+        const result = await repo.findSimilar(999, 10, 0)
+
+        expect(result.rows).toHaveLength(0)
+        expect(result.total).toBe(0)
     })
 })
