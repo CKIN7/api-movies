@@ -40,6 +40,7 @@ class MovieService {
                 maxYear: params.maxYear,
                 title: params.title,
                 director: params.director,
+                ageRating: params.ageRating,
                 sort: params.sort,
                 order: params.order,
                 limit: params.limit,
@@ -103,6 +104,7 @@ class MovieService {
                     plot: dto.plot,
                     poster: dto.poster,
                     directorId,
+                    ageRating: dto.ageRating,
                 })
 
                 const uniqueGenreIds = [...new Set(
@@ -143,7 +145,7 @@ class MovieService {
                 }
 
                 const fieldsToUpdate: Record<string, unknown> = {}
-                for (const key of ['title', 'year', 'rating', 'duration', 'plot', 'poster'] as const) {
+                for (const key of ['title', 'year', 'rating', 'duration', 'plot', 'poster', 'ageRating'] as const) {
                     if ((dto as Record<string, unknown>)[key] !== undefined) {
                         fieldsToUpdate[key] = (dto as Record<string, unknown>)[key]
                     }

@@ -12,6 +12,7 @@ export interface MovieResponse {
     poster: string
     genres: string[]
     cast: CastMember[]
+    ageRating: string
 }
 
 export class Movie {
@@ -26,6 +27,7 @@ export class Movie {
         public plot: string,
         public poster: string,
         public cast: CastMember[],
+        public ageRating: string,
     ) {}
 
     static fromRow(row: MovieRow): Movie {
@@ -47,6 +49,7 @@ export class Movie {
             row.plot,
             row.poster,
             parsedCast,
+            row.age_rating,
         )
     }
 
@@ -62,6 +65,7 @@ export class Movie {
             poster: this.poster,
             genres: this.genres,
             cast: this.cast,
+            ageRating: this.ageRating,
         }
     }
 }

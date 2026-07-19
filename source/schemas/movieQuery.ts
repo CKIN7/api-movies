@@ -28,6 +28,16 @@ export const movieQuerySchema = z.object({
     page: z.preprocess(emptyToUndefined, z.coerce.number().int().positive().optional()).default(1),
     limit: z.preprocess(emptyToUndefined, z.coerce.number().int().min(1).max(100).optional()).default(10),
     q: z.preprocess(emptyToUndefined, z.string().optional()),
+    ageRating: z.preprocess(
+        (val) => {
+            if (val === undefined || val === '') return undefined
+            const arr = Array.isArray(val) ? val : [val]
+            const valid = ['G', 'PG', 'PG-13', 'R', 'NC-17']
+            const cleaned = arr.filter((s: unknown) => typeof s === 'string' && valid.includes(s))
+            return cleaned.length > 0 ? cleaned : undefined
+        },
+        z.array(z.enum(['G', 'PG', 'PG-13', 'R', 'NC-17'])).min(1).optional()
+    ),
     minYear: z.preprocess(emptyToUndefined, z.coerce.number().int().min(1895).max(2026).optional()),
     maxYear: z.preprocess(emptyToUndefined, z.coerce.number().int().min(1895).max(2026).optional()),
     minRating: z.preprocess(emptyToUndefined, z.coerce.number().min(0).max(10).optional()),

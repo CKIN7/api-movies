@@ -37,9 +37,9 @@ describe('GET /movies?page=&limit= (controlador)', () => {
     test('debe devolver respuesta con estructura { data, meta }', async () => {
         const service = createMockService()
         const fakeMovies = [
-            { id: 1, title: 'Inception', year: 2010, director: 'Christopher Nolan', rating: 8.8, duration: 148, plot: '...', poster: '...', genres: ['Action', 'Sci-Fi'] },
-            { id: 2, title: 'The Dark Knight', year: 2008, director: 'Christopher Nolan', rating: 9.0, duration: 152, plot: '...', poster: '...', genres: ['Action', 'Drama'] },
-            { id: 3, title: 'Interstellar', year: 2014, director: 'Christopher Nolan', rating: 8.6, duration: 169, plot: '...', poster: '...', genres: ['Sci-Fi'] }
+            { id: 1, title: 'Inception', year: 2010, director: 'Christopher Nolan', rating: 8.8, duration: 148, plot: '...', poster: '...', genres: ['Action', 'Sci-Fi'], ageRating: 'PG-13' },
+            { id: 2, title: 'The Dark Knight', year: 2008, director: 'Christopher Nolan', rating: 9.0, duration: 152, plot: '...', poster: '...', genres: ['Action', 'Drama'], ageRating: 'PG-13' },
+            { id: 3, title: 'Interstellar', year: 2014, director: 'Christopher Nolan', rating: 8.6, duration: 169, plot: '...', poster: '...', genres: ['Sci-Fi'], ageRating: 'PG-13' }
         ]
         service.getMovies.mockResolvedValue({ data: fakeMovies, meta: { total: 8, page: 1, limit: 3, totalPages: 3 } })
 
@@ -171,7 +171,7 @@ describe('MovieService - getMovies con page/limit (servicio)', () => {
 
     test('debe calcular totalPages = 1 cuando total < limit', async () => {
         const repos = createMockRepos()
-        repos.movieRepo.findMany.mockResolvedValue({ rows: [{ id: 1, title: 'X', year: 2020, director: 'D', rating: 5, duration: 100, plot: 'P', poster: 'U', genres: 'Drama' }], total: 2 })
+        repos.movieRepo.findMany.mockResolvedValue({ rows: [{ id: 1, title: 'X', year: 2020, director: 'D', rating: 5, duration: 100, plot: 'P', poster: 'U', genres: 'Drama', age_rating: 'PG-13' }], total: 2 })
         const service = createService(repos)
 
         const result = await service.getMovies({ genreMode: 'and', page: 1, limit: 5 })

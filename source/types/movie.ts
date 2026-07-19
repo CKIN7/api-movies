@@ -7,6 +7,9 @@ export type CreateMovieDTO = MovieInput
 export type UpdateMovieDTO = Partial<MovieInput>
 export type { MovieQueryDTO }
 
+export const AGE_RATINGS = ['G', 'PG', 'PG-13', 'R', 'NC-17'] as const
+export type AgeRating = typeof AGE_RATINGS[number]
+
 export interface MovieRow {
     id: number
     title: string
@@ -18,6 +21,7 @@ export interface MovieRow {
     poster: string
     genres: string
     cast: string
+    age_rating: string
 }
 
 export interface GetMoviesQuery {
@@ -36,6 +40,7 @@ export interface GetMoviesQuery {
     limit: number
     offset: number
     q?: string
+    ageRating?: AgeRating[]
 }
 
 export interface SimilarMovieRow {

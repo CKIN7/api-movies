@@ -21,7 +21,7 @@ describe('GET /movies', () => {
     test('debe devolver lista de películas con status 200', async () => {
         const service = createMockService()
         const fakeMovies = [
-            { id: 1, title: 'Inception', year: 2010, director: 'Christopher Nolan', rating: 8.8, duration: 148, plot: '...', poster: '...', genres: ['Action', 'Sci-Fi'] }
+            { id: 1, title: 'Inception', year: 2010, director: 'Christopher Nolan', rating: 8.8, duration: 148, plot: '...', poster: '...', genres: ['Action', 'Sci-Fi'], ageRating: 'PG-13' }
         ]
         service.getMovies.mockResolvedValue({ data: fakeMovies, meta: { total: 1, page: 1, limit: 10, totalPages: 1 } })
 
@@ -50,7 +50,7 @@ describe('GET /movies', () => {
 describe('GET /movies/:id', () => {
     test('debe devolver una película con status 200', async () => {
         const service = createMockService()
-        const fakeMovie = { id: 1, title: 'Inception', year: 2010, director: 'Christopher Nolan', rating: 8.8, duration: 148, plot: '...', poster: '...', genres: ['Action', 'Sci-Fi'] }
+        const fakeMovie = { id: 1, title: 'Inception', year: 2010, director: 'Christopher Nolan', rating: 8.8, duration: 148, plot: '...', poster: '...', genres: ['Action', 'Sci-Fi'], ageRating: 'PG-13' }
         service.getMovieById.mockResolvedValue(fakeMovie)
 
         const app = createApp(service as any)
@@ -84,7 +84,8 @@ describe('POST /movies', () => {
             plot: 'A plot',
             poster: 'https://example.com/poster.jpg',
             director: 'New Director',
-            genres: ['Drama']
+            genres: ['Drama'],
+            ageRating: 'PG-13'
         }
         service.createMovie.mockResolvedValue(fakeCreatedMovie)
 
@@ -148,7 +149,7 @@ describe('POST /movies', () => {
 describe('PATCH /movies/:id', () => {
     test('debe actualizar y devolver status 200', async () => {
         const service = createMockService()
-        const updatedMovie = { id: 1, title: 'Updated Title', year: 2010, director: 'Christopher Nolan', rating: 8.8, duration: 148, plot: '...', poster: '...', genres: ['Action'] }
+        const updatedMovie = { id: 1, title: 'Updated Title', year: 2010, director: 'Christopher Nolan', rating: 8.8, duration: 148, plot: '...', poster: '...', genres: ['Action'], ageRating: 'PG-13' }
         service.updateMovie.mockResolvedValue(updatedMovie)
 
         const app = createApp(service as any)

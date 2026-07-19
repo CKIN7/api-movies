@@ -21,7 +21,8 @@ const fakeCreatedMovie = {
     plot: 'Edge case plot',
     poster: 'https://example.com/edge.jpg',
     director: 'Edge Director',
-    genres: ['drama']
+    genres: ['drama'],
+    ageRating: 'PG-13'
 }
 
 const validPayload = {

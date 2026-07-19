@@ -1,4 +1,5 @@
 import MovieService from '../../services/movieService'
+import type { AgeRating } from '../../types/movie'
 import AppError from '../../utils/AppError'
 
 function createMockRepos() {
@@ -49,6 +50,7 @@ const sampleInput = {
     director: 'Service Director',
     genre: ['drama'],
     available: true,
+    ageRating: 'PG-13' as AgeRating,
     cast: []
 }
 
@@ -90,6 +92,7 @@ describe('MovieService — error propagation', () => {
             poster: 'https://example.com/service.jpg',
             genres: 'drama',
             cast: '',
+            age_rating: 'PG-13',
         }
         repos.directorRepo.findOrCreate.mockResolvedValue(1)
         repos.movieRepo.insert.mockResolvedValue(11)

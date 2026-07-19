@@ -44,7 +44,7 @@ describe('MovieService - getMovies', () => {
     test('debe devolver películas cuando el repositorio responde exitosamente', async () => {
         const repos = createMockRepos()
         const fakeMovies = [
-            { id: 1, title: 'Inception', year: 2010, director: 'Christopher Nolan', rating: 8.8, duration: 148, plot: '...', poster: '...', genres: 'Action, Sci-Fi' }
+            { id: 1, title: 'Inception', year: 2010, director: 'Christopher Nolan', rating: 8.8, duration: 148, plot: '...', poster: '...', genres: 'Action, Sci-Fi', age_rating: 'PG-13' }
         ]
         repos.movieRepo.findMany.mockResolvedValue({ rows: fakeMovies, total: 1 })
         const service = new MovieService(repos.movieRepo as any, repos.directorRepo as any, repos.genreRepo as any, repos.auditRepo as any, repos.castRepo as any)
@@ -62,7 +62,8 @@ describe('MovieService - getMovies', () => {
                 plot: '...',
                 poster: '...',
                 genres: ['Action', 'Sci-Fi'],
-                cast: []
+                cast: [],
+                ageRating: 'PG-13'
             }],
             meta: { total: 1, page: 1, limit: 10, totalPages: 1 }
         })

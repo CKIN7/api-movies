@@ -149,6 +149,7 @@ describe('MovieService.getAuditLog — integración real con DB', () => {
             director: 'New Director',
             genre: ['drama'],
             available: true,
+            ageRating: 'PG-13' as const,
             cast: []
         }
         const movie = await service.createMovie(input) as any
