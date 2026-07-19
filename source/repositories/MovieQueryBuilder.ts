@@ -13,6 +13,7 @@ class MovieQueryBuilder {
         this.addGenreFilter()
         this.addTitleFilter()
         this.addDirectorFilter()
+        this.addAgeRatingFilter()
         this.addSearchFilter()
         return { conditions: this.conditions, params: this.params }
     }
@@ -93,6 +94,14 @@ class MovieQueryBuilder {
         if (this.query.director) {
             this.conditions.push('d.director_name LIKE ?')
             this.params.push(`%${this.query.director}%`)
+        }
+    }
+
+    private addAgeRatingFilter() {
+        if (this.query.ageRating && this.query.ageRating.length > 0) {
+            const placeholders = this.query.ageRating.map(() => '?').join(', ')
+            this.conditions.push(`m.age_rating IN (${placeholders})`)
+            this.params.push(...this.query.ageRating)
         }
     }
 
