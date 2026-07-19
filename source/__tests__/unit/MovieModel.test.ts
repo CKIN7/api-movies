@@ -109,7 +109,7 @@ describe('MovieRepository - findMany', () => {
         expect(queryStr).toContain('genre_name LIKE ?')
     })
 
-    test('debe pasar 4 parámetros con %...% para q', async () => {
+    test('debe pasar 5 parámetros con %...% para q', async () => {
         const conn = createMockConnection()
         const repo = new MovieRepository(conn)
         conn.query
@@ -118,7 +118,7 @@ describe('MovieRepository - findMany', () => {
 
         await repo.findMany({ q: 'batman', limit: 10, offset: 0 })
 
-        expect(conn.query.mock.calls[0][1]).toEqual(['%batman%', '%batman%', '%batman%', '%batman%'])
+        expect(conn.query.mock.calls[0][1]).toEqual(['%batman%', '%batman%', '%batman%', '%batman%', '%batman%'])
     })
 
     test('debe filtrar por múltiples géneros en modo AND', async () => {

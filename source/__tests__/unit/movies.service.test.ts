@@ -61,7 +61,8 @@ describe('MovieService - getMovies', () => {
                 duration: 148,
                 plot: '...',
                 poster: '...',
-                genres: ['Action', 'Sci-Fi']
+                genres: ['Action', 'Sci-Fi'],
+                cast: []
             }],
             meta: { total: 1, page: 1, limit: 10, totalPages: 1 }
         })
