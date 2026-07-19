@@ -1,4 +1,5 @@
 import MovieService from '../../services/movieService'
+import type { AgeRating } from '../../types/movie'
 import AppError from '../../utils/AppError'
 
 function createMockRepos() {
@@ -51,7 +52,8 @@ describe('MovieService - createMovie', () => {
             duration: 120,
             plot: 'Un argumento de prueba',
             poster: 'https://example.com/poster.jpg',
-            genres: 'drama'
+            genres: 'drama',
+            age_rating: 'PG-13'
         }
         repos.directorRepo.findOrCreate.mockResolvedValue(1)
         repos.movieRepo.insert.mockResolvedValue(9)
@@ -70,6 +72,7 @@ describe('MovieService - createMovie', () => {
             director: 'Nuevo Director',
             genre: ['drama'],
             available: true,
+            ageRating: 'PG-13' as AgeRating,
             cast: [{actor: 'leo', character: 'test'}]
         }
 
@@ -85,7 +88,8 @@ describe('MovieService - createMovie', () => {
             plot: 'Un argumento de prueba',
             poster: 'https://example.com/poster.jpg',
             genres: ['drama'],
-            cast: []
+            cast: [],
+            ageRating: 'PG-13'
         })
         expect(repos.movieRepo.insert).toHaveBeenCalledWith(
             expect.objectContaining({ title: 'Nueva Película', directorId: 1 })
@@ -108,6 +112,7 @@ describe('MovieService - createMovie', () => {
             director: 'Alguien',
             genre: ['drama'],
             available: true,
+            ageRating: 'PG-13' as AgeRating,
             cast: [{actor: 'Leo', character: 'prueba'}]
         }
 

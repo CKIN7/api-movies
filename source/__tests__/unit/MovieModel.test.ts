@@ -14,7 +14,7 @@ describe('MovieRepository - findMany', () => {
         const repo = new MovieRepository(conn)
 
         const fakeMovies = [
-            { id: 1, title: 'Inception', year: 2010, director: 'Christopher Nolan', rating: 8.8, duration: 148, plot: '...', poster: '...', genres: 'Action, Sci-Fi' }
+            { id: 1, title: 'Inception', year: 2010, director: 'Christopher Nolan', rating: 8.8, duration: 148, plot: '...', poster: '...', genres: 'Action, Sci-Fi', age_rating: 'PG-13' }
         ]
         conn.query
             .mockResolvedValueOnce([[{ total: 1 }]])
@@ -244,7 +244,7 @@ describe('MovieRepository - findById', () => {
         const conn = createMockConnection()
         const repo = new MovieRepository(conn)
 
-        const fakeMovie = { id: 1, title: 'Inception', year: 2010, director: 'Christopher Nolan', rating: 8.8, duration: 148, plot: '...', poster: '...', genres: 'Action, Sci-Fi' }
+        const fakeMovie = { id: 1, title: 'Inception', year: 2010, director: 'Christopher Nolan', rating: 8.8, duration: 148, plot: '...', poster: '...', genres: 'Action, Sci-Fi', age_rating: 'PG-13' }
         conn.query.mockResolvedValue([[fakeMovie]])
 
         const result = await repo.findById(1)
