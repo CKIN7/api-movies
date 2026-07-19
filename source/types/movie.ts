@@ -17,6 +17,7 @@ export interface MovieRow {
     plot: string
     poster: string
     genres: string
+    cast: string
 }
 
 export interface GetMoviesQuery {

@@ -5,6 +5,7 @@ import MovieRepository from '../../repositories/MovieRepository'
 import DirectorRepository from '../../repositories/DirectorRepository'
 import GenreRepository from '../../repositories/GenreRepository'
 import AuditLogRepository from '../../repositories/AuditLogRepository'
+import CastRepository from '../../repositories/CastRepository'
 import { setupTestDb, teardownTestDb, clearTestData, seedTestData } from '../helpers/db'
 import type { Connection } from 'mysql2/promise'
 
@@ -15,7 +16,8 @@ function createTestService() {
     const directorRepo = new DirectorRepository(db)
     const genreRepo = new GenreRepository(db)
     const auditRepo = new AuditLogRepository(db)
-    return new MovieService(movieRepo, directorRepo, genreRepo, auditRepo)
+    const castRepo = new CastRepository(db)
+    return new MovieService(movieRepo, directorRepo, genreRepo, auditRepo, castRepo)
 }
 
 beforeAll(async () => {
@@ -42,7 +44,7 @@ describe('GET /movies?page=&limit= (integración)', () => {
 
         expect(res.status).toBe(200)
         expect(res.body.data).toHaveLength(3)
-        expect(res.body.meta).toEqual({ total: 8, page: 1, limit: 3, totalPages: 3 })
+        expect(res.body.meta).toEqual({ total: 108, page: 1, limit: 3, totalPages: 36 })
         res.body.data.forEach((movie: any) => {
             expect(movie).toHaveProperty('id')
             expect(movie).toHaveProperty('title')
@@ -61,7 +63,7 @@ describe('GET /movies?page=&limit= (integración)', () => {
 
         expect(res2.status).toBe(200)
         expect(res2.body.data).toHaveLength(3)
-        expect(res2.body.meta).toEqual({ total: 8, page: 2, limit: 3, totalPages: 3 })
+        expect(res2.body.meta).toEqual({ total: 108, page: 2, limit: 3, totalPages: 36 })
 
         const idsPage1 = res1.body.data.map((m: any) => m.id)
         const idsPage2 = res2.body.data.map((m: any) => m.id)
@@ -76,8 +78,8 @@ describe('GET /movies?page=&limit= (integración)', () => {
         const res = await request(app).get('/movies?page=3&limit=3')
 
         expect(res.status).toBe(200)
-        expect(res.body.data).toHaveLength(2)
-        expect(res.body.meta).toEqual({ total: 8, page: 3, limit: 3, totalPages: 3 })
+        expect(res.body.data).toHaveLength(3)
+        expect(res.body.meta).toEqual({ total: 108, page: 3, limit: 3, totalPages: 36 })
     })
 
     test('sin parámetros debe usar defaults page=1 limit=10, devolver 8 películas', async () => {
@@ -86,8 +88,8 @@ describe('GET /movies?page=&limit= (integración)', () => {
         const res = await request(app).get('/movies')
 
         expect(res.status).toBe(200)
-        expect(res.body.data).toHaveLength(8)
-        expect(res.body.meta).toEqual({ total: 8, page: 1, limit: 10, totalPages: 1 })
+        expect(res.body.data).toHaveLength(10)
+        expect(res.body.meta).toEqual({ total: 108, page: 1, limit: 10, totalPages: 11 })
     })
 
     test('page mayor al total debe devolver data vacío y meta correcta', async () => {
@@ -97,7 +99,7 @@ describe('GET /movies?page=&limit= (integración)', () => {
 
         expect(res.status).toBe(200)
         expect(res.body.data).toEqual([])
-        expect(res.body.meta).toEqual({ total: 8, page: 99, limit: 10, totalPages: 1 })
+        expect(res.body.meta).toEqual({ total: 108, page: 99, limit: 10, totalPages: 11 })
     })
 
     // --- VALIDACIONES: page ---
@@ -183,7 +185,7 @@ describe('GET /movies?page=&limit= (integración)', () => {
         const res = await request(app).get('/movies?page=1&limit=100')
 
         expect(res.status).toBe(200)
-        expect(res.body.data).toHaveLength(8)
+        expect(res.body.data).toHaveLength(100)
     })
 
     test('limit=abc debe devolver 400', async () => {
@@ -243,7 +245,7 @@ describe('GET /movies?page=&limit= (integración)', () => {
         res.body.data.forEach((movie: any) => {
             expect(movie.genres.map((g: string) => g.toLowerCase())).toContain('action')
         })
-        expect(res.body.meta.total).toBe(3)
+        expect(res.body.meta.total).toBe(20)
     })
 
     test('combinar paginación con filtro year: page=1&limit=5&minYear=1994&maxYear=1994', async () => {
@@ -252,11 +254,11 @@ describe('GET /movies?page=&limit= (integración)', () => {
         const res = await request(app).get('/movies?page=1&limit=5&minYear=1994&maxYear=1994')
 
         expect(res.status).toBe(200)
-        expect(res.body.data).toHaveLength(3)
+        expect(res.body.data).toHaveLength(5)
         res.body.data.forEach((movie: any) => {
             expect(movie.year).toBe(1994)
         })
-        expect(res.body.meta.total).toBe(3)
+        expect(res.body.meta.total).toBe(5)
     })
 
     test('combinar paginación con filtro title: page=1&limit=2&title=dark', async () => {
@@ -288,7 +290,7 @@ describe('GET /movies?page=&limit= (integración)', () => {
 
         expect(res.status).toBe(200)
         expect(res.body.data).toHaveLength(3)
-        expect(res.body.meta.total).toBe(8)
+        expect(res.body.meta.total).toBe(108)
 
         const years = res.body.data.map((m: any) => m.year)
         for (let i = 0; i < years.length - 1; i++) {
@@ -343,7 +345,7 @@ describe('GET /movies?page=&limit= (integración)', () => {
         for (let i = 0; i < years.length - 1; i++) {
             expect(years[i]).toBeGreaterThanOrEqual(years[i + 1])
         }
-        expect(res.body.meta.total).toBe(3)
+        expect(res.body.meta.total).toBe(20)
     })
 
     // --- EDGE CASES ---

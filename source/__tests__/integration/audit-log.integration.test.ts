@@ -5,6 +5,7 @@ import MovieRepository from '../../repositories/MovieRepository'
 import DirectorRepository from '../../repositories/DirectorRepository'
 import GenreRepository from '../../repositories/GenreRepository'
 import MovieService from '../../services/movieService'
+import CastRepository from '../../repositories/CastRepository'
 import AppError from '../../utils/AppError'
 
 let db: Connection
@@ -113,7 +114,8 @@ describe('MovieService.getAuditLog — integración real con DB', () => {
         const directorRepo = new DirectorRepository(db)
         const genreRepo = new GenreRepository(db)
         const auditRepo = new AuditLogRepository(db)
-        return new MovieService(movieRepo, directorRepo, genreRepo, auditRepo)
+        const castRepo = new CastRepository(db)
+        return new MovieService(movieRepo, directorRepo, genreRepo, auditRepo, castRepo)
     }
 
     test('retorna el audit-log de una película existente', async () => {
@@ -146,7 +148,8 @@ describe('MovieService.getAuditLog — integración real con DB', () => {
             poster: 'http://example.com/p.jpg',
             director: 'New Director',
             genre: ['drama'],
-            available: true
+            available: true,
+            cast: []
         }
         const movie = await service.createMovie(input) as any
 

@@ -5,6 +5,7 @@ import MovieRepository from '../../repositories/MovieRepository'
 import DirectorRepository from '../../repositories/DirectorRepository'
 import GenreRepository from '../../repositories/GenreRepository'
 import AuditLogRepository from '../../repositories/AuditLogRepository'
+import CastRepository from '../../repositories/CastRepository'
 import { setupTestDb, teardownTestDb, clearTestData, seedTestData } from '../helpers/db'
 import type { Connection } from 'mysql2/promise'
 
@@ -19,7 +20,8 @@ function createTestService() {
     const directorRepo = new DirectorRepository(db)
     const genreRepo = new GenreRepository(db)
     const auditRepo = new AuditLogRepository(db)
-    return new MovieService(movieRepo, directorRepo, genreRepo, auditRepo)
+    const castRepo = new CastRepository(db)
+    return new MovieService(movieRepo, directorRepo, genreRepo, auditRepo, castRepo)
 }
 
 describe('GET /movies?title= (búsqueda por título)', () => {
@@ -139,7 +141,7 @@ describe('GET /movies?q= (búsqueda full-text)', () => {
         const res = await request(app).get('/movies?q=')
 
         expect(res.status).toBe(200)
-        expect(res.body.data).toHaveLength(8)
+        expect(res.body.meta.total).toBe(108)
     })
 })
 
@@ -174,7 +176,7 @@ describe('GET /movies?director= (búsqueda por director)', () => {
         const res = await request(app).get('/movies?director=')
 
         expect(res.status).toBe(200)
-        expect(res.body.data).toHaveLength(8)
+        expect(res.body.meta.total).toBe(108)
     })
 })
 

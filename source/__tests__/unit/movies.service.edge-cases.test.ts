@@ -29,6 +29,13 @@ function createMockRepos() {
             countByMovieId: jest.fn().mockName('countByMovieId'),
             record: jest.fn().mockName('record'),
         },
+        castRepo: {
+            findByName: jest.fn().mockName('findByName'),
+            create: jest.fn().mockName('create'),
+            findOrCreate: jest.fn().mockName('findOrCreate'),
+            linkToMovie: jest.fn().mockName('linkToMovie'),
+            deleteByMovieId: jest.fn().mockName('deleteByMovieId'),
+        },
     }
 }
 
@@ -41,7 +48,8 @@ const sampleInput = {
     poster: 'https://example.com/service.jpg',
     director: 'Service Director',
     genre: ['drama'],
-    available: true
+    available: true,
+    cast: []
 }
 
 describe('MovieService — error propagation', () => {
@@ -50,7 +58,7 @@ describe('MovieService — error propagation', () => {
         const repos = createMockRepos()
         repos.movieRepo.transaction.mockRejectedValue(new AppError('Conflicto: título duplicado', 409))
 
-        const service = new MovieService(repos.movieRepo as any, repos.directorRepo as any, repos.genreRepo as any, repos.auditRepo as any)
+        const service = new MovieService(repos.movieRepo as any, repos.directorRepo as any, repos.genreRepo as any, repos.auditRepo as any, repos.castRepo as any)
 
         await expect(service.createMovie(sampleInput)).rejects.toThrow(AppError)
         await expect(service.createMovie(sampleInput)).rejects.toMatchObject({
@@ -63,7 +71,7 @@ describe('MovieService — error propagation', () => {
         const repos = createMockRepos()
         repos.movieRepo.transaction.mockRejectedValue(new Error('DB connection lost'))
 
-        const service = new MovieService(repos.movieRepo as any, repos.directorRepo as any, repos.genreRepo as any, repos.auditRepo as any)
+        const service = new MovieService(repos.movieRepo as any, repos.directorRepo as any, repos.genreRepo as any, repos.auditRepo as any, repos.castRepo as any)
 
         await expect(service.createMovie(sampleInput)).rejects.toThrow(AppError)
         await expect(service.createMovie(sampleInput)).rejects.toMatchObject({ statusCode: 500 })
@@ -77,7 +85,7 @@ describe('MovieService — error propagation', () => {
         repos.genreRepo.findOrCreate.mockResolvedValue(1)
         repos.movieRepo.findById.mockResolvedValue(fakeRow)
 
-        const service = new MovieService(repos.movieRepo as any, repos.directorRepo as any, repos.genreRepo as any, repos.auditRepo as any)
+        const service = new MovieService(repos.movieRepo as any, repos.directorRepo as any, repos.genreRepo as any, repos.auditRepo as any, repos.castRepo as any)
         const input = { ...sampleInput, director: '  Christopher Nolan  ' }
 
         const result = await service.createMovie(input)

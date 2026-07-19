@@ -13,11 +13,14 @@ class MovieRepository {
     async findMany(query: GetMoviesQuery): Promise<{ rows: MovieRow[]; total: number }> {
         let sql = `
             SELECT m.id, m.title, m.year, d.director_name as director, m.rating, m.duration, m.plot, m.poster,
-            GROUP_CONCAT(genre_name ORDER BY genre_name SEPARATOR ', ') AS genres
+            GROUP_CONCAT(DISTINCT genre_name ORDER BY genre_name SEPARATOR ', ') AS genres,
+            GROUP_CONCAT(DISTINCT CONCAT(a.actor_name, '||', ma.character_name) ORDER BY a.actor_name SEPARATOR '|||') AS \`cast\`
             FROM movies m
             JOIN directors d ON m.id_director = d.director_id
             JOIN movie_genres mg ON m.id = mg.movie_id
             JOIN genres g ON mg.genre_id = g.id_genre
+            LEFT JOIN movie_actors ma ON m.id = ma.movie_id
+            LEFT JOIN actors a ON ma.actor_id = a.actor_id
         `
 
         const {conditions, params} = new MovieQueryBuilder(query).build()
@@ -53,11 +56,14 @@ class MovieRepository {
     async findById(id: number): Promise<MovieRow | null> {
         const [rows] = await this.query(
             `SELECT id, title, year, director_name as director, rating, duration, plot, poster,
-            GROUP_CONCAT(genre_name ORDER BY genre_name SEPARATOR ', ') AS genres
+            GROUP_CONCAT(DISTINCT genre_name ORDER BY genre_name SEPARATOR ', ') AS genres,
+            GROUP_CONCAT(DISTINCT CONCAT(a.actor_name, '||', ma.character_name) ORDER BY a.actor_name SEPARATOR '|||') AS \`cast\`
             FROM movies
             JOIN directors AS d ON movies.id_director = d.director_id
             JOIN movie_genres ON movies.id = movie_genres.movie_id
             JOIN genres g ON movie_genres.genre_id = g.id_genre
+            LEFT JOIN movie_actors ma ON movies.id = ma.movie_id
+            LEFT JOIN actors a ON ma.actor_id = a.actor_id
             WHERE movies.id = ?
             GROUP BY movies.id`,
             [id]

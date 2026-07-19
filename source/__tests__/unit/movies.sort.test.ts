@@ -92,11 +92,18 @@ describe('MovieService - getMovies con sort/order (servicio)', () => {
                 countByMovieId: jest.fn().mockName('countByMovieId'),
                 record: jest.fn().mockName('record'),
             },
+            castRepo: {
+                findByName: jest.fn().mockName('findByName'),
+                create: jest.fn().mockName('create'),
+                findOrCreate: jest.fn().mockName('findOrCreate'),
+                linkToMovie: jest.fn().mockName('linkToMovie'),
+                deleteByMovieId: jest.fn().mockName('deleteByMovieId'),
+            },
         }
     }
 
     function createService(repos: ReturnType<typeof createMockRepos>) {
-        return new MovieService(repos.movieRepo as any, repos.directorRepo as any, repos.genreRepo as any, repos.auditRepo as any)
+        return new MovieService(repos.movieRepo as any, repos.directorRepo as any, repos.genreRepo as any, repos.auditRepo as any, repos.castRepo as any)
     }
 
     test('debe pasar sort y order al repositorio', async () => {

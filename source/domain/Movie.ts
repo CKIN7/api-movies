@@ -1,4 +1,5 @@
 import type { MovieRow } from '../types/movie'
+import type { CastMember } from '../types/cast'
 
 export interface MovieResponse {
     id: number
@@ -10,6 +11,7 @@ export interface MovieResponse {
     plot: string
     poster: string
     genres: string[]
+    cast: CastMember[]
 }
 
 export class Movie {
@@ -23,9 +25,17 @@ export class Movie {
         public duration: number,
         public plot: string,
         public poster: string,
+        public cast: CastMember[],
     ) {}
 
     static fromRow(row: MovieRow): Movie {
+        const parsedCast: CastMember[] = row.cast
+            ? row.cast.split('|||').filter(Boolean).map(piece => {
+                const [actor, character] = piece.split('||')
+                return { actor: actor.trim(), character: (character || '').trim() }
+              })
+            : []
+
         return new Movie(
             row.id,
             row.title,
@@ -36,6 +46,7 @@ export class Movie {
             row.duration,
             row.plot,
             row.poster,
+            parsedCast,
         )
     }
 
@@ -50,6 +61,7 @@ export class Movie {
             plot: this.plot,
             poster: this.poster,
             genres: this.genres,
+            cast: this.cast,
         }
     }
 }

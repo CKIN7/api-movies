@@ -3,6 +3,11 @@ import zod from 'zod'
 const noHtml = (s: string) => !/<[^>]*>/i.test(s)
 const noHtmlMsg = "No se permiten etiquetas HTML"
 
+const castMemberSchema = zod.object({
+    actor: zod.string().min(1, "El nombre del actor no puede estar vacío").max(255).trim().refine(noHtml, noHtmlMsg),
+    character: zod.string().min(1, "El nombre del personaje no puede estar vacío").max(255).trim().refine(noHtml, noHtmlMsg)
+})
+
 const movieSchema = zod.object({
     title: zod.string({
         message: "El título debe ser un texto"
@@ -20,7 +25,8 @@ const movieSchema = zod.object({
     duration: zod.number().int().positive().max(300),
     plot: zod.string().min(1, "El argumento no puede estar vacío").max(2000, "El argumento no puede tener más de 2000 caracteres").refine(noHtml,noHtmlMsg),
     poster: zod.string().url(),
-    available: zod.boolean().default(true)
+    available: zod.boolean().default(true),
+    cast: zod.array(castMemberSchema).max(20).optional().default([])
 })
 
 export { movieSchema }

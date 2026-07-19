@@ -29,6 +29,13 @@ function createMockRepos() {
             countByMovieId: jest.fn().mockName('countByMovieId'),
             record: jest.fn().mockName('record'),
         },
+        castRepo: {
+            findByName: jest.fn().mockName('findByName'),
+            create: jest.fn().mockName('create'),
+            findOrCreate: jest.fn().mockName('findOrCreate'),
+            linkToMovie: jest.fn().mockName('linkToMovie'),
+            deleteByMovieId: jest.fn().mockName('deleteByMovieId'),
+        },
     }
 }
 
@@ -51,7 +58,7 @@ describe('MovieService - createMovie', () => {
         repos.genreRepo.findOrCreate.mockResolvedValue(1)
         repos.movieRepo.findById.mockResolvedValue(fakeRow)
 
-        const service = new MovieService(repos.movieRepo as any, repos.directorRepo as any, repos.genreRepo as any, repos.auditRepo as any)
+        const service = new MovieService(repos.movieRepo as any, repos.directorRepo as any, repos.genreRepo as any, repos.auditRepo as any, repos.castRepo as any)
 
         const inputData = {
             title: 'Nueva Película',
@@ -87,7 +94,7 @@ describe('MovieService - createMovie', () => {
         const repos = createMockRepos()
         repos.movieRepo.transaction.mockRejectedValue(new Error('DB error'))
 
-        const service = new MovieService(repos.movieRepo as any, repos.directorRepo as any, repos.genreRepo as any, repos.auditRepo as any)
+        const service = new MovieService(repos.movieRepo as any, repos.directorRepo as any, repos.genreRepo as any, repos.auditRepo as any, repos.castRepo as any)
 
         const inputData = {
             title: 'Fallo',

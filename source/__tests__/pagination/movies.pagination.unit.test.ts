@@ -131,11 +131,18 @@ describe('MovieService - getMovies con page/limit (servicio)', () => {
                 countByMovieId: jest.fn().mockName('countByMovieId'),
                 record: jest.fn().mockName('record'),
             },
+            castRepo: {
+                findByName: jest.fn().mockName('findByName'),
+                create: jest.fn().mockName('create'),
+                findOrCreate: jest.fn().mockName('findOrCreate'),
+                linkToMovie: jest.fn().mockName('linkToMovie'),
+                deleteByMovieId: jest.fn().mockName('deleteByMovieId'),
+            },
         }
     }
 
     function createService(repos: ReturnType<typeof createMockRepos>) {
-        return new MovieService(repos.movieRepo as any, repos.directorRepo as any, repos.genreRepo as any, repos.auditRepo as any)
+        return new MovieService(repos.movieRepo as any, repos.directorRepo as any, repos.genreRepo as any, repos.auditRepo as any, repos.castRepo as any)
     }
 
     test('debe calcular offset correctamente: page=3 limit=10 => offset=20', async () => {
@@ -177,13 +184,15 @@ describe('MovieService - getMovies con page/limit (servicio)', () => {
         expect(result).toEqual({
             data: [{
                 id: 1, title: 'A', year: 2000, director: 'D', rating: 5, duration: 100,
-                plot: 'P', poster: 'U', genres: ['Drama']
+                plot: 'P', poster: 'U', genres: ['Drama'], cast: []
             }, {
                 id: 2, title: 'B', year: 2001, director: 'D', rating: 6, duration: 110,
-                plot: 'P', poster: 'U', genres: ['Action']
+                plot: 'P', poster: 'U', genres: ['Action'], cast: []
+            }, {
             }, {
                 id: 3, title: 'C', year: 2002, director: 'D', rating: 7, duration: 120,
-                plot: 'P', poster: 'U', genres: ['Sci-Fi']
+                plot: 'P', poster: 'U', genres: ['Sci-Fi'], cast: []
+            }, {
             }],
             meta: { total: 8, page: 1, limit: 3, totalPages: 3 }
         })

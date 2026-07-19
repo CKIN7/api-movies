@@ -29,6 +29,13 @@ function createMockRepos() {
             countByMovieId: jest.fn().mockName('countByMovieId'),
             record: jest.fn().mockName('record'),
         },
+        castRepo: {
+            findByName: jest.fn().mockName('findByName'),
+            create: jest.fn().mockName('create'),
+            findOrCreate: jest.fn().mockName('findOrCreate'),
+            linkToMovie: jest.fn().mockName('linkToMovie'),
+            deleteByMovieId: jest.fn().mockName('deleteByMovieId'),
+        },
     }
 }
 
@@ -39,7 +46,7 @@ describe('MovieService - getMovies', () => {
             { id: 1, title: 'Inception', year: 2010, director: 'Christopher Nolan', rating: 8.8, duration: 148, plot: '...', poster: '...', genres: 'Action, Sci-Fi' }
         ]
         repos.movieRepo.findMany.mockResolvedValue({ rows: fakeMovies, total: 1 })
-        const service = new MovieService(repos.movieRepo as any, repos.directorRepo as any, repos.genreRepo as any, repos.auditRepo as any)
+        const service = new MovieService(repos.movieRepo as any, repos.directorRepo as any, repos.genreRepo as any, repos.auditRepo as any, repos.castRepo as any)
 
         const result = await service.getMovies({ genre: ['action'], genreMode: 'and', page: 1, limit: 10 })
 
@@ -65,7 +72,7 @@ describe('MovieService - getMovies', () => {
     test('debe llamar al repositorio con los parámetros correctos', async () => {
         const repos = createMockRepos()
         repos.movieRepo.findMany.mockResolvedValue({ rows: [], total: 0 })
-        const service = new MovieService(repos.movieRepo as any, repos.directorRepo as any, repos.genreRepo as any, repos.auditRepo as any)
+        const service = new MovieService(repos.movieRepo as any, repos.directorRepo as any, repos.genreRepo as any, repos.auditRepo as any, repos.castRepo as any)
 
         await service.getMovies({ title: 'incept', genreMode: 'and', minYear: 2010, maxYear: 2010, page: 1, limit: 10 })
 
@@ -77,7 +84,7 @@ describe('MovieService - getMovies', () => {
     test('debe llamar al repositorio sin parámetros cuando no se pasan filtros', async () => {
         const repos = createMockRepos()
         repos.movieRepo.findMany.mockResolvedValue({ rows: [], total: 0 })
-        const service = new MovieService(repos.movieRepo as any, repos.directorRepo as any, repos.genreRepo as any, repos.auditRepo as any)
+        const service = new MovieService(repos.movieRepo as any, repos.directorRepo as any, repos.genreRepo as any, repos.auditRepo as any, repos.castRepo as any)
 
         await service.getMovies({ genreMode: 'and', page: 1, limit: 10 })
 
@@ -89,7 +96,7 @@ describe('MovieService - getMovies', () => {
     test('debe lanzar AppError con status 500 si el repositorio falla', async () => {
         const repos = createMockRepos()
         repos.movieRepo.findMany.mockRejectedValue(new Error('DB error'))
-        const service = new MovieService(repos.movieRepo as any, repos.directorRepo as any, repos.genreRepo as any, repos.auditRepo as any)
+        const service = new MovieService(repos.movieRepo as any, repos.directorRepo as any, repos.genreRepo as any, repos.auditRepo as any, repos.castRepo as any)
 
         await expect(service.getMovies({ genreMode: 'and', page: 1, limit: 10 })).rejects.toThrow(AppError)
     })

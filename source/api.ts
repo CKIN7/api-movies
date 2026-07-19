@@ -6,6 +6,7 @@ import MovieRepository from './repositories/MovieRepository'
 import DirectorRepository from './repositories/DirectorRepository'
 import GenreRepository from './repositories/GenreRepository'
 import AuditLogRepository from './repositories/AuditLogRepository'
+import CastRepository from './repositories/CastRepository'
 import AppError from './utils/AppError'
 import { ZodError } from 'zod'
 import logger from './utils/logger'
@@ -26,7 +27,8 @@ export function createApp(movieService?: MovieService) {
     const directorRepo = new DirectorRepository(conn)
     const genreRepo = new GenreRepository(conn)
     const auditRepo = new AuditLogRepository(conn)
-    const _service = movieService || new MovieService(movieRepo, directorRepo, genreRepo, auditRepo)
+    const castRepo = new CastRepository(conn)
+    const _service = movieService || new MovieService(movieRepo, directorRepo, genreRepo, auditRepo, castRepo)
     const controller = new MovieController(_service)
     const router = createMovieRoutes(controller)
 
