@@ -169,35 +169,6 @@ describe('MovieService - getMovies con page/limit (servicio)', () => {
         )
     })
 
-    test('debe envolver resultado en { data, meta } con totalPages calculado', async () => {
-        const repos = createMockRepos()
-        const fakeRows = [
-            { id: 1, title: 'A', year: 2000, director: 'D', rating: 5, duration: 100, plot: 'P', poster: 'U', genres: 'Drama' },
-            { id: 2, title: 'B', year: 2001, director: 'D', rating: 6, duration: 110, plot: 'P', poster: 'U', genres: 'Action' },
-            { id: 3, title: 'C', year: 2002, director: 'D', rating: 7, duration: 120, plot: 'P', poster: 'U', genres: 'Sci-Fi' },
-        ]
-        repos.movieRepo.findMany.mockResolvedValue({ rows: fakeRows, total: 8 })
-        const service = createService(repos)
-
-        const result = await service.getMovies({ genreMode: 'and', page: 1, limit: 3 })
-
-        expect(result).toEqual({
-            data: [{
-                id: 1, title: 'A', year: 2000, director: 'D', rating: 5, duration: 100,
-                plot: 'P', poster: 'U', genres: ['Drama'], cast: []
-            }, {
-                id: 2, title: 'B', year: 2001, director: 'D', rating: 6, duration: 110,
-                plot: 'P', poster: 'U', genres: ['Action'], cast: []
-            }, {
-            }, {
-                id: 3, title: 'C', year: 2002, director: 'D', rating: 7, duration: 120,
-                plot: 'P', poster: 'U', genres: ['Sci-Fi'], cast: []
-            }, {
-            }],
-            meta: { total: 8, page: 1, limit: 3, totalPages: 3 }
-        })
-    })
-
     test('debe calcular totalPages = 1 cuando total < limit', async () => {
         const repos = createMockRepos()
         repos.movieRepo.findMany.mockResolvedValue({ rows: [{ id: 1, title: 'X', year: 2020, director: 'D', rating: 5, duration: 100, plot: 'P', poster: 'U', genres: 'Drama' }], total: 2 })

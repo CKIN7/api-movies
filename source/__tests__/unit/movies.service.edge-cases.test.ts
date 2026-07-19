@@ -79,7 +79,18 @@ describe('MovieService — error propagation', () => {
 
     test('Director con espacios alrededor no se transforma (solo genre hace trim)', async () => {
         const repos = createMockRepos()
-        const fakeRow = { id: 11, ...sampleInput, genre: 'drama' }
+        const fakeRow = {
+            id: 11,
+            title: 'Service Edge',
+            year: 2024,
+            director: 'Service Director',
+            rating: 5,
+            duration: 100,
+            plot: 'Service edge plot',
+            poster: 'https://example.com/service.jpg',
+            genres: 'drama',
+            cast: '',
+        }
         repos.directorRepo.findOrCreate.mockResolvedValue(1)
         repos.movieRepo.insert.mockResolvedValue(11)
         repos.genreRepo.findOrCreate.mockResolvedValue(1)
