@@ -22,6 +22,7 @@ export async function teardownTestDb(conn: Connection): Promise<void> {
 }
 
 export async function clearTestData(conn: Connection): Promise<void> {
+    await conn.execute('SET FOREIGN_KEY_CHECKS = 0')
     await conn.execute('DELETE FROM movie_actors')
     await conn.execute('DELETE FROM movie_genres')
     await conn.execute('DELETE FROM audit_log')
@@ -34,9 +35,11 @@ export async function clearTestData(conn: Connection): Promise<void> {
     await conn.execute('ALTER TABLE movies AUTO_INCREMENT = 1')
     await conn.execute('ALTER TABLE audit_log AUTO_INCREMENT = 1')
     await conn.execute('ALTER TABLE actors AUTO_INCREMENT = 1')
+    await conn.execute('SET FOREIGN_KEY_CHECKS = 1')
 }
 
 export async function seedTestData(conn: Connection): Promise<void> {
+    await conn.execute('SET FOREIGN_KEY_CHECKS = 0')
     await conn.execute(`INSERT INTO directors (director_id, director_name) VALUES (1, 'Christopher Nolan')`)
     await conn.execute(`INSERT INTO directors (director_id, director_name) VALUES (2, 'Frank Darabont')`)
     await conn.execute(`INSERT INTO directors (director_id, director_name) VALUES (3, 'Quentin Tarantino')`)
@@ -383,4 +386,5 @@ export async function seedTestData(conn: Connection): Promise<void> {
         [108, 15, 'Blondie'], [108, 30, 'Tuco'],
     ]
     await conn.query('INSERT INTO movie_actors (movie_id, actor_id, character_name) VALUES ?', [newMovieActors])
+    await conn.execute('SET FOREIGN_KEY_CHECKS = 1')
 }

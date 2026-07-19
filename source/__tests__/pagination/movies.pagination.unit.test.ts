@@ -184,13 +184,15 @@ describe('MovieService - getMovies con page/limit (servicio)', () => {
         expect(result).toEqual({
             data: [{
                 id: 1, title: 'A', year: 2000, director: 'D', rating: 5, duration: 100,
-                plot: 'P', poster: 'U', genres: ['Drama']
+                plot: 'P', poster: 'U', genres: ['Drama'], cast: []
             }, {
                 id: 2, title: 'B', year: 2001, director: 'D', rating: 6, duration: 110,
-                plot: 'P', poster: 'U', genres: ['Action']
+                plot: 'P', poster: 'U', genres: ['Action'], cast: []
+            }, {
             }, {
                 id: 3, title: 'C', year: 2002, director: 'D', rating: 7, duration: 120,
-                plot: 'P', poster: 'U', genres: ['Sci-Fi']
+                plot: 'P', poster: 'U', genres: ['Sci-Fi'], cast: []
+            }, {
             }],
             meta: { total: 8, page: 1, limit: 3, totalPages: 3 }
         })

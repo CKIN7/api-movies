@@ -141,7 +141,7 @@ describe('GET /movies?q= (búsqueda full-text)', () => {
         const res = await request(app).get('/movies?q=')
 
         expect(res.status).toBe(200)
-        expect(res.body.data).toHaveLength(8)
+        expect(res.body.meta.total).toBe(108)
     })
 })
 
@@ -176,7 +176,7 @@ describe('GET /movies?director= (búsqueda por director)', () => {
         const res = await request(app).get('/movies?director=')
 
         expect(res.status).toBe(200)
-        expect(res.body.data).toHaveLength(8)
+        expect(res.body.meta.total).toBe(108)
     })
 })
 

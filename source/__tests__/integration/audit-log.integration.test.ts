@@ -148,7 +148,8 @@ describe('MovieService.getAuditLog — integración real con DB', () => {
             poster: 'http://example.com/p.jpg',
             director: 'New Director',
             genre: ['drama'],
-            available: true
+            available: true,
+            cast: []
         }
         const movie = await service.createMovie(input) as any
 

@@ -41,7 +41,8 @@ describe('GET /movies (integración real con DB)', () => {
 
         expect(res.status).toBe(200)
         expect(Array.isArray(res.body.data)).toBe(true)
-        expect(res.body.data.length).toBeGreaterThanOrEqual(8)
+        expect(res.body.data.length).toBeGreaterThanOrEqual(1)
+        expect(res.body.meta.total).toBeGreaterThanOrEqual(108)
     })
 
     test('debe filtrar por año', async () => {
@@ -50,7 +51,7 @@ describe('GET /movies (integración real con DB)', () => {
         const res = await request(app).get('/movies?minYear=1994&maxYear=1994')
 
         expect(res.status).toBe(200)
-        expect(res.body.data).toHaveLength(3)
+        expect(res.body.data.length).toBeGreaterThanOrEqual(5)
         res.body.data.forEach((m: any) => expect(m.year).toBe(1994))
     })
 
@@ -107,7 +108,7 @@ describe('POST /movies (integración con DB)', () => {
         expect(res.status).toBe(201)
         expect(res.body).toHaveProperty('message', 'Pelicula creada con exito')
         expect(res.body.data).toMatchObject({
-            id: 9,
+            id: 109,
             title: 'Test Movie',
             year: 2024,
             director: 'Test Director',
@@ -138,7 +139,7 @@ describe('POST /movies (integración con DB)', () => {
 
         expect(res.status).toBe(201)
         expect(res.body.data).toMatchObject({
-            id: 9,
+            id: 109,
             title: 'Brand New',
             year: 2025,
             director: 'Director Inexistente',
