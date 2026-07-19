@@ -26,6 +26,7 @@ const movieSchema = zod.object({
     plot: zod.string().min(1, "El argumento no puede estar vacío").max(2000, "El argumento no puede tener más de 2000 caracteres").refine(noHtml,noHtmlMsg),
     poster: zod.string().url(),
     available: zod.boolean().default(true),
+    ageRating: zod.enum(['G', 'PG', 'PG-13', 'R', 'NC-17']).default('PG-13'),
     cast: zod.array(castMemberSchema).max(20).optional().default([])
 })
 
