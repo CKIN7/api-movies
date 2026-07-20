@@ -121,10 +121,14 @@ class MovieService {
                     }
                 }
 
-                await this.auditRepo.record(movieId, 'rating', null, String(dto.rating))
 
                 const row = await this.movieRepo.findById(movieId)
-                return Movie.fromRow(row!).toResponse()
+                
+                const movieResponse = Movie.fromRow(row!).toResponse()
+
+                await this.auditRepo.record({movieId: movieId, action: 'CREATE', oldSnapshot:null, newSnapshot: movieResponse})
+
+                return movieResponse
             })
         } catch (error) {
             if (error instanceof AppError) throw error

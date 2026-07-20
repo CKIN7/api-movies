@@ -40,10 +40,10 @@ class AuditLogRepository {
         return rows[0].total as number
     }
 
-    async record(params: InsertAuditLogParams): Promise<void> {
+    async record({movieId, action, oldSnapshot, newSnapshot}: InsertAuditLogParams): Promise<void> {
         await this.query(
             `INSERT INTO audit_log (movie_id, action, old_snapshot, new_snapshot) VALUES (?, ?, ?, ?)`,
-            [params.movieId, params.action, JSON.stringify(params.oldSnapshot), JSON.stringify(params.newSnapshot)]
+            [movieId, action, JSON.stringify(oldSnapshot), JSON.stringify(newSnapshot)]
         )
     }
 }
