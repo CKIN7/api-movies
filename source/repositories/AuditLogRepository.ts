@@ -1,3 +1,4 @@
+import { MovieResponse } from '../domain/Movie'
 import type { AuditLogEntry, AuditLogParams } from '../types/auditLog'
 import { DbLogger } from '../utils/DbLogger'
 
@@ -8,7 +9,7 @@ class AuditLogRepository {
         return await DbLogger.query('query', sql, params || [], () => this.conn.query(sql, params)) as any
     }
 
-    async findByMovieId({ movieId, field, limit, offset }: AuditLogParams): Promise<AuditLogEntry[]> {
+    async findByMovieId({ movieId, limit, offset }: AuditLogParams): Promise<AuditLogEntry[]> {
         let sql = `
             SELECT
                 id,
@@ -23,10 +24,6 @@ class AuditLogRepository {
         `
         const params: (string | number)[] = [movieId]
 
-        if (field) {
-            sql += ` AND field_name = ?`
-            params.push(field)
-        }
 
         sql += ` ORDER BY changed_at DESC LIMIT ? OFFSET ?`
         params.push(limit, offset)
@@ -35,23 +32,19 @@ class AuditLogRepository {
         return rows as AuditLogEntry[]
     }
 
-    async countByMovieId(movieId: number, field?: string): Promise<number> {
+    async countByMovieId(movieId: number): Promise<number> {
         let sql = `SELECT COUNT(*) as total FROM audit_log WHERE movie_id = ?`
         const params: (string | number)[] = [movieId]
 
-        if (field) {
-            sql += ` AND field_name = ?`
-            params.push(field)
-        }
 
         const [rows] = await this.query(sql, params)
         return rows[0].total as number
     }
 
-    async record(movieId: number, fieldName: string, oldValue: string | null, newValue: string | number): Promise<void> {
+    async record(movieId: number, oldSnapshot: MovieResponse | null, newSnapshot: MovieResponse | null): Promise<void> {
         await this.query(
-            `INSERT INTO audit_log (movie_id, field_name, old_value, new_value) VALUES (?, ?, ?, ?)`,
-            [movieId, fieldName, oldValue, newValue]
+            `INSERT INTO audit_log (movie_id, oldSnapshot, newSnapshot) VALUES (?, ?, ?)`,
+            [movieId, oldSnapshot, newSnapshot]
         )
     }
 }

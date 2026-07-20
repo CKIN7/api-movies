@@ -1,26 +1,23 @@
 import { z } from 'zod'
 import { auditLogQuerySchema } from '../schemas/auditLogQuerySchema'
+import { MovieResponse } from '../domain/Movie'
 
 export type AuditLogQuery = z.infer<typeof auditLogQuerySchema>
 
 export interface AuditLogEntry {
     id: number
     movieId: number
-    fieldName: string
-    oldValue: string | null
-    newValue: string
+    action: 'CREATE' | 'UPDATE' | 'DELETE'
+    changes: string[]
+    oldSnapshot: MovieResponse | null
+    newSnapshot: MovieResponse | null
     changedBy: string
     changedAt: string
 }
         
 export interface AuditLogParams {
     movieId: number
-    field?: string
     limit: number
     offset: number
 }
         
-export const ALLOWED_AUDIT_FIELDS = [
-    'rating', 'title', 'director', 'year',
-    'duration', 'plot',
-] as const
