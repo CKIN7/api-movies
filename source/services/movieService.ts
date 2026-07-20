@@ -123,7 +123,7 @@ class MovieService {
 
 
                 const row = await this.movieRepo.findById(movieId)
-                
+
                 const movieResponse = Movie.fromRow(row!).toResponse()
 
                 await this.auditRepo.record({movieId: movieId, action: 'CREATE', oldSnapshot:null, newSnapshot: movieResponse})
@@ -142,6 +142,8 @@ class MovieService {
             const existing = await this.movieRepo.findById(id)
             if (!existing) throw new AppError('Película no encontrada', 404)
 
+            const oldSnapshot = Movie.fromRow(existing!).toResponse()
+
             return await this.movieRepo.transaction(async () => {
                 if (dto.director) {
                     const directorId = await this.directorRepo.findOrCreate(dto.director)
@@ -158,9 +160,9 @@ class MovieService {
                     await this.movieRepo.update(id, fieldsToUpdate as any)
                 }
 
-                if (dto.rating !== undefined && dto.rating !== existing.rating) {
-                    await this.auditRepo.record(id, 'rating', String(existing.rating), String(dto.rating))
-                }
+                // if (dto.rating !== undefined && dto.rating !== existing.rating) {
+                //     await this.auditRepo.record(id, 'rating', String(existing.rating), String(dto.rating))
+                // }
 
                 if (dto.genre) {
                     const uniqueGenreIds = [...new Set(
@@ -181,7 +183,14 @@ class MovieService {
                 }
 
                 const row = await this.movieRepo.findById(id)
-                return Movie.fromRow(row!).toResponse()
+                
+                const newSnapshot = Movie.fromRow(row!).toResponse()
+                
+                if(JSON.stringify(oldSnapshot) !== JSON.stringify(newSnapshot)){
+                    await this.auditRepo.record({movieId: id, action: 'UPDATE', oldSnapshot, newSnapshot})
+                }
+                
+                return newSnapshot
             })
         } catch (error) {
             if (error instanceof AppError) throw error
