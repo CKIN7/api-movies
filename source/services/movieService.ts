@@ -203,8 +203,12 @@ class MovieService {
         try {
             const existing = await this.movieRepo.findById(id)
             if (!existing) throw new AppError('Película no encontrada', 404)
-
+            
+            const oldSnapshot = Movie.fromRow(existing).toResponse()
+            
             await this.movieRepo.transaction(async () => {
+                await this.auditRepo.record({movieId: id, action: 'DELETE', oldSnapshot, newSnapshot: null})
+
                 await this.genreRepo.deleteByMovieId(id)
                 await this.castRepo.deleteByMovieId(id)
                 await this.movieRepo.delete(id)
