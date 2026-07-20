@@ -226,14 +226,18 @@ class MovieService {
             if (!movie) throw new AppError('Película no encontrada', 404)
 
             const offset = (query.page - 1) * query.limit
-            const data = await this.auditRepo.findByMovieId({
+            const rows = await this.auditRepo.findByMovieId({
                 movieId: query.id,
-                field: query.field,
                 limit: query.limit,
                 offset,
             })
-            const total = await this.auditRepo.countByMovieId(query.id, query.field)
+            const total = await this.auditRepo.countByMovieId(query.id)
             const totalPages = Math.ceil(total / query.limit)
+
+            const data: AuditLogEntry[] = rows.map(row => ({
+                ...row,
+                changes: computeChanges(row.oldSnapshot, row.newSnapshot),
+            }))
 
             return {
                 data,
@@ -245,6 +249,21 @@ class MovieService {
             throw new AppError('Error al obtener el log de auditoría', 500)
         }
     }
+}
+
+function computeChanges(oldSnapshot: Record<string, unknown> | null, newSnapshot: Record<string, unknown> | null): string[] {
+    if (!oldSnapshot || !newSnapshot) return []
+
+    const changes: string[] = []
+    const allKeys = new Set([...Object.keys(oldSnapshot), ...Object.keys(newSnapshot)])
+
+    for (const key of allKeys) {
+        if (JSON.stringify(oldSnapshot[key]) !== JSON.stringify(newSnapshot[key])) {
+            changes.push(key)
+        }
+    }
+
+    return changes
 }
 
 export default MovieService
