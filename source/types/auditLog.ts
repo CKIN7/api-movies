@@ -14,6 +14,13 @@ export interface AuditLogEntry {
     changedBy: string
     changedAt: string
 }
+
+export interface InsertAuditLogParams {
+    movieId: number
+    action: 'CREATE' | 'UPDATE' | 'DELETE'
+    oldSnapshot: MovieResponse | null
+    newSnapshot: MovieResponse | null
+}
         
 export interface AuditLogParams {
     movieId: number

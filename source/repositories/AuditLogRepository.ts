@@ -1,5 +1,4 @@
-import { MovieResponse } from '../domain/Movie'
-import type { AuditLogEntry, AuditLogParams } from '../types/auditLog'
+import type { AuditLogEntry, AuditLogParams, InsertAuditLogParams } from '../types/auditLog'
 import { DbLogger } from '../utils/DbLogger'
 
 class AuditLogRepository {
@@ -14,9 +13,9 @@ class AuditLogRepository {
             SELECT
                 id,
                 movie_id AS movieId,
-                field_name AS fieldName,
-                old_value AS oldValue,
-                new_value AS newValue,
+                action,
+                old_snapshot AS oldSnapshot,
+                new_snapshot AS newSnapshot,
                 changed_by AS changedBy,
                 changed_at AS changedAt
             FROM audit_log
@@ -41,10 +40,10 @@ class AuditLogRepository {
         return rows[0].total as number
     }
 
-    async record(movieId: number, oldSnapshot: MovieResponse | null, newSnapshot: MovieResponse | null): Promise<void> {
+    async record(params: InsertAuditLogParams): Promise<void> {
         await this.query(
-            `INSERT INTO audit_log (movie_id, oldSnapshot, newSnapshot) VALUES (?, ?, ?)`,
-            [movieId, oldSnapshot, newSnapshot]
+            `INSERT INTO audit_log (movie_id, action, old_snapshot, new_snapshot) VALUES (?, ?, ?, ?)`,
+            [params.movieId, params.action, JSON.stringify(params.oldSnapshot), JSON.stringify(params.newSnapshot)]
         )
     }
 }
