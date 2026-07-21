@@ -6,6 +6,7 @@ import DirectorRepository from '../../repositories/DirectorRepository'
 import GenreRepository from '../../repositories/GenreRepository'
 import MovieService from '../../services/movieService'
 import CastRepository from '../../repositories/CastRepository'
+import { Movie } from '../../domain/Movie'
 import AppError from '../../utils/AppError'
 
 let db: Connection
@@ -16,33 +17,28 @@ beforeEach(async () => { await clearTestData(db); await seedTestData(db) })
 
 describe('AuditLogRepository — integración real con DB', () => {
 
-    test('record() inserta una entrada y getByMovieId la devuelve', async () => {
+    test('insert() guarda y findByMovieId recupera', async () => {
         const auditRepo = new AuditLogRepository(db)
+        const snapshot = { title: 'Inception', rating: 8.8 }
 
-        await auditRepo.record(1, 'rating', null, '8.8')
+        await auditRepo.record({
+            movieId: 1,
+            action: 'CREATE',
+            oldSnapshot: null,
+            newSnapshot: snapshot,
+        })
 
         const entries = await auditRepo.findByMovieId({ movieId: 1, limit: 10, offset: 0 })
         expect(entries).toHaveLength(1)
         expect(entries[0]).toMatchObject({
             movieId: 1,
-            fieldName: 'rating',
-            oldValue: null,
-            newValue: '8.8',
-            changedBy: 'system'
+            action: 'CREATE',
+            oldSnapshot: null,
+            newSnapshot: snapshot,
+            changedBy: 'system',
         })
         expect(entries[0].id).toBeDefined()
         expect(entries[0].changedAt).toBeDefined()
-    })
-
-    test('findByMovieId filtra por field cuando se especifica', async () => {
-        const auditRepo = new AuditLogRepository(db)
-
-        await auditRepo.record(1, 'rating', null, '8.8')
-        await auditRepo.record(1, 'title', null, 'Inception')
-
-        const ratingEntries = await auditRepo.findByMovieId({ movieId: 1, field: 'rating', limit: 10, offset: 0 })
-        expect(ratingEntries).toHaveLength(1)
-        expect(ratingEntries[0].fieldName).toBe('rating')
     })
 
     test('findByMovieId devuelve array vacío si no hay entradas', async () => {
@@ -55,32 +51,19 @@ describe('AuditLogRepository — integración real con DB', () => {
     test('countByMovieId devuelve el total correcto', async () => {
         const auditRepo = new AuditLogRepository(db)
 
-        await auditRepo.record(1, 'rating', null, '8.8')
-        await auditRepo.record(1, 'rating', '8.8', '9.0')
-        await auditRepo.record(2, 'rating', null, '9.0')
+        await auditRepo.record({ movieId: 1, action: 'CREATE', oldSnapshot: null, newSnapshot: { rating: 8.8 } })
+        await auditRepo.record({ movieId: 1, action: 'UPDATE', oldSnapshot: { rating: 8.8 }, newSnapshot: { rating: 9.0 } })
+        await auditRepo.record({ movieId: 2, action: 'CREATE', oldSnapshot: null, newSnapshot: { rating: 9.0 } })
 
         const total = await auditRepo.countByMovieId(1)
         expect(total).toBe(2)
-
-        const totalFiltered = await auditRepo.countByMovieId(1, 'rating')
-        expect(totalFiltered).toBe(2)
     })
 
-    test('countByMovieId con field retorna solo las de ese campo', async () => {
-        const auditRepo = new AuditLogRepository(db)
-
-        await auditRepo.record(1, 'rating', null, '8.8')
-        await auditRepo.record(1, 'title', null, 'Inception')
-
-        const total = await auditRepo.countByMovieId(1, 'rating')
-        expect(total).toBe(1)
-    })
-
-    test('pagination funciona correctamente', async () => {
+    test('paginación funciona correctamente', async () => {
         const auditRepo = new AuditLogRepository(db)
 
         for (let i = 0; i < 5; i++) {
-            await auditRepo.record(1, 'rating', String(i), String(i + 1))
+            await auditRepo.record({ movieId: 1, action: 'UPDATE', oldSnapshot: { i }, newSnapshot: { i: i + 1 } })
         }
 
         const page1 = await auditRepo.findByMovieId({ movieId: 1, limit: 2, offset: 0 })
@@ -93,21 +76,19 @@ describe('AuditLogRepository — integración real con DB', () => {
         expect(page3).toHaveLength(1)
     })
 
-    test('findByMovieId devuelve múltiples entradas ordenadas', async () => {
+    test('findByMovieId devuelve entradas ordenadas por changed_at DESC', async () => {
         const auditRepo = new AuditLogRepository(db)
 
-        const values = ['x', 'y', 'z']
-        for (const v of values) {
-            await auditRepo.record(1, 'rating', null, v)
-        }
+        await auditRepo.record({ movieId: 1, action: 'UPDATE', oldSnapshot: null, newSnapshot: { v: 'x' } })
+        await auditRepo.record({ movieId: 1, action: 'UPDATE', oldSnapshot: null, newSnapshot: { v: 'y' } })
+        await auditRepo.record({ movieId: 1, action: 'UPDATE', oldSnapshot: null, newSnapshot: { v: 'z' } })
 
         const entries = await auditRepo.findByMovieId({ movieId: 1, limit: 10, offset: 0 })
         expect(entries).toHaveLength(3)
-        expect(entries.map(e => e.newValue).sort()).toEqual(['x', 'y', 'z'])
     })
 })
 
-describe('MovieService.getAuditLog — integración real con DB', () => {
+describe('MovieService — integración real con DB', () => {
 
     function createService() {
         const movieRepo = new MovieRepository(db)
@@ -118,76 +99,119 @@ describe('MovieService.getAuditLog — integración real con DB', () => {
         return new MovieService(movieRepo, directorRepo, genreRepo, auditRepo, castRepo)
     }
 
-    test('retorna el audit-log de una película existente', async () => {
+    test('getAuditLog retorna entries de una película existente', async () => {
         const auditRepo = new AuditLogRepository(db)
         const service = createService()
 
-        await auditRepo.record(1, 'rating', null, '8.8')
+        await auditRepo.record({ movieId: 1, action: 'CREATE', oldSnapshot: null, newSnapshot: { title: 'Inception' } })
 
         const result = await service.getAuditLog({ id: 1, page: 1, limit: 10 })
         expect(result.data).toHaveLength(1)
         expect(result.meta).toMatchObject({ total: 1, page: 1, limit: 10, totalPages: 1 })
     })
 
-    test('lanza AppError 404 si la película no existe', async () => {
+    test('getAuditLog lanza AppError 404 si la película no existe', async () => {
         const service = createService()
 
         await expect(service.getAuditLog({ id: 99999, page: 1, limit: 10 }))
             .rejects.toThrow(AppError)
     })
 
-    test('createMovie registra rating inicial en audit_log', async () => {
+    test('createMovie registra snapshot completo con CREATE', async () => {
         const service = createService()
 
         const input = {
             title: 'Audit Test',
             year: 2025,
-            rating: 7.5,
+            rating: 8,
             duration: 120,
-            plot: 'Test',
+            plot: 'Test plot',
             poster: 'http://example.com/p.jpg',
-            director: 'New Director',
+            director: 'Test Director',
             genre: ['drama'],
             available: true,
             ageRating: 'PG-13' as const,
-            cast: []
+            cast: [{ actor: 'Test Actor', character: 'Test Character' }],
         }
         const movie = await service.createMovie(input) as any
 
-        const result = await service.getAuditLog({ id: movie.id, field: 'rating', page: 1, limit: 10 })
+        const result = await service.getAuditLog({ id: movie.id, page: 1, limit: 10 })
         expect(result.data).toHaveLength(1)
-        expect(result.data[0]).toMatchObject({
-            movieId: movie.id,
-            fieldName: 'rating',
-            oldValue: null,
-            newValue: '7.5'
+
+        const entry = result.data[0]
+        expect(entry.action).toBe('CREATE')
+        expect(entry.oldSnapshot).toBeNull()
+        expect(entry.newSnapshot).toMatchObject({
+            title: 'Audit Test',
+            year: 2025,
+            rating: 8,
+            director: 'Test Director',
+            genres: ['drama'],
+            cast: [{ actor: 'Test Actor', character: 'Test Character' }],
+            ageRating: 'PG-13',
         })
     })
 
-    test('updateMovie registra cambio de rating en audit_log', async () => {
+    test('updateMovie registra cambios con diff', async () => {
         const service = createService()
+        const existing = await service.getMovieById(1)
 
-        const [rows] = await db.query('SELECT rating FROM movies WHERE id = 1') as any
-        const currentRating = String(rows[0].rating)
+        await service.updateMovie(1, { rating: 10 })
 
-        await service.updateMovie(1, { rating: 9.5 })
-
-        const result = await service.getAuditLog({ id: 1, field: 'rating', page: 1, limit: 10 })
+        const result = await service.getAuditLog({ id: 1, page: 1, limit: 10 })
         expect(result.data).toHaveLength(1)
-        expect(result.data[0]).toMatchObject({
-            movieId: 1,
-            fieldName: 'rating',
-            oldValue: currentRating,
-            newValue: '9.5'
-        })
+
+        const entry = result.data[0]
+        expect(entry.action).toBe('UPDATE')
+        expect(entry.changes).toEqual(['rating'])
+        expect(entry.oldSnapshot).toMatchObject({ rating: existing.rating })
+        expect(entry.newSnapshot).toMatchObject({ rating: 10 })
     })
 
-    test('updateMovie sin cambio de rating no registra entrada', async () => {
+    test('updateMovie sin cambios no registra entrada', async () => {
         const service = createService()
 
-        await service.updateMovie(1, { title: 'Solo título' })
+        await service.updateMovie(1, { title: 'Inception' })
 
-        const result = await service.getAuditLog({ id: 1, field: 'rating', page: 1, limit: 10 })
+        const result = await service.getAuditLog({ id: 1, page: 1, limit: 10 })
         expect(result.data).toHaveLength(0)
+    })
+
+    test('updateMovie cambia genres y cast', async () => {
+        const service = createService()
+
+        await service.updateMovie(1, {
+            genre: ['action', 'sci-fi', 'thriller'],
+            cast: [
+                { actor: 'Leonardo DiCaprio', character: 'Dom Cobb' },
+            ],
+        })
+
+        const result = await service.getAuditLog({ id: 1, page: 1, limit: 10 })
+        expect(result.data).toHaveLength(1)
+
+        const entry = result.data[0]
+        expect(entry.action).toBe('UPDATE')
+        expect(entry.changes).toContain('genres')
+        expect(entry.changes).toContain('cast')
+        expect(entry.newSnapshot).toMatchObject({
+            genres: expect.arrayContaining(['action', 'sci-fi', 'thriller']),
+        })
+    })
+
+    test('deleteMovie registra snapshot final con DELETE', async () => {
+        const auditRepo = new AuditLogRepository(db)
+        const service = createService()
+        const movie = await service.getMovieById(1)
+
+        await service.deleteMovie(1)
+
+        const entries = await auditRepo.findByMovieId({ movieId: 1, limit: 10, offset: 0 })
+        expect(entries).toHaveLength(1)
+
+        const entry = entries[0]
+        expect(entry.action).toBe('DELETE')
+        expect(entry.oldSnapshot).toMatchObject({ title: movie.title })
+        expect(entry.newSnapshot).toBeNull()
     })
 })

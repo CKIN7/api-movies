@@ -1,6 +1,5 @@
 import { z } from 'zod'
 import { auditLogQuerySchema } from '../schemas/auditLogQuerySchema'
-import { MovieResponse } from '../domain/Movie'
 
 export type AuditLogQuery = z.infer<typeof auditLogQuerySchema>
 
@@ -9,8 +8,8 @@ export interface AuditLogEntry {
     movieId: number
     action: 'CREATE' | 'UPDATE' | 'DELETE'
     changes: string[]
-    oldSnapshot: MovieResponse | null
-    newSnapshot: MovieResponse | null
+    oldSnapshot: object | null
+    newSnapshot: object | null
     changedBy: string
     changedAt: string
 }
@@ -18,8 +17,8 @@ export interface AuditLogEntry {
 export interface InsertAuditLogParams {
     movieId: number
     action: 'CREATE' | 'UPDATE' | 'DELETE'
-    oldSnapshot: MovieResponse | null
-    newSnapshot: MovieResponse | null
+    oldSnapshot: object | null
+    newSnapshot: object | null
 }
         
 export interface AuditLogParams {

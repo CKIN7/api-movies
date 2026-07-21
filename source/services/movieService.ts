@@ -187,7 +187,7 @@ class MovieService {
                 const newSnapshot = Movie.fromRow(row!).toResponse()
                 
                 if(JSON.stringify(oldSnapshot) !== JSON.stringify(newSnapshot)){
-                    await this.auditRepo.record({movieId: id, action: 'UPDATE', oldSnapshot, newSnapshot})
+                    await this.auditRepo.record({movieId: id, action: 'UPDATE', oldSnapshot: oldSnapshot, newSnapshot: newSnapshot})
                 }
                 
                 return newSnapshot
@@ -207,7 +207,7 @@ class MovieService {
             const oldSnapshot = Movie.fromRow(existing).toResponse()
             
             await this.movieRepo.transaction(async () => {
-                await this.auditRepo.record({movieId: id, action: 'DELETE', oldSnapshot, newSnapshot: null})
+                await this.auditRepo.record({movieId: id, action: 'DELETE', oldSnapshot: oldSnapshot, newSnapshot: null})
 
                 await this.genreRepo.deleteByMovieId(id)
                 await this.castRepo.deleteByMovieId(id)
@@ -251,14 +251,14 @@ class MovieService {
     }
 }
 
-function computeChanges(oldSnapshot: Record<string, unknown> | null, newSnapshot: Record<string, unknown> | null): string[] {
+function computeChanges(oldSnapshot: object | null, newSnapshot: object | null): string[] {
     if (!oldSnapshot || !newSnapshot) return []
 
     const changes: string[] = []
     const allKeys = new Set([...Object.keys(oldSnapshot), ...Object.keys(newSnapshot)])
 
     for (const key of allKeys) {
-        if (JSON.stringify(oldSnapshot[key]) !== JSON.stringify(newSnapshot[key])) {
+        if (JSON.stringify((oldSnapshot as Record<string, unknown>)[key]) !== JSON.stringify((newSnapshot as Record<string, unknown>)[key])) {
             changes.push(key)
         }
     }
