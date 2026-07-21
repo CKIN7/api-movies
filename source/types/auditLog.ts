@@ -6,21 +6,24 @@ export type AuditLogQuery = z.infer<typeof auditLogQuerySchema>
 export interface AuditLogEntry {
     id: number
     movieId: number
-    fieldName: string
-    oldValue: string | null
-    newValue: string
+    action: 'CREATE' | 'UPDATE' | 'DELETE'
+    changes: string[]
+    oldSnapshot: object | null
+    newSnapshot: object | null
     changedBy: string
     changedAt: string
+}
+
+export interface InsertAuditLogParams {
+    movieId: number
+    action: 'CREATE' | 'UPDATE' | 'DELETE'
+    oldSnapshot: object | null
+    newSnapshot: object | null
 }
         
 export interface AuditLogParams {
     movieId: number
-    field?: string
     limit: number
     offset: number
 }
         
-export const ALLOWED_AUDIT_FIELDS = [
-    'rating', 'title', 'director', 'year',
-    'duration', 'plot',
-] as const

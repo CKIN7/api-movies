@@ -121,10 +121,14 @@ class MovieService {
                     }
                 }
 
-                await this.auditRepo.record(movieId, 'rating', null, String(dto.rating))
 
                 const row = await this.movieRepo.findById(movieId)
-                return Movie.fromRow(row!).toResponse()
+
+                const movieResponse = Movie.fromRow(row!).toResponse()
+
+                await this.auditRepo.record({movieId: movieId, action: 'CREATE', oldSnapshot:null, newSnapshot: movieResponse})
+
+                return movieResponse
             })
         } catch (error) {
             if (error instanceof AppError) throw error
@@ -137,6 +141,8 @@ class MovieService {
         try {
             const existing = await this.movieRepo.findById(id)
             if (!existing) throw new AppError('Película no encontrada', 404)
+
+            const oldSnapshot = Movie.fromRow(existing!).toResponse()
 
             return await this.movieRepo.transaction(async () => {
                 if (dto.director) {
@@ -154,9 +160,9 @@ class MovieService {
                     await this.movieRepo.update(id, fieldsToUpdate as any)
                 }
 
-                if (dto.rating !== undefined && dto.rating !== existing.rating) {
-                    await this.auditRepo.record(id, 'rating', String(existing.rating), String(dto.rating))
-                }
+                // if (dto.rating !== undefined && dto.rating !== existing.rating) {
+                //     await this.auditRepo.record(id, 'rating', String(existing.rating), String(dto.rating))
+                // }
 
                 if (dto.genre) {
                     const uniqueGenreIds = [...new Set(
@@ -177,7 +183,14 @@ class MovieService {
                 }
 
                 const row = await this.movieRepo.findById(id)
-                return Movie.fromRow(row!).toResponse()
+                
+                const newSnapshot = Movie.fromRow(row!).toResponse()
+                
+                if(JSON.stringify(oldSnapshot) !== JSON.stringify(newSnapshot)){
+                    await this.auditRepo.record({movieId: id, action: 'UPDATE', oldSnapshot: oldSnapshot, newSnapshot: newSnapshot})
+                }
+                
+                return newSnapshot
             })
         } catch (error) {
             if (error instanceof AppError) throw error
@@ -190,8 +203,12 @@ class MovieService {
         try {
             const existing = await this.movieRepo.findById(id)
             if (!existing) throw new AppError('Película no encontrada', 404)
-
+            
+            const oldSnapshot = Movie.fromRow(existing).toResponse()
+            
             await this.movieRepo.transaction(async () => {
+                await this.auditRepo.record({movieId: id, action: 'DELETE', oldSnapshot: oldSnapshot, newSnapshot: null})
+
                 await this.genreRepo.deleteByMovieId(id)
                 await this.castRepo.deleteByMovieId(id)
                 await this.movieRepo.delete(id)
@@ -209,14 +226,18 @@ class MovieService {
             if (!movie) throw new AppError('Película no encontrada', 404)
 
             const offset = (query.page - 1) * query.limit
-            const data = await this.auditRepo.findByMovieId({
+            const rows = await this.auditRepo.findByMovieId({
                 movieId: query.id,
-                field: query.field,
                 limit: query.limit,
                 offset,
             })
-            const total = await this.auditRepo.countByMovieId(query.id, query.field)
+            const total = await this.auditRepo.countByMovieId(query.id)
             const totalPages = Math.ceil(total / query.limit)
+
+            const data: AuditLogEntry[] = rows.map(row => ({
+                ...row,
+                changes: computeChanges(row.oldSnapshot, row.newSnapshot),
+            }))
 
             return {
                 data,
@@ -228,6 +249,21 @@ class MovieService {
             throw new AppError('Error al obtener el log de auditoría', 500)
         }
     }
+}
+
+function computeChanges(oldSnapshot: object | null, newSnapshot: object | null): string[] {
+    if (!oldSnapshot || !newSnapshot) return []
+
+    const changes: string[] = []
+    const allKeys = new Set([...Object.keys(oldSnapshot), ...Object.keys(newSnapshot)])
+
+    for (const key of allKeys) {
+        if (JSON.stringify((oldSnapshot as Record<string, unknown>)[key]) !== JSON.stringify((newSnapshot as Record<string, unknown>)[key])) {
+            changes.push(key)
+        }
+    }
+
+    return changes
 }
 
 export default MovieService
