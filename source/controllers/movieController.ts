@@ -28,6 +28,16 @@ class MovieController {
         resp.json(result)
     }
 
+    getRandom = async (req: Request, resp: Response) => {
+        const parsed = movieQuerySchema.safeParse(req.query)
+        if(parsed.error){
+            return resp.status(400).json({ error: parsed.error.message })
+        }
+
+        const result = await this.movieService.findRandom(parsed.data)
+        resp.json(result)
+    }
+
     createMovie = async (req: Request, resp: Response) => {
         const result = movieSchema.safeParse(req.body)
         if (result.error) {

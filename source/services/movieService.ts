@@ -91,6 +91,22 @@ class MovieService {
         }
     }
 
+    async findRandom(params: MovieQueryDTO){
+        try {            
+            const result = await this.movieRepo.findRandom({
+                genre: params.genre, 
+                minYear: params.minYear, 
+                maxYear: params.maxYear, 
+                minRating: params.minRating})
+
+                
+        } catch (error) {
+            if (error instanceof AppError) throw error
+            logger.error(`Error en getSimilarMovies: ${(error as Error).message}`)
+            throw new AppError('Error al obtener película aleatoria', 500)
+        }
+    }
+
     async createMovie(dto: CreateMovieDTO): Promise<MovieResponse> {
         try {
             return await this.movieRepo.transaction(async () => {

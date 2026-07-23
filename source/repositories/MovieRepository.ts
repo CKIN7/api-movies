@@ -116,6 +116,16 @@ class MovieRepository {
         return { rows: rows as SimilarMovieRow[], total }
     }
 
+    async findRandom({genre, minYear, maxYear, minRating}){
+        let sql = `SELECT m.id
+                    FROM movies m
+                    JOIN movie_genres mg ON m.id = mg.movie_id
+                    JOIN genres g ON mg.genre_id = g.id_genre
+                `
+        
+        const {} = await new MovieQueryBuilder
+    }
+
     async insert(data: {
         title: string
         year: number
