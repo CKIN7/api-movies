@@ -16,6 +16,9 @@ class MovieController {
 
     getById = async (req: Request, resp: Response) => {
         const id = Number(req.params.id)
+        if (isNaN(id)) {
+            return resp.status(400).json({ error: 'El id debe ser un número válido' })
+        }
         const movie = await this.movieService.getMovieById(id)
         resp.json(movie)
     }
