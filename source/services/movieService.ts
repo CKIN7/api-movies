@@ -93,16 +93,17 @@ class MovieService {
 
     async findRandom(params: MovieQueryDTO){
         try {            
-            const result = await this.movieRepo.findRandom({
+            const randomMovie = await this.movieRepo.findRandom({
                 genre: params.genre, 
                 minYear: params.minYear, 
                 maxYear: params.maxYear, 
                 minRating: params.minRating})
-
-                
+            
+            return Movie.fromRow(randomMovie as any).toResponse()
+            
         } catch (error) {
             if (error instanceof AppError) throw error
-            logger.error(`Error en getSimilarMovies: ${(error as Error).message}`)
+            logger.error(`Error en findRandom: ${(error as Error).message}`)
             throw new AppError('Error al obtener película aleatoria', 500)
         }
     }

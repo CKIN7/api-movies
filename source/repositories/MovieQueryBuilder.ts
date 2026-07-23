@@ -18,6 +18,13 @@ class MovieQueryBuilder {
         return { conditions: this.conditions, params: this.params }
     }
 
+    buildRandom(){
+        this.addYearRange()
+        this.addRatingRange()
+        this.addGenreFilter()
+        return { conditions: this.conditions, params: this.params}
+    }
+
     private addYearRange() {
         if (this.query.minYear !== undefined) {
             this.conditions.push('m.year >= ?')

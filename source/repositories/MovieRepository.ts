@@ -116,14 +116,25 @@ class MovieRepository {
         return { rows: rows as SimilarMovieRow[], total }
     }
 
-    async findRandom({genre, minYear, maxYear, minRating}){
+    async findRandom (query){
         let sql = `SELECT m.id
                     FROM movies m
                     JOIN movie_genres mg ON m.id = mg.movie_id
-                    JOIN genres g ON mg.genre_id = g.id_genre
-                `
+                    JOIN genres g ON mg.genre_id = g.id_genre`
         
-        const {} = await new MovieQueryBuilder
+        const {conditions, params} = new MovieQueryBuilder(query).buildRandom()
+
+        if(conditions.length > 0){
+            const where = ` WHERE ${conditions.join(' AND ')}`
+            sql += where
+        }
+
+        sql += `ORDER BY RAND()
+                LIMIT 1`
+
+        const [rows] = await this.query(sql, params)
+
+        return await this.findById(rows[0].id)
     }
 
     async insert(data: {
