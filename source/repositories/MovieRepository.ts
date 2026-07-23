@@ -129,9 +129,8 @@ class MovieRepository {
             sql += where
         }
 
-        sql += `ORDER BY RAND()
-                LIMIT 1`
-
+        sql += ` ORDER BY RAND()
+                LIMIT 1;`        
         const [rows] = await this.query(sql, params)
 
         return await this.findById(rows[0].id)
