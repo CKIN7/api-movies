@@ -1,5 +1,6 @@
 import type { MovieRow, SimilarMovieRow } from '../types/movie'
-import type { GetMoviesQuery } from '../types/movie'
+import type { MovieQueryDTO } from '../schemas/movieQuery'
+import type { RandomMovieQueryDTO } from '../schemas/randomMovieQuery'
 import { DbLogger } from '../utils/DbLogger'
 import MovieQueryBuilder from './MovieQueryBuilder';
 
@@ -10,7 +11,7 @@ class MovieRepository {
         return await DbLogger.query('query', sql, params || [], () => this.conn.query(sql, params)) as any
     }
 
-    async findMany(query: GetMoviesQuery): Promise<{ rows: MovieRow[]; total: number }> {
+    async findMany(query: MovieQueryDTO, offset: number): Promise<{ rows: MovieRow[]; total: number }> {
         let sql = `
             SELECT m.id, m.title, m.year, d.director_name as director, m.rating, m.duration, m.plot, m.poster, m.age_rating,
             GROUP_CONCAT(DISTINCT genre_name ORDER BY genre_name SEPARATOR ', ') AS genres,
@@ -47,7 +48,7 @@ class MovieRepository {
         }
 
         sql += ` LIMIT ? OFFSET ?`
-        const limitParams = [...params, query.limit, query.offset]
+        const limitParams = [...params, query.limit, offset]
         const [rows] = await this.query(sql, limitParams)
 
         return { rows: rows as MovieRow[], total }
@@ -114,6 +115,26 @@ class MovieRepository {
         const [rows] = await this.query(`${similarSql} LIMIT ? OFFSET ?`, limitParams)
 
         return { rows: rows as SimilarMovieRow[], total }
+    }
+
+    async findRandom (query: RandomMovieQueryDTO): Promise<number | null> {
+        let sql = `SELECT m.id FROM movies m`
+        
+        const {conditions, params} = new MovieQueryBuilder(query).buildRandom()
+
+        if(conditions.length > 0){
+            const where = ` WHERE ${conditions.join(' AND ')}`
+            sql += where
+        }
+
+        sql += ` ORDER BY RAND()
+                LIMIT 1;`        
+        const [rows] = await this.query(sql, params)
+
+        const result = rows as { id: number }[]
+        
+        if (result.length === 0) return null
+        return result[0].id
     }
 
     async insert(data: {

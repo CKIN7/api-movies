@@ -1,4 +1,5 @@
 import type { MovieQueryDTO } from '../schemas/movieQuery'
+import type { RandomMovieQueryDTO } from '../schemas/randomMovieQuery'
 import type { AuditLogQuery, AuditLogEntry } from '../types/auditLog'
 import type { PaginatedResponse, MovieRow, SimilarMovieRow, SimilarMovieResponse } from '../types/movie'
 import type { CreateMovieDTO, UpdateMovieDTO } from '../types/movie'
@@ -29,24 +30,7 @@ class MovieService {
 
             const offset = (params.page - 1) * params.limit
 
-            const result = await this.movieRepo.findMany({
-                genre: params.genre,
-                genreMode: params.genreMode,
-                minYear: params.minYear,
-                minRating: params.minRating,
-                maxRating: params.maxRating,
-                minDuration: params.minDuration,
-                maxDuration: params.maxDuration,
-                maxYear: params.maxYear,
-                title: params.title,
-                director: params.director,
-                ageRating: params.ageRating,
-                sort: params.sort,
-                order: params.order,
-                limit: params.limit,
-                offset,
-                q: params.q
-            })
+            const result = await this.movieRepo.findMany(params, offset)
 
             const totalPages = Math.ceil(result.total / params.limit)
             const movies = result.rows.map(Movie.fromRow).map(m => m.toResponse())
@@ -88,6 +72,29 @@ class MovieService {
             if (error instanceof AppError) throw error
             logger.error(`Error en getSimilarMovies: ${(error as Error).message}`)
             throw new AppError('Error al obtener películas similares', 500)
+        }
+    }
+
+    async findRandom(params: RandomMovieQueryDTO){
+        try {
+            const id = await this.movieRepo.findRandom({
+                genre: params.genre,
+                minYear: params.minYear,
+                maxYear: params.maxYear,
+                minRating: params.minRating})      
+
+            if(!id) throw new AppError('No se encontraron películas con esos filtros', 404);
+            
+            const randomMovie = await this.movieRepo.findById(id)
+
+            if(!randomMovie) throw new AppError('La película seleccionada ya no está disponible', 404)
+            
+            return Movie.fromRow(randomMovie).toResponse()
+            
+        } catch (error) {
+            if (error instanceof AppError) throw error
+            logger.error(`Error en findRandom: ${(error as Error).message}`)
+            throw new AppError('Error al obtener película aleatoria', 500)
         }
     }
 

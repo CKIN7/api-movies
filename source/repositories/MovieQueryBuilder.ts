@@ -1,10 +1,25 @@
-import type { GetMoviesQuery } from '../types/movie'
+import type { AgeRating } from '../types/movie'
+
+export type MovieQueryBuilderFilters = {
+    genre?: string[]
+    genreMode?: 'and' | 'or'
+    minYear?: number
+    maxYear?: number
+    minRating?: number
+    maxRating?: number
+    minDuration?: number
+    maxDuration?: number
+    title?: string
+    director?: string
+    ageRating?: AgeRating[]
+    q?: string
+}
 
 class MovieQueryBuilder {
     private conditions: string[] = []
     private params: (string | number)[] = []
 
-    constructor(private query: GetMoviesQuery) {}
+    constructor(private query: MovieQueryBuilderFilters) {}
 
     build() {
         this.addYearRange()
@@ -16,6 +31,13 @@ class MovieQueryBuilder {
         this.addAgeRatingFilter()
         this.addSearchFilter()
         return { conditions: this.conditions, params: this.params }
+    }
+
+    buildRandom(){
+        this.addYearRange()
+        this.addRatingRange()
+        this.addGenreFilter()
+        return { conditions: this.conditions, params: this.params}
     }
 
     private addYearRange() {

@@ -20,7 +20,7 @@ describe('MovieRepository - findMany', () => {
             .mockResolvedValueOnce([[{ total: 1 }]])
             .mockResolvedValueOnce([fakeMovies])
 
-        const result = await repo.findMany({ limit: 10, offset: 0 })
+        const result = await repo.findMany({genreMode: 'and', page: 1,  limit: 10}, 0)
         expect(result).toEqual({ rows: fakeMovies, total: 1 })
         expect(conn.query).toHaveBeenCalledTimes(2)
     })
@@ -32,7 +32,7 @@ describe('MovieRepository - findMany', () => {
             .mockResolvedValueOnce([[{ total: 0 }]])
             .mockResolvedValueOnce([[]])
 
-        await repo.findMany({ minYear: 1994, maxYear: 1994, limit: 10, offset: 0 })
+        await repo.findMany({genreMode: 'and', page: 1,  minYear: 1994, maxYear: 1994, limit: 10}, 0)
 
         const queryStr = conn.query.mock.calls[1][0] as string
         expect(queryStr).toContain('m.year >= ?')
@@ -46,7 +46,7 @@ describe('MovieRepository - findMany', () => {
             .mockResolvedValueOnce([[{ total: 0 }]])
             .mockResolvedValueOnce([[]])
 
-        await repo.findMany({ genre: ['Action'], genreMode: 'and', limit: 10, offset: 0 })
+        await repo.findMany({genre: ['Action'], genreMode: 'and', page: 1, limit: 10}, 0)
 
         const queryStr = conn.query.mock.calls[1][0] as string
         expect(queryStr).toContain('genre_name IN (?)')
@@ -59,7 +59,7 @@ describe('MovieRepository - findMany', () => {
         const repo = new MovieRepository(conn)
         conn.query.mockRejectedValue(new Error('DB error'))
 
-        await expect(repo.findMany({ limit: 10, offset: 0 })).rejects.toThrow()
+        await expect(repo.findMany({genreMode: 'and', page: 1,  limit: 10}, 0)).rejects.toThrow()
     })
 
     test('debe incluir d.director_name LIKE en la query cuando se filtra por director', async () => {
@@ -69,7 +69,7 @@ describe('MovieRepository - findMany', () => {
             .mockResolvedValueOnce([[{ total: 0 }]])
             .mockResolvedValueOnce([[]])
 
-        await repo.findMany({ director: 'Nolan', limit: 10, offset: 0 })
+        await repo.findMany({genreMode: 'and', page: 1,  director: 'Nolan', limit: 10}, 0)
 
         const queryStr = conn.query.mock.calls[1][0] as string
         expect(queryStr).toContain('d.director_name LIKE ?')
@@ -83,7 +83,7 @@ describe('MovieRepository - findMany', () => {
             .mockResolvedValueOnce([[{ total: 0 }]])
             .mockResolvedValueOnce([[]])
 
-        await repo.findMany({ director: 'Nolan', minYear: 2010, maxYear: 2010, limit: 10, offset: 0 })
+        await repo.findMany({genreMode: 'and', page: 1,  director: 'Nolan', minYear: 2010, maxYear: 2010, limit: 10}, 0)
 
         const queryStr = conn.query.mock.calls[1][0] as string
         expect(queryStr).toContain('d.director_name LIKE ?')
@@ -99,7 +99,7 @@ describe('MovieRepository - findMany', () => {
             .mockResolvedValueOnce([[{ total: 0 }]])
             .mockResolvedValueOnce([[]])
 
-        await repo.findMany({ q: 'batman', limit: 10, offset: 0 })
+        await repo.findMany({genreMode: 'and', page: 1,  q: 'batman', limit: 10}, 0)
 
         const queryStr = conn.query.mock.calls[1][0] as string
         expect(queryStr).toContain('m.title LIKE ?')
@@ -116,7 +116,7 @@ describe('MovieRepository - findMany', () => {
             .mockResolvedValueOnce([[{ total: 0 }]])
             .mockResolvedValueOnce([[]])
 
-        await repo.findMany({ q: 'batman', limit: 10, offset: 0 })
+        await repo.findMany({genreMode: 'and', page: 1,  q: 'batman', limit: 10}, 0)
 
         expect(conn.query.mock.calls[0][1]).toEqual(['%batman%', '%batman%', '%batman%', '%batman%', '%batman%'])
     })
@@ -128,7 +128,7 @@ describe('MovieRepository - findMany', () => {
             .mockResolvedValueOnce([[{ total: 0 }]])
             .mockResolvedValueOnce([[]])
 
-        await repo.findMany({ genre: ['action', 'crime'], genreMode: 'and', limit: 10, offset: 0 })
+        await repo.findMany({genre: ['action', 'crime'], genreMode: 'and', page: 1, limit: 10}, 0)
 
         const queryStr = conn.query.mock.calls[1][0] as string
         expect(queryStr).toContain('genre_name IN (?, ?)')
@@ -145,7 +145,7 @@ describe('MovieRepository - findMany', () => {
             .mockResolvedValueOnce([[{ total: 0 }]])
             .mockResolvedValueOnce([[]])
 
-        await repo.findMany({ genre: ['action', 'comedy'], genreMode: 'or', limit: 10, offset: 0 })
+        await repo.findMany({genre: ['action', 'comedy'], genreMode: 'or', page: 1, limit: 10}, 0)
 
         const queryStr = conn.query.mock.calls[1][0] as string
         expect(queryStr).toContain('genre_name IN (?, ?)')
@@ -161,7 +161,7 @@ describe('MovieRepository - findMany', () => {
             .mockResolvedValueOnce([[{ total: 0 }]])
             .mockResolvedValueOnce([[]])
 
-        await repo.findMany({ genre: ['drama'], genreMode: 'and', limit: 10, offset: 0 })
+        await repo.findMany({genre: ['drama'], genreMode: 'and', page: 1, limit: 10}, 0)
 
         const queryStr = conn.query.mock.calls[1][0] as string
         expect(queryStr).toContain('HAVING COUNT')
@@ -174,7 +174,7 @@ describe('MovieRepository - findMany', () => {
             .mockResolvedValueOnce([[{ total: 0 }]])
             .mockResolvedValueOnce([[]])
 
-        await repo.findMany({ minRating: 8, limit: 10, offset: 0 })
+        await repo.findMany({genreMode: 'and', page: 1,  minRating: 8, limit: 10}, 0)
 
         const queryStr = conn.query.mock.calls[1][0] as string
         expect(queryStr).toContain('m.rating >= ?')
@@ -188,7 +188,7 @@ describe('MovieRepository - findMany', () => {
             .mockResolvedValueOnce([[{ total: 0 }]])
             .mockResolvedValueOnce([[]])
 
-        await repo.findMany({ maxRating: 9, limit: 10, offset: 0 })
+        await repo.findMany({genreMode: 'and', page: 1,  maxRating: 9, limit: 10}, 0)
 
         const queryStr = conn.query.mock.calls[1][0] as string
         expect(queryStr).toContain('m.rating <= ?')
@@ -202,7 +202,7 @@ describe('MovieRepository - findMany', () => {
             .mockResolvedValueOnce([[{ total: 0 }]])
             .mockResolvedValueOnce([[]])
 
-        await repo.findMany({ minDuration: 120, limit: 10, offset: 0 })
+        await repo.findMany({genreMode: 'and', page: 1,  minDuration: 120, limit: 10}, 0)
 
         const queryStr = conn.query.mock.calls[1][0] as string
         expect(queryStr).toContain('m.duration >= ?')
@@ -216,7 +216,7 @@ describe('MovieRepository - findMany', () => {
             .mockResolvedValueOnce([[{ total: 0 }]])
             .mockResolvedValueOnce([[]])
 
-        await repo.findMany({ maxDuration: 150, limit: 10, offset: 0 })
+        await repo.findMany({genreMode: 'and', page: 1,  maxDuration: 150, limit: 10}, 0)
 
         const queryStr = conn.query.mock.calls[1][0] as string
         expect(queryStr).toContain('m.duration <= ?')
@@ -230,7 +230,7 @@ describe('MovieRepository - findMany', () => {
             .mockResolvedValueOnce([[{ total: 0 }]])
             .mockResolvedValueOnce([[]])
 
-        await repo.findMany({ minDuration: 100, maxDuration: 200, limit: 10, offset: 0 })
+        await repo.findMany({genreMode: 'and', page: 1,  minDuration: 100, maxDuration: 200, limit: 10}, 0)
 
         const queryStr = conn.query.mock.calls[1][0] as string
         expect(queryStr).toContain('m.duration >= ?')

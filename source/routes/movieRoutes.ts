@@ -4,6 +4,7 @@ import MovieController from '../controllers/movieController'
 export function createMovieRoutes(controller: MovieController) {
     const router = express.Router()
     router.get('/', controller.getAll)
+    router.get('/random', controller.getRandom)
     router.get('/:id', controller.getById)
     router.get('/:id/similar', controller.getSimilar)
     router.get('/:id/audit-log', controller.getAuditLog)
