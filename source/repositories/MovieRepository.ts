@@ -116,7 +116,7 @@ class MovieRepository {
         return { rows: rows as SimilarMovieRow[], total }
     }
 
-    async findRandom (query){
+    async findRandom (query): Promise<number | null> {
         let sql = `SELECT m.id
                     FROM movies m
                     JOIN movie_genres mg ON m.id = mg.movie_id
@@ -133,7 +133,10 @@ class MovieRepository {
                 LIMIT 1;`        
         const [rows] = await this.query(sql, params)
 
-        return await this.findById(rows[0].id)
+        const result = rows as { id: number }[]
+        
+        if (result.length === 0) return null
+        return result[0].id
     }
 
     async insert(data: {
