@@ -1,6 +1,7 @@
 import { movieSchema } from '../schemas/movie'
 import { movieQuerySchema } from '../schemas/movieQuery'
 import { auditLogQuerySchema } from '../schemas/auditLogQuerySchema'
+import { randomMovieQuerySchema } from '../schemas/randomMovieQuery'
 import type { Request, Response } from 'express'
 import MovieService from '../services/movieService'
 import logger from '../utils/logger'
@@ -32,7 +33,7 @@ class MovieController {
     }
 
     getRandom = async (req: Request, resp: Response) => {
-        const parsed = movieQuerySchema.safeParse(req.query)
+        const parsed = randomMovieQuerySchema.safeParse(req.query)
         if(parsed.error){
             return resp.status(400).json({ error: parsed.error.message })
         }
