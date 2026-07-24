@@ -102,6 +102,8 @@ class MovieService {
             if(!id) throw new AppError('No se encontraron películas con esos filtros', 404);
             
             const randomMovie = await this.movieRepo.findById(id)
+
+            if(!randomMovie) throw new AppError('La película seleccionada ya no está disponible', 404)
             
             return Movie.fromRow(randomMovie).toResponse()
             
