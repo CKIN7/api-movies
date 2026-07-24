@@ -1,7 +1,7 @@
 import type { MovieQueryDTO } from '../schemas/movieQuery'
 import type { RandomMovieQueryDTO } from '../schemas/randomMovieQuery'
 import type { AuditLogQuery, AuditLogEntry } from '../types/auditLog'
-import type { PaginatedResponse, MovieRow, SimilarMovieRow, SimilarMovieResponse } from '../types/movie'
+import type { PaginatedResponse, SimilarMovieResponse } from '../types/movie'
 import type { CreateMovieDTO, UpdateMovieDTO } from '../types/movie'
 import MovieRepository from '../repositories/MovieRepository'
 import DirectorRepository from '../repositories/DirectorRepository'
