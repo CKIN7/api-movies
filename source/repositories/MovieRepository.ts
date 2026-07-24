@@ -1,5 +1,6 @@
 import type { MovieRow, SimilarMovieRow } from '../types/movie'
 import type { GetMoviesQuery } from '../types/movie'
+import type { RandomMovieQueryDTO } from '../schemas/randomMovieQuery'
 import { DbLogger } from '../utils/DbLogger'
 import MovieQueryBuilder from './MovieQueryBuilder';
 
@@ -116,7 +117,7 @@ class MovieRepository {
         return { rows: rows as SimilarMovieRow[], total }
     }
 
-    async findRandom (query): Promise<number | null> {
+    async findRandom (query: RandomMovieQueryDTO): Promise<number | null> {
         let sql = `SELECT m.id FROM movies m`
         
         const {conditions, params} = new MovieQueryBuilder(query).buildRandom()

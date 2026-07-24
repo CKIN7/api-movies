@@ -1,4 +1,5 @@
 import type { MovieQueryDTO } from '../schemas/movieQuery'
+import type { RandomMovieQueryDTO } from '../schemas/randomMovieQuery'
 import type { AuditLogQuery, AuditLogEntry } from '../types/auditLog'
 import type { PaginatedResponse, MovieRow, SimilarMovieRow, SimilarMovieResponse } from '../types/movie'
 import type { CreateMovieDTO, UpdateMovieDTO } from '../types/movie'
@@ -11,7 +12,6 @@ import { Movie, type MovieResponse } from '../domain/Movie'
 import { SimilarMovie } from '../domain/SimilarMovie'
 import AppError from '../utils/AppError'
 import logger from '../utils/logger'
-import { RandomMovieQueryDTO } from '../schemas/randomMovieQuery'
 
 class MovieService {
     constructor(
