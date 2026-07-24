@@ -11,6 +11,7 @@ import { Movie, type MovieResponse } from '../domain/Movie'
 import { SimilarMovie } from '../domain/SimilarMovie'
 import AppError from '../utils/AppError'
 import logger from '../utils/logger'
+import { RandomMovieQueryDTO } from '../schemas/randomMovieQuery'
 
 class MovieService {
     constructor(
@@ -91,7 +92,7 @@ class MovieService {
         }
     }
 
-    async findRandom(params: MovieQueryDTO){
+    async findRandom(params: RandomMovieQueryDTO){
         try {
             const id = await this.movieRepo.findRandom({
                 genre: params.genre,

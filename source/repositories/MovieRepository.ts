@@ -117,10 +117,7 @@ class MovieRepository {
     }
 
     async findRandom (query): Promise<number | null> {
-        let sql = `SELECT m.id
-                    FROM movies m
-                    JOIN movie_genres mg ON m.id = mg.movie_id
-                    JOIN genres g ON mg.genre_id = g.id_genre`
+        let sql = `SELECT m.id FROM movies m`
         
         const {conditions, params} = new MovieQueryBuilder(query).buildRandom()
 
