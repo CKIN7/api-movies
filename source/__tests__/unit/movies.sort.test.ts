@@ -114,7 +114,8 @@ describe('MovieService - getMovies con sort/order (servicio)', () => {
         await service.getMovies({ genreMode: 'and', sort: 'm.year' as any, order: 'desc', page: 1, limit: 10 })
 
         expect(repos.movieRepo.findMany).toHaveBeenCalledWith(
-            expect.objectContaining({ sort: 'm.year', order: 'desc', limit: 10, offset: 0 })
+            expect.objectContaining({ sort: 'm.year', order: 'desc', limit: 10 }),
+            0
         )
     })
 
@@ -126,7 +127,8 @@ describe('MovieService - getMovies con sort/order (servicio)', () => {
         await service.getMovies({ genreMode: 'and', sort: 'm.year' as any, page: 1, limit: 10 })
 
         expect(repos.movieRepo.findMany).toHaveBeenCalledWith(
-            expect.objectContaining({ sort: 'm.year', order: 'asc', limit: 10, offset: 0 })
+            expect.objectContaining({ sort: 'm.year', order: 'asc', limit: 10 }),
+            0
         )
     })
 
@@ -138,7 +140,8 @@ describe('MovieService - getMovies con sort/order (servicio)', () => {
         await service.getMovies({ genreMode: 'and', order: 'desc', page: 1, limit: 10 })
 
         expect(repos.movieRepo.findMany).toHaveBeenCalledWith(
-            expect.objectContaining({ order: 'desc', limit: 10, offset: 0 })
+            expect.objectContaining({ order: 'desc', limit: 10 }),
+            0
         )
     })
 })
@@ -159,7 +162,7 @@ describe('MovieRepository - getMovies con sort (repositorio)', () => {
             .mockResolvedValueOnce([[{ total: 0 }]])
             .mockResolvedValueOnce([[]])
 
-        await repo.findMany({ sort: 'm.year', order: 'desc', limit: 10, offset: 0 })
+        await repo.findMany({genreMode: 'and', page: 1,  sort: 'm.year', order: 'desc', limit: 10}, 0)
 
         const queryStr = conn.query.mock.calls[1][0] as string
         expect(queryStr).toContain('ORDER BY m.year DESC')
@@ -172,7 +175,7 @@ describe('MovieRepository - getMovies con sort (repositorio)', () => {
             .mockResolvedValueOnce([[{ total: 0 }]])
             .mockResolvedValueOnce([[]])
 
-        await repo.findMany({ sort: 'm.rating', order: 'asc', limit: 10, offset: 0 })
+        await repo.findMany({genreMode: 'and', page: 1,  sort: 'm.rating', order: 'asc', limit: 10}, 0)
 
         const queryStr = conn.query.mock.calls[1][0] as string
         expect(queryStr).toContain('ORDER BY m.rating ASC')
@@ -185,7 +188,7 @@ describe('MovieRepository - getMovies con sort (repositorio)', () => {
             .mockResolvedValueOnce([[{ total: 0 }]])
             .mockResolvedValueOnce([[]])
 
-        await repo.findMany({ sort: 'm.title', order: 'asc', limit: 10, offset: 0 })
+        await repo.findMany({genreMode: 'and', page: 1,  sort: 'm.title', order: 'asc', limit: 10}, 0)
 
         const queryStr = conn.query.mock.calls[1][0] as string
         expect(queryStr).toContain('ORDER BY m.title ASC')
@@ -198,7 +201,7 @@ describe('MovieRepository - getMovies con sort (repositorio)', () => {
             .mockResolvedValueOnce([[{ total: 0 }]])
             .mockResolvedValueOnce([[]])
 
-        await repo.findMany({ sort: 'm.year', order: 'DESC', limit: 10, offset: 0 })
+        await repo.findMany({genreMode: 'and', page: 1,  sort: 'm.year', order: 'desc', limit: 10}, 0)
 
         const queryStr = conn.query.mock.calls[1][0] as string
         expect(queryStr).toContain('ORDER BY m.year DESC')
@@ -211,7 +214,7 @@ describe('MovieRepository - getMovies con sort (repositorio)', () => {
             .mockResolvedValueOnce([[{ total: 0 }]])
             .mockResolvedValueOnce([[]])
 
-        await repo.findMany({ title: 'dark', sort: 'm.year', order: 'desc', limit: 10, offset: 0 })
+        await repo.findMany({genreMode: 'and', page: 1,  title: 'dark', sort: 'm.year', order: 'desc', limit: 10}, 0)
 
         const queryStr = conn.query.mock.calls[1][0] as string
         expect(queryStr).toContain('WHERE')

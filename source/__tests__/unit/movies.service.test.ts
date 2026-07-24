@@ -68,7 +68,8 @@ describe('MovieService - getMovies', () => {
             meta: { total: 1, page: 1, limit: 10, totalPages: 1 }
         })
         expect(repos.movieRepo.findMany).toHaveBeenCalledWith(
-            expect.objectContaining({ genre: ['action'], genreMode: 'and', limit: 10, offset: 0 })
+            expect.objectContaining({ genre: ['action'], genreMode: 'and', limit: 10 }),
+            0
         )
     })
 
@@ -80,7 +81,8 @@ describe('MovieService - getMovies', () => {
         await service.getMovies({ title: 'incept', genreMode: 'and', minYear: 2010, maxYear: 2010, page: 1, limit: 10 })
 
         expect(repos.movieRepo.findMany).toHaveBeenCalledWith(
-            expect.objectContaining({ title: 'incept', limit: 10, offset: 0 })
+            expect.objectContaining({ title: 'incept', limit: 10 }),
+            0
         )
     })
 
@@ -92,7 +94,8 @@ describe('MovieService - getMovies', () => {
         await service.getMovies({ genreMode: 'and', page: 1, limit: 10 })
 
         expect(repos.movieRepo.findMany).toHaveBeenCalledWith(
-            expect.objectContaining({ limit: 10, offset: 0 })
+            expect.objectContaining({ limit: 10 }),
+            0
         )
     })
 

@@ -153,7 +153,8 @@ describe('MovieService - getMovies con page/limit (servicio)', () => {
         await service.getMovies({ genreMode: 'and', page: 3, limit: 10 })
 
         expect(repos.movieRepo.findMany).toHaveBeenCalledWith(
-            expect.objectContaining({ limit: 10, offset: 20 })
+            expect.objectContaining({ limit: 10 }),
+            20
         )
     })
 
@@ -165,7 +166,8 @@ describe('MovieService - getMovies con page/limit (servicio)', () => {
         await service.getMovies({ genreMode: 'and', page: 5, limit: 5 })
 
         expect(repos.movieRepo.findMany).toHaveBeenCalledWith(
-            expect.objectContaining({ offset: 20 })
+            expect.objectContaining({ limit: 5 }),
+            20
         )
     })
 
@@ -218,7 +220,7 @@ describe('MovieRepository - getMovies con page/limit (repositorio)', () => {
             .mockResolvedValueOnce([[{ total: 0 }]])
             .mockResolvedValueOnce([[]])
 
-        await repo.findMany({ limit: 5, offset: 0 })
+        await repo.findMany({genreMode: 'and', page: 1,  limit: 5}, 0)
 
         const selectQuery = conn.query.mock.calls[1][0] as string
         expect(selectQuery).toContain('LIMIT ? OFFSET ?')
@@ -232,7 +234,7 @@ describe('MovieRepository - getMovies con page/limit (repositorio)', () => {
             .mockResolvedValueOnce([[{ total: 0 }]])
             .mockResolvedValueOnce([[]])
 
-        await repo.findMany({ limit: 10, offset: 20 })
+        await repo.findMany({genreMode: 'and', page: 1,  limit: 10}, 20)
 
         const selectQuery = conn.query.mock.calls[1][0] as string
         expect(selectQuery).toContain('LIMIT ? OFFSET ?')
@@ -247,8 +249,8 @@ describe('MovieRepository - getMovies con page/limit (repositorio)', () => {
             .mockResolvedValueOnce([[]])
 
         await repo.findMany({
-            genre: ['action'], genreMode: 'and', sort: 'm.year', order: 'desc', limit: 5, offset: 0
-        })
+            genre: ['action'], genreMode: 'and', sort: 'm.year', order: 'desc', page: 1, limit: 5
+        }, 0)
 
         const selectQuery = conn.query.mock.calls[1][0] as string
         expect(selectQuery).toContain('WHERE')
@@ -264,7 +266,7 @@ describe('MovieRepository - getMovies con page/limit (repositorio)', () => {
             .mockResolvedValueOnce([[{ total: 8 }]])
             .mockResolvedValueOnce([[]])
 
-        const result = await repo.findMany({ limit: 5, offset: 0 })
+        const result = await repo.findMany({genreMode: 'and', page: 1,  limit: 5}, 0)
 
         const countQuery = conn.query.mock.calls[0][0] as string
         const selectQuery = conn.query.mock.calls[1][0] as string
@@ -281,7 +283,7 @@ describe('MovieRepository - getMovies con page/limit (repositorio)', () => {
             .mockResolvedValueOnce([[{ total: 5 }]])
             .mockResolvedValueOnce([[]])
 
-        const result = await repo.findMany({ genre: ['action'], genreMode: 'and', sort: 'm.year', order: 'desc', limit: 10, offset: 0 })
+        const result = await repo.findMany({genre: ['action'], genreMode: 'and', sort: 'm.year', order: 'desc', page: 1, limit: 10}, 0)
 
         const selectQuery = conn.query.mock.calls[1][0] as string
         expect(selectQuery).toContain('WHERE')

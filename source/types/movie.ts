@@ -24,25 +24,6 @@ export interface MovieRow {
     age_rating: string
 }
 
-export interface GetMoviesQuery {
-    genre?: string[]
-    genreMode?: 'and' | 'or'
-    minYear?: number
-    maxYear?: number
-    minRating?: number
-    maxRating?: number
-    minDuration?: number
-    maxDuration?: number
-    title?: string
-    director?: string
-    sort?: string
-    order?: string
-    limit: number
-    offset: number
-    q?: string
-    ageRating?: AgeRating[]
-}
-
 export interface SimilarMovieRow {
     id: number
     title: string

@@ -30,24 +30,7 @@ class MovieService {
 
             const offset = (params.page - 1) * params.limit
 
-            const result = await this.movieRepo.findMany({
-                genre: params.genre,
-                genreMode: params.genreMode,
-                minYear: params.minYear,
-                minRating: params.minRating,
-                maxRating: params.maxRating,
-                minDuration: params.minDuration,
-                maxDuration: params.maxDuration,
-                maxYear: params.maxYear,
-                title: params.title,
-                director: params.director,
-                ageRating: params.ageRating,
-                sort: params.sort,
-                order: params.order,
-                limit: params.limit,
-                offset,
-                q: params.q
-            })
+            const result = await this.movieRepo.findMany(params, offset)
 
             const totalPages = Math.ceil(result.total / params.limit)
             const movies = result.rows.map(Movie.fromRow).map(m => m.toResponse())
