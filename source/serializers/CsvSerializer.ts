@@ -12,6 +12,9 @@ export class CsvSerializer implements Serializer {
     }
 
     serialize(movies: MovieResponse[]): string {
+        // NOTA: Para catálogos grandes (>50k registros), migrar a stream con pipe a res
+        // Usar:  const stream = await movieRepo.streamAll(filters)
+        //        stream.pipe(csvTransform).pipe(res)
         const escape = (value: string): string => {
             return `"${value.replace(/"/g, '""')}"`
         }
