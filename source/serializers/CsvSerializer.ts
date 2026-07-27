@@ -23,8 +23,8 @@ export class CsvSerializer implements Serializer {
 
         csv += 'Título,Año,Rating,Géneros,Duración,Director,Reparto\r\n'
 
-        for (const [key, value] of Object.entries(movies)) {
-            csv += `${escape(value.title)},${value.year},${value.rating},${value.genres.join(',')},${value.duration},${escape(value.director)},${escape(value.cast?.map((e) => `${e.actor} (${e.character})`).join(';'))}\r\n`
+        for (const movie of movies) {
+            csv += `${escape(movie.title)},${movie.year},${movie.rating},${escape(movie.genres.join(', '))},${movie.duration},${escape(movie.director)},${escape(movie.cast?.map((e) => `${e.actor} (${e.character})`).join('; ') || '')}\r\n`
         }
 
         return csv
