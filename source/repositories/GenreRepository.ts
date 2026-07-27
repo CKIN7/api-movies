@@ -1,5 +1,14 @@
 import { DbLogger } from '../utils/DbLogger'
 
+// ═══════════════════════════════════════════════════════════════
+//  Patrones: Repository + Template Method
+// ═══════════════════════════════════════════════════════════════
+//  Repository: Abstrae acceso a tabla genres.
+//  Template Method: findOrCreate sigue el mismo algoritmo en
+//  GenreRepository, DirectorRepository y CastRepository:
+//  buscar por nombre → si existe devolver ID → si no, crear.
+// ═══════════════════════════════════════════════════════════════
+
 class GenreRepository {
     constructor(private conn: any) {}
 

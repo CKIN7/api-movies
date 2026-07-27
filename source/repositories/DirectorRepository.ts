@@ -1,5 +1,13 @@
 import { DbLogger } from '../utils/DbLogger'
 
+// ═══════════════════════════════════════════════════════════════
+//  Patrones: Repository + Template Method
+// ═══════════════════════════════════════════════════════════════
+//  Repository: Abstrae acceso a tabla directors.
+//  Template Method: findOrCreate comparte el mismo algoritmo
+//  que GenreRepository y CastRepository.
+// ═══════════════════════════════════════════════════════════════
+
 class DirectorRepository {
     constructor(private conn: any) {}
 

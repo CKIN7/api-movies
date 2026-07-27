@@ -6,6 +6,14 @@ import type { Request, Response } from 'express'
 import MovieService from '../services/movieService'
 import logger from '../utils/logger'
 
+// ═══════════════════════════════════════════════════════════════
+//  Patrón: Dependency Injection
+// ═══════════════════════════════════════════════════════════════
+//  El controller recibe MovieService por constructor. No crea
+//  sus dependencias, solo las recibe. Facilita el testing
+//  (inyectar mocks) y sigue el principio de inversión de control.
+// ═══════════════════════════════════════════════════════════════
+
 class MovieController {
     constructor(private movieService: MovieService) {}
 

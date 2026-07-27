@@ -17,6 +17,17 @@ import ExportService from './services/exportService'
 import ExportController from './controllers/exportController'
 import { createExportRoutes } from './routes/exportRoutes'
 
+// ═══════════════════════════════════════════════════════════════
+//  Patrones: Dependency Injection + Factory + Chain of Resp.
+// ═══════════════════════════════════════════════════════════════
+//  DI: Composition root. Crea todas las dependencias (repos,
+//  servicios, controladores) y las inyecta por constructor.
+//  Permite inyectar un MovieService mockeado para tests.
+//  Factory: createApp() funciona como factory del objeto Express.
+//  Chain of Resp.: El middleware de Express forma una cadena:
+//  json → requestLogger → router de movies → error handler → 404.
+// ═══════════════════════════════════════════════════════════════
+
 export function createApp(movieService?: MovieService) {
     const app = express()
 

@@ -1,5 +1,13 @@
 import winston from 'winston'
 
+// ═══════════════════════════════════════════════════════════════
+//  Patrón: Singleton
+// ═══════════════════════════════════════════════════════════════
+//  El caché de módulos de Node.js garantiza una única instancia
+//  de cada logger (logger y dbLogger) en toda la aplicación.
+//  Donde sea que se importe este módulo, recibe la misma instancia.
+// ═══════════════════════════════════════════════════════════════
+
 const textFormat = winston.format.combine(
     winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
     winston.format.printf(({ timestamp, level, message, ...meta }) => {

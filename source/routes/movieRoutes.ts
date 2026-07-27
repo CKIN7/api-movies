@@ -1,6 +1,14 @@
 import express from 'express'
 import MovieController from '../controllers/movieController'
 
+// ═══════════════════════════════════════════════════════════════
+//  Patrón: Factory Method
+// ═══════════════════════════════════════════════════════════════
+//  createMovieRoutes() es una función factory que recibe un
+//  controller ya inyectado y devuelve un router de Express
+//  completamente configurado.
+// ═══════════════════════════════════════════════════════════════
+
 export function createMovieRoutes(controller: MovieController) {
     const router = express.Router()
     router.get('/', controller.getAll)

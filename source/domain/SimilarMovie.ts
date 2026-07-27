@@ -1,5 +1,13 @@
 import type { SimilarMovieRow, SimilarMovieResponse } from '../types/movie'
 
+// ═══════════════════════════════════════════════════════════════
+//  Patrón: Factory Method + DTO
+// ═══════════════════════════════════════════════════════════════
+//  Factory Method: fromRow() construye un SimilarMovie desde
+//  una fila SQL. toResponse() convierte a DTO (SimilarMovieResponse)
+//  para la capa de presentación.
+// ═══════════════════════════════════════════════════════════════
+
 export class SimilarMovie {
     constructor(
         public readonly id: number,
