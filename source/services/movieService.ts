@@ -13,6 +13,17 @@ import { SimilarMovie } from '../domain/SimilarMovie'
 import AppError from '../utils/AppError'
 import logger from '../utils/logger'
 
+// ═══════════════════════════════════════════════════════════════
+//  Patrones: Facade + Dependency Injection
+// ═══════════════════════════════════════════════════════════════
+//  Facade: MovieService es la fachada unificada ante 5 repos.
+//  Por ejemplo, createMovie() orquesta directorRepo.findOrCreate,
+//  movieRepo.insert, genreRepo.findOrCreate, genreRepo.linkToMovie,
+//  castRepo.findOrCreate, castRepo.linkToMovie y auditRepo.record.
+//  El controller solo conoce MovieService, no los repos individuales.
+//  DI: Recibe los 5 repos por constructor injection.
+// ═══════════════════════════════════════════════════════════════
+
 class MovieService {
     constructor(
         private movieRepo: MovieRepository,
@@ -258,6 +269,13 @@ class MovieService {
     }
 }
 
+// ═══════════════════════════════════════════════════════════════
+//  Patrón: Snapshot / Diff
+// ═══════════════════════════════════════════════════════════════
+//  Compara dos snapshots (antes y después de una mutación) para
+//  determinar qué campos cambiaron. El resultado alimenta el log
+//  de auditoría con la lista de campos modificados.
+// ═══════════════════════════════════════════════════════════════
 function computeChanges(oldSnapshot: object | null, newSnapshot: object | null): string[] {
     if (!oldSnapshot || !newSnapshot) return []
 

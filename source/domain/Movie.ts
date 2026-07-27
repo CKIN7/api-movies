@@ -15,6 +15,14 @@ export interface MovieResponse {
     ageRating: string
 }
 
+// ═══════════════════════════════════════════════════════════════
+//  Patrón: Factory Method + DTO
+// ═══════════════════════════════════════════════════════════════
+//  Factory Method: fromRow() construye un Movie desde una fila
+//  SQL (MovieRow). toResponse() convierte el dominio a DTO
+//  (MovieResponse) para la capa de presentación.
+// ═══════════════════════════════════════════════════════════════
+
 export class Movie {
     constructor(
         public readonly id: number,

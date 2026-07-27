@@ -13,6 +13,20 @@ import logger from './utils/logger'
 import { requestLogger } from './middleware/requestLogger'
 import type { Request, Response, NextFunction } from 'express'
 import connection from './db/connection'
+import ExportService from './services/exportService'
+import ExportController from './controllers/exportController'
+import { createExportRoutes } from './routes/exportRoutes'
+
+// ═══════════════════════════════════════════════════════════════
+//  Patrones: Dependency Injection + Factory + Chain of Resp.
+// ═══════════════════════════════════════════════════════════════
+//  DI: Composition root. Crea todas las dependencias (repos,
+//  servicios, controladores) y las inyecta por constructor.
+//  Permite inyectar un MovieService mockeado para tests.
+//  Factory: createApp() funciona como factory del objeto Express.
+//  Chain of Resp.: El middleware de Express forma una cadena:
+//  json → requestLogger → router de movies → error handler → 404.
+// ═══════════════════════════════════════════════════════════════
 
 export function createApp(movieService?: MovieService) {
     const app = express()
@@ -32,6 +46,11 @@ export function createApp(movieService?: MovieService) {
     const controller = new MovieController(_service)
     const router = createMovieRoutes(controller)
 
+    const exportService = new ExportService(movieRepo)
+    const exportController = new ExportController(exportService)
+    const exportRouter = createExportRoutes(exportController)
+
+    app.use('/movies', exportRouter)
     app.use('/movies', router)
 
     app.use((err: Error, req: Request, res: Response, next: NextFunction) => {

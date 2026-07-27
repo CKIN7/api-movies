@@ -15,6 +15,17 @@ export type MovieQueryBuilderFilters = {
     q?: string
 }
 
+// ═══════════════════════════════════════════════════════════════
+//  Patrones: Builder + Strategy
+// ═══════════════════════════════════════════════════════════════
+//  Builder: Construye incrementalmente condiciones SQL (WHERE)
+//           a través de métodos add*. build() y buildRandom()
+//           son los métodos terminales.
+//  Strategy: build() aplica todos los filtros; buildRandom()
+//            aplica solo un subconjunto. El genreMode 'and'/'or'
+//            selecciona distintas estrategias de filtrado.
+// ═══════════════════════════════════════════════════════════════
+
 class MovieQueryBuilder {
     private conditions: string[] = []
     private params: (string | number)[] = []

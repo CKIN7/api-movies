@@ -1,6 +1,14 @@
 import mysql from 'mysql2'
 import dotenv from 'dotenv'
 
+// ═══════════════════════════════════════════════════════════════
+//  Patrón: Singleton
+// ═══════════════════════════════════════════════════════════════
+//  El caché de módulos de Node.js garantiza una única conexión
+//  a la base de datos. Donde sea que se importe este módulo,
+//  recibe la misma instancia de pool de conexiones MySQL.
+// ═══════════════════════════════════════════════════════════════
+
 dotenv.config()
 
 const connection = mysql.createConnection({

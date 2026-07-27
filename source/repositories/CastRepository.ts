@@ -1,5 +1,13 @@
 import { DbLogger } from '../utils/DbLogger'
 
+// ═══════════════════════════════════════════════════════════════
+//  Patrones: Repository + Template Method
+// ═══════════════════════════════════════════════════════════════
+//  Repository: Abstrae acceso a tablas actors y movie_actors.
+//  Template Method: findOrCreate comparte el mismo algoritmo
+//  que GenreRepository y DirectorRepository.
+// ═══════════════════════════════════════════════════════════════
+
 class CastRepository {
     constructor(private conn: any) {}
 

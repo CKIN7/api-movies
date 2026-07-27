@@ -1,6 +1,13 @@
 import type { AuditLogEntry, AuditLogParams, InsertAuditLogParams } from '../types/auditLog'
 import { DbLogger } from '../utils/DbLogger'
 
+// ═══════════════════════════════════════════════════════════════
+//  Patrón: Repository
+// ═══════════════════════════════════════════════════════════════
+//  Abstrae acceso a la tabla audit_log. Encapsula consultas
+//  SQL de lectura y escritura del historial de cambios.
+// ═══════════════════════════════════════════════════════════════
+
 class AuditLogRepository {
     constructor(private conn: any) {}
 

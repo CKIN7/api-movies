@@ -4,6 +4,17 @@ import type { RandomMovieQueryDTO } from '../schemas/randomMovieQuery'
 import { DbLogger } from '../utils/DbLogger'
 import MovieQueryBuilder from './MovieQueryBuilder';
 
+// ═══════════════════════════════════════════════════════════════
+//  Patrón: Repository
+// ═══════════════════════════════════════════════════════════════
+//  Abstrae el acceso a datos de la tabla movies. Encapsula
+//  consultas SQL detrás de métodos de dominio (findMany, findById,
+//  insert, update, delete). El servicio nunca escribe SQL directo.
+// ═══════════════════════════════════════════════════════════════
+//  También implementa Transaction Script con transaction<T>(),
+//  manejando beginTransaction/commit/rollback automáticamente.
+// ═══════════════════════════════════════════════════════════════
+
 class MovieRepository {
     constructor(private conn: any) {}
 
@@ -196,6 +207,9 @@ class MovieRepository {
         return rows[0].total as number
     }
 
+    // ═══════════════════════════════════════════════════════════
+    //  Patrón: Transaction Script
+    // ═══════════════════════════════════════════════════════════
     async transaction<T>(fn: () => Promise<T>): Promise<T> {
         await this.conn.beginTransaction()
         try {
