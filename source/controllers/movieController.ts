@@ -5,6 +5,7 @@ import { randomMovieQuerySchema } from '../schemas/randomMovieQuery'
 import type { Request, Response } from 'express'
 import MovieService from '../services/movieService'
 import logger from '../utils/logger'
+import { suggestQuerySchema } from '../schemas/suggestQuerySchema'
 
 // ═══════════════════════════════════════════════════════════════
 //  Patrón: Dependency Injection
@@ -51,7 +52,9 @@ class MovieController {
     }
 
     handleSuggest = async (req: Request, resp: Response) => {
-        //const filters = zod.schema
+        const filters = suggestQuerySchema.parse(req.query)
+
+        const result = await this.movieService.suggest(filters)
     }
 
     createMovie = async (req: Request, resp: Response) => {

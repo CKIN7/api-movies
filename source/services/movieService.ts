@@ -12,6 +12,7 @@ import { Movie, type MovieResponse } from '../domain/Movie'
 import { SimilarMovie } from '../domain/SimilarMovie'
 import AppError from '../utils/AppError'
 import logger from '../utils/logger'
+import { SuggestQueryDTO } from '../schemas/suggestQuerySchema'
 
 // ═══════════════════════════════════════════════════════════════
 //  Patrones: Facade + Dependency Injection
@@ -106,6 +107,28 @@ class MovieService {
             if (error instanceof AppError) throw error
             logger.error(`Error en findRandom: ${(error as Error).message}`)
             throw new AppError('Error al obtener película aleatoria', 500)
+        }
+    }
+
+    async suggest(dto: SuggestQueryDTO){
+        try {
+            
+            if(dto.field === 'title'){
+                await this.movieRepo.suggestTitle
+            }
+
+            if(dto.field ===  'director'){
+                await this.movieRepo.suggestDirector
+            }
+
+            if(dto.field === 'genre'){
+                await this.movieRepo.suggestGenre
+            }
+
+        } catch (error) {
+            if (error instanceof AppError) throw error
+            logger.error(`Error en suggest: ${(error as Error).message}`)
+            throw new AppError('Error al sugerir películas', 500)
         }
     }
 
