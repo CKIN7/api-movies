@@ -50,6 +50,10 @@ class MovieController {
         resp.json(result)
     }
 
+    handleSuggest = async (req: Request, resp: Response) => {
+        //const filters = zod.schema
+    }
+
     createMovie = async (req: Request, resp: Response) => {
         const result = movieSchema.safeParse(req.body)
         if (result.error) {
