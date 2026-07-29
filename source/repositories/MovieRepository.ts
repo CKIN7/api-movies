@@ -3,6 +3,7 @@ import type { MovieQueryDTO } from '../schemas/movieQuery'
 import type { RandomMovieQueryDTO } from '../schemas/randomMovieQuery'
 import { DbLogger } from '../utils/DbLogger'
 import MovieQueryBuilder from './MovieQueryBuilder';
+import { SuggestQueryDTO } from '../schemas/suggestQuerySchema';
 
 // ═══════════════════════════════════════════════════════════════
 //  Patrón: Repository
@@ -146,6 +147,16 @@ class MovieRepository {
         
         if (result.length === 0) return null
         return result[0].id
+    }
+
+    async suggest(query: SuggestQueryDTO): Promise<string[]>{
+
+        const {sql, params, column} = MovieQueryBuilder.buildSuggest(query)
+        
+        const [rows] = await this.query(sql, params)
+
+        return rows.map((r: any) => r[column] as string)
+
     }
 
     async insert(data: {

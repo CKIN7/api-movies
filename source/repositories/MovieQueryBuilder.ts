@@ -1,3 +1,4 @@
+import { SuggestQueryDTO } from '../schemas/suggestQuerySchema'
 import type { AgeRating } from '../types/movie'
 
 export type MovieQueryBuilderFilters = {
@@ -49,6 +50,23 @@ class MovieQueryBuilder {
         this.addRatingRange()
         this.addGenreFilter()
         return { conditions: this.conditions, params: this.params}
+    }
+
+    static buildSuggest(query: SuggestQueryDTO){
+        
+        const map = {
+            title:    { table: 'movies',    column: 'title' },
+            director: { table: 'directors', column: 'director_name' },
+            genre:    { table: 'genres',    column: 'genre_name' },
+        }
+
+        const {table, column} = map[query.field]
+
+        const sql = `SELECT DISTINCT ${column} FROM ${table} WHERE ${column} LIKE ? COLLATE utf8mb4_general_ci LIMIT ?`
+
+        return { sql, params: [`${query.q}%`, query.limit], column }
+
+
     }
 
     private addYearRange() {
