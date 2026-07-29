@@ -51,7 +51,7 @@ class MovieController {
         resp.json(result)
     }
 
-    handleSuggest = async (req: Request, resp: Response) => {
+    getSuggest = async (req: Request, resp: Response) => {
         const filters = suggestQuerySchema.parse(req.query)
 
         const result = await this.movieService.suggest(filters)
