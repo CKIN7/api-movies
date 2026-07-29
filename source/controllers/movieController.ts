@@ -5,6 +5,7 @@ import { randomMovieQuerySchema } from '../schemas/randomMovieQuery'
 import type { Request, Response } from 'express'
 import MovieService from '../services/movieService'
 import logger from '../utils/logger'
+import { suggestQuerySchema } from '../schemas/suggestQuerySchema'
 
 // ═══════════════════════════════════════════════════════════════
 //  Patrón: Dependency Injection
@@ -48,6 +49,13 @@ class MovieController {
 
         const result = await this.movieService.findRandom(parsed.data)
         resp.json(result)
+    }
+
+    getSuggest = async (req: Request, resp: Response) => {
+        const filters = suggestQuerySchema.parse(req.query)
+
+        const result = await this.movieService.suggest(filters)
+        return resp.json(result);
     }
 
     createMovie = async (req: Request, resp: Response) => {
