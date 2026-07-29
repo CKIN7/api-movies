@@ -55,6 +55,7 @@ class MovieController {
         const filters = suggestQuerySchema.parse(req.query)
 
         const result = await this.movieService.suggest(filters)
+        return resp.json(result);
     }
 
     createMovie = async (req: Request, resp: Response) => {

@@ -113,17 +113,8 @@ class MovieService {
     async suggest(dto: SuggestQueryDTO){
         try {
             
-            if(dto.field === 'title'){
-                await this.movieRepo.suggestTitle
-            }
-
-            if(dto.field ===  'director'){
-                await this.movieRepo.suggestDirector
-            }
-
-            if(dto.field === 'genre'){
-                await this.movieRepo.suggestGenre
-            }
+            const suggestMovie = await this.movieRepo.suggest(dto);
+            return suggestMovie;
 
         } catch (error) {
             if (error instanceof AppError) throw error
