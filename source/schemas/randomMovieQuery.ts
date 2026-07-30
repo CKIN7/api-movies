@@ -26,6 +26,10 @@ export const randomMovieQuerySchema = z.object({
         (val) => (val === '' ? undefined : val),
         z.coerce.number().min(0).max(10).optional()
     ),
+    count: z.preprocess(
+        (val) => (val === '' ? undefined : val),
+        z.coerce.number().int().min(1).max(50).optional()
+    )
 }).refine(
     d => d.minYear === undefined || d.maxYear === undefined || d.minYear <= d.maxYear,
     { message: "minYear no puede ser mayor que maxYear", path: ["minYear"] }

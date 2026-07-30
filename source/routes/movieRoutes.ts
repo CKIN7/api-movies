@@ -13,6 +13,7 @@ export function createMovieRoutes(controller: MovieController) {
     const router = express.Router()
     router.get('/', controller.getAll)
     router.get('/random', controller.getRandom)
+    router.get('/genres', controller.getGenres)
     router.get('/suggest', controller.getSuggest)
     router.get('/:id', controller.getById)
     router.get('/:id/similar', controller.getSimilar)

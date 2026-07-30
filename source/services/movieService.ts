@@ -89,15 +89,15 @@ class MovieService {
 
     async findRandom(params: RandomMovieQueryDTO){
         try {
-            const id = await this.movieRepo.findRandom({
+            const id = await this.movieRepo.findRandomIds({
                 genre: params.genre,
                 minYear: params.minYear,
                 maxYear: params.maxYear,
                 minRating: params.minRating})      
 
-            if(!id) throw new AppError('No se encontraron películas con esos filtros', 404);
+            if(id.length === 0) throw new AppError('No se encontraron películas con esos filtros', 404);
             
-            const randomMovie = await this.movieRepo.findById(id)
+            const randomMovie = await this.movieRepo.findById(id[0])
 
             if(!randomMovie) throw new AppError('La película seleccionada ya no está disponible', 404)
             
@@ -108,6 +108,27 @@ class MovieService {
             logger.error(`Error en findRandom: ${(error as Error).message}`)
             throw new AppError('Error al obtener película aleatoria', 500)
         }
+    }
+
+    async findRandomBatch(params: RandomMovieQueryDTO){
+        try {
+            const ids = await this.movieRepo.findRandomIds(params)
+            if(ids.length === 0) throw new AppError('No se encontraron películas con esos filtros', 404);
+
+            const rows = await this.movieRepo.findByIds(ids)
+
+            return { data: rows.map(Movie.fromRow).map(m => m.toResponse()) }
+
+            
+        } catch (error) {
+            if (error instanceof AppError) throw error
+            logger.error(`Error en findRandom: ${(error as Error).message}`)
+            throw new AppError('Error al obtener películas aleatorias', 500)
+        }
+    }
+
+    async getAllGenres(): Promise<string[]> {
+        return this.genreRepo.findAll()
     }
 
     async suggest(dto: SuggestQueryDTO){

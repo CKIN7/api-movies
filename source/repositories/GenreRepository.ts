@@ -32,6 +32,11 @@ class GenreRepository {
         return result.insertId as number
     }
 
+    async findAll(): Promise<string[]> {
+        const [rows] = await this.query('SELECT genre_name FROM genres ORDER BY genre_name')
+        return (rows as { genre_name: string }[]).map(r => r.genre_name)
+    }
+
     async findOrCreate(name: string): Promise<number> {
         const existing = await this.findByName(name)
         if (existing) return existing

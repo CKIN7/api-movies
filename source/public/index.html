@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Movies API — Landing</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #111; color: #eee;
+    display: flex; justify-content: center; padding-top: 40px; min-height: 100vh;
+  }
+  .container { width: 640px; max-width: 100%; padding: 0 16px; }
+
+  h1 { font-size: 1.4rem; text-align: center; margin-bottom: 4px; }
+  .subtitle { text-align: center; color: #888; font-size: 0.85rem; margin-bottom: 28px; }
+
+  section { margin-bottom: 40px; }
+  .section-title { font-size: 1.1rem; margin-bottom: 16px; color: #ccc; border-bottom: 1px solid #333; padding-bottom: 8px; }
+
+  /* ── Filtros ── */
+  .filters { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; align-items: end; }
+  .filters label { font-size: 0.75rem; color: #aaa; display: flex; flex-direction: column; gap: 3px; }
+  .filters input, .filters select {
+    background: #1a1a1a; border: 1px solid #444; border-radius: 6px; padding: 6px 10px;
+    color: #eee; font-size: 0.85rem; outline: none; width: 100px;
+  }
+  .filters input:focus, .filters select:focus { border-color: #0066cc; }
+  .filters select option { background: #1a1a1a; }
+
+  .btn {
+    background: #0066cc; color: #fff; border: none; border-radius: 6px;
+    padding: 7px 18px; cursor: pointer; font-size: 0.85rem; transition: background .15s;
+    white-space: nowrap;
+  }
+  .btn:hover { background: #0052a3; }
+  .btn:active { background: #003d7a; }
+  .btn-outline {
+    background: transparent; border: 1px solid #555; color: #aaa;
+  }
+  .btn-outline:hover { border-color: #888; color: #eee; }
+
+  /* ── Slider ── */
+  .slider-wrapper { position: relative; display: flex; align-items: center; gap: 12px; }
+  .slider-viewport { flex: 1; min-height: 340px; position: relative; overflow: hidden; }
+  .slide {
+    background: #1a1a1a; border: 1px solid #333; border-radius: 10px;
+    padding: 24px; text-align: center; display: flex; flex-direction: column;
+    align-items: center; gap: 6px; transition: opacity .2s;
+  }
+  .slide .poster {
+    width: 140px; height: 200px; background: #2a2a2a; border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 2.5rem; color: #555; margin-bottom: 6px; overflow: hidden;
+  }
+  .slide .poster img { width: 100%; height: 100%; object-fit: cover; border-radius: 6px; }
+  .slide .title { font-size: 1.2rem; font-weight: 600; }
+  .slide .year { color: #888; font-size: 0.9rem; }
+  .slide .director { color: #8ab4f8; font-size: 0.85rem; }
+  .slide .rating { color: #fdd835; font-size: 0.9rem; }
+  .slide .genres { display: flex; gap: 4px; flex-wrap: wrap; justify-content: center; margin-top: 4px; }
+  .slide .genres span {
+    background: #2a2a2a; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; color: #aaa;
+  }
+
+  .arrow {
+    background: #1a1a1a; border: 1px solid #444; border-radius: 50%;
+    width: 36px; height: 36px; cursor: pointer; font-size: 1rem; color: #aaa;
+    display: flex; align-items: center; justify-content: center;
+    transition: all .15s; flex-shrink: 0;
+  }
+  .arrow:hover { background: #333; color: #fff; border-color: #666; }
+
+  .slider-footer { display: flex; justify-content: center; align-items: center; gap: 16px; margin-top: 12px; }
+  .counter { color: #888; font-size: 0.85rem; }
+  .counter .current { color: #eee; }
+  .dots { display: flex; gap: 6px; }
+  .dot {
+    width: 8px; height: 8px; border-radius: 50%; background: #444; transition: background .15s; cursor: pointer;
+  }
+  .dot.active { background: #0066cc; }
+
+  .status-msg { text-align: center; color: #888; padding: 60px 20px; font-size: 0.9rem; }
+  .status-msg.error { color: #ef5350; }
+
+  /* ── Suggest ── */
+  .autocomplete { position: relative; }
+  .autocomplete input {
+    width: 100%; padding: 12px 14px; font-size: 1rem; color: #eee;
+    border: 2px solid #444; border-radius: 8px; outline: none; background: #1a1a1a;
+    transition: border-color .15s;
+  }
+  .autocomplete input:focus { border-color: #0066cc; }
+  .autocomplete input::placeholder { color: #666; }
+
+  .dropdown {
+    position: absolute; top: 100%; left: 0; right: 0;
+    background: #1a1a1a; border: 1px solid #444; border-radius: 0 0 8px 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,.5); z-index: 10;
+    max-height: 240px; overflow-y: auto; display: none;
+  }
+  .dropdown.open { display: block; }
+  .dropdown .item {
+    padding: 10px 14px; cursor: pointer; font-size: 0.9rem; color: #ccc;
+    border-bottom: 1px solid #2a2a2a; transition: background .1s;
+  }
+  .dropdown .item:last-child { border-bottom: none; }
+  .dropdown .item:hover { background: #0d2b4e; }
+  .dropdown .status { padding: 14px; text-align: center; color: #888; font-size: 0.85rem; }
+  .dropdown .status.error { color: #ef5350; }
+
+  .tabs { display: flex; gap: 4px; margin-bottom: 12px; }
+  .tab {
+    flex: 1; padding: 8px 0; border: 1px solid #444;
+    background: #222; cursor: pointer; font-size: 0.85rem;
+    border-radius: 6px; transition: all .15s; text-align: center; color: #aaa;
+  }
+  .tab:hover { background: #333; }
+  .tab.active { background: #0066cc; color: #fff; border-color: #0066cc; }
+
+  .results { margin-top: 20px; display: none; }
+  .results.open { display: block; }
+  .results-header { color: #888; font-size: 0.75rem; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px; }
+  .movie-card {
+    background: #1a1a1a; border: 1px solid #333; border-radius: 8px;
+    padding: 14px; margin-bottom: 8px; transition: border-color .15s;
+  }
+  .movie-card:hover { border-color: #555; }
+  .movie-card .row1 { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 4px; }
+  .movie-card .title { color: #eee; font-weight: 600; font-size: 0.95rem; }
+  .movie-card .year  { color: #888; font-size: 0.8rem; }
+  .movie-card .row2 { display: flex; gap: 12px; font-size: 0.8rem; color: #aaa; flex-wrap: wrap; }
+  .movie-card .director { color: #8ab4f8; }
+  .movie-card .rating { color: #fdd835; }
+  .movie-card .genres { color: #888; }
+  .movie-card .genres span { background: #2a2a2a; padding: 1px 6px; border-radius: 4px; margin-right: 4px; }
+  .results-status { text-align: center; color: #888; font-size: 0.85rem; padding: 30px 0; }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <h1>Movies API — Landing</h1>
+  <p class="subtitle">Prueba manual del endpoint random batch + suggest</p>
+
+  <!-- ═══════════ Carousel ═══════════ -->
+  <section id="carousel-section">
+    <div class="section-title">Carousel Aleatorio</div>
+
+    <div class="filters">
+      <label>Género
+        <select id="filter-genre">
+          <option value="">Todos</option>
+        </select>
+      </label>
+      <label>Año min
+        <input type="number" id="filter-minYear" placeholder="1895" min="1895" max="2026">
+      </label>
+      <label>Año max
+        <input type="number" id="filter-maxYear" placeholder="2026" min="1895" max="2026">
+      </label>
+      <label>Rating min
+        <input type="number" id="filter-minRating" placeholder="0" min="0" max="10" step="0.1">
+      </label>
+      <label>Count
+        <input type="number" id="filter-count" value="12" min="1" max="50">
+      </label>
+      <button class="btn" id="btn-refresh">Refrescar</button>
+    </div>
+
+    <div class="slider-wrapper">
+      <button class="arrow" id="btn-prev">&#9664;</button>
+      <div class="slider-viewport" id="slider-viewport">
+        <div class="status-msg" id="slider-status">Cargando...</div>
+      </div>
+      <button class="arrow" id="btn-next">&#9654;</button>
+    </div>
+
+    <div class="slider-footer">
+      <div class="counter"><span class="current" id="slide-current">0</span> / <span id="slide-total">0</span></div>
+      <div class="dots" id="dots"></div>
+    </div>
+  </section>
+
+  <!-- ═══════════ Suggest ═══════════ -->
+  <section id="suggest-section">
+    <div class="section-title">Búsqueda Suggest</div>
+
+    <div class="tabs" id="tabs">
+      <button class="tab active" data-field="title">Título</button>
+      <button class="tab" data-field="director">Director</button>
+      <button class="tab" data-field="genre">Género</button>
+    </div>
+
+    <div class="autocomplete">
+      <input type="text" id="suggest-input" placeholder="Escribe un título…" autocomplete="off">
+      <div class="dropdown" id="suggest-dropdown"></div>
+    </div>
+
+    <div class="results" id="suggest-results"></div>
+  </section>
+
+</div>
+
+<script>
+const API_BASE = 'http://localhost:8089'
+
+// ── Carousel ──
+const sliderViewport = document.getElementById('slider-viewport')
+const sliderStatus = document.getElementById('slider-status')
+const slideCurrent = document.getElementById('slide-current')
+const slideTotal = document.getElementById('slide-total')
+const dotsEl = document.getElementById('dots')
+const btnPrev = document.getElementById('btn-prev')
+const btnNext = document.getElementById('btn-next')
+const btnRefresh = document.getElementById('btn-refresh')
+const filterGenre = document.getElementById('filter-genre')
+const filterMinYear = document.getElementById('filter-minYear')
+const filterMaxYear = document.getElementById('filter-maxYear')
+const filterMinRating = document.getElementById('filter-minRating')
+const filterCount = document.getElementById('filter-count')
+
+let movies = []
+let currentIndex = 0
+
+// Cargar lista de géneros para el dropdown
+fetch(`${API_BASE}/movies/genres`)
+  .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json() })
+  .then(genres => {
+    genres.forEach(g => {
+      const opt = document.createElement('option')
+      opt.value = g
+      opt.textContent = g.charAt(0).toUpperCase() + g.slice(1)
+      filterGenre.appendChild(opt)
+    })
+  })
+  .catch(() => {})
+
+function getFilters() {
+  const params = {}
+  const genre = filterGenre.value
+  const minYear = filterMinYear.value
+  const maxYear = filterMaxYear.value
+  const minRating = filterMinRating.value
+  const count = filterCount.value
+  if (genre) params.genre = genre
+  if (minYear) params.minYear = Number(minYear)
+  if (maxYear) params.maxYear = Number(maxYear)
+  if (minRating) params.minRating = Number(minRating)
+  if (count) params.count = Number(count)
+  return params
+}
+
+function fetchCarousel() {
+  const params = new URLSearchParams()
+  const filters = getFilters()
+  if (filters.genre) params.set('genre', filters.genre)
+  if (filters.minYear) params.set('minYear', String(filters.minYear))
+  if (filters.maxYear) params.set('maxYear', String(filters.maxYear))
+  if (filters.minRating) params.set('minRating', String(filters.minRating))
+  if (filters.count) params.set('count', String(filters.count))
+
+  sliderStatus.textContent = 'Cargando...'
+  sliderStatus.className = 'status-msg'
+
+  fetch(`${API_BASE}/movies/random?${params}`)
+    .then(r => {
+      if (!r.ok) {
+        if (r.status === 404) return { data: [] }
+        throw new Error(`HTTP ${r.status}`)
+      }
+      return r.json()
+    })
+    .then(result => {
+      movies = result.data || []
+      currentIndex = 0
+      renderCarousel()
+    })
+    .catch(err => {
+      sliderStatus.textContent = `Error: ${err.message}`
+      sliderStatus.className = 'status-msg error'
+      slideCurrent.textContent = '0'
+      slideTotal.textContent = '0'
+      dotsEl.innerHTML = ''
+    })
+}
+
+function renderCarousel() {
+  if (movies.length === 0) {
+    sliderStatus.textContent = 'Sin películas con esos filtros'
+    sliderStatus.className = 'status-msg'
+    slideCurrent.textContent = '0'
+    slideTotal.textContent = '0'
+    dotsEl.innerHTML = ''
+    return
+  }
+
+  slideTotal.textContent = String(movies.length)
+  renderSlide(currentIndex)
+  renderDots()
+}
+
+function renderSlide(index) {
+  const movie = movies[index]
+  slideCurrent.textContent = String(index + 1)
+
+  const posterHtml = movie.poster
+    ? `<img src="${escapeHtml(movie.poster)}" alt="${escapeHtml(movie.title)}">`
+    : '🎬'
+
+  sliderViewport.innerHTML = `
+    <div class="slide">
+      <div class="poster">${posterHtml}</div>
+      <div class="title">${escapeHtml(movie.title)}</div>
+      <div class="year">${movie.year}</div>
+      <div class="director">${escapeHtml(movie.director)}</div>
+      <div class="rating">★ ${movie.rating}</div>
+      <div class="genres">${movie.genres.map(g => `<span>${escapeHtml(g)}</span>`).join('')}</div>
+    </div>
+  `
+}
+
+function renderDots() {
+  dotsEl.innerHTML = movies.map((_, i) =>
+    `<span class="dot${i === currentIndex ? ' active' : ''}" data-index="${i}"></span>`
+  ).join('')
+  dotsEl.querySelectorAll('.dot').forEach(el => {
+    el.addEventListener('click', () => {
+      currentIndex = Number(el.dataset.index)
+      renderSlide(currentIndex)
+      renderDots()
+    })
+  })
+}
+
+btnPrev.addEventListener('click', () => {
+  if (movies.length === 0) return
+  currentIndex = (currentIndex - 1 + movies.length) % movies.length
+  renderSlide(currentIndex)
+  renderDots()
+})
+
+btnNext.addEventListener('click', () => {
+  if (movies.length === 0) return
+  currentIndex = (currentIndex + 1) % movies.length
+  renderSlide(currentIndex)
+  renderDots()
+})
+
+btnRefresh.addEventListener('click', fetchCarousel)
+
+fetchCarousel()
+
+// ── Suggest ──
+const suggestInput = document.getElementById('suggest-input')
+const suggestDropdown = document.getElementById('suggest-dropdown')
+const suggestResults = document.getElementById('suggest-results')
+const suggestTabs = document.querySelectorAll('#tabs .tab')
+
+let currentField = 'title'
+let timer = null
+
+const placeholders = {
+  title: 'Escribe un título…',
+  director: 'Escribe un director…',
+  genre: 'Escribe un género…',
+}
+
+const queryKeys = {
+  title: 'title',
+  director: 'director',
+  genre: 'genre',
+}
+
+const fieldLabels = {
+  title: 'Título',
+  director: 'Director',
+  genre: 'Género',
+}
+
+suggestTabs.forEach(tab => {
+  tab.addEventListener('click', () => {
+    suggestTabs.forEach(t => t.classList.remove('active'))
+    tab.classList.add('active')
+    currentField = tab.dataset.field
+    suggestInput.placeholder = placeholders[currentField]
+    suggestInput.value = ''
+    closeSuggestDropdown()
+  })
+})
+
+suggestInput.addEventListener('input', () => {
+  clearTimeout(timer)
+  const q = suggestInput.value.trim()
+  if (q.length < 3) {
+    closeSuggestDropdown()
+    return
+  }
+  timer = setTimeout(() => fetchSuggestions(q), 300)
+})
+
+suggestInput.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { closeSuggestDropdown(); return }
+  if (e.key === 'Enter') {
+    const q = suggestInput.value.trim()
+    if (q.length >= 3) {
+      closeSuggestDropdown()
+      fetchSuggestMovies(q)
+    }
+  }
+})
+
+document.addEventListener('click', e => {
+  if (!e.target.closest('.autocomplete')) closeSuggestDropdown()
+})
+
+function fetchSuggestions(q) {
+  const url = `${API_BASE}/movies/suggest?q=${encodeURIComponent(q)}&field=${currentField}`
+  showSuggestLoading()
+  fetch(url)
+    .then(res => {
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      return res.json()
+    })
+    .then(data => renderSuggestResults(data, q))
+    .catch(err => showSuggestError(err.message))
+}
+
+function renderSuggestResults(items, q) {
+  if (items.length === 0) {
+    suggestDropdown.innerHTML = `<div class="status">Sin sugerencias para "<strong>${escapeHtml(q)}</strong>"</div>`
+    suggestDropdown.classList.add('open')
+    return
+  }
+
+  suggestDropdown.innerHTML = items.map(item =>
+    `<div class="item" data-value="${escapeHtml(item)}">${escapeHtml(item)}</div>`
+  ).join('')
+  suggestDropdown.classList.add('open')
+
+  suggestDropdown.querySelectorAll('.item').forEach(el => {
+    el.addEventListener('click', () => {
+      suggestInput.value = el.dataset.value
+      closeSuggestDropdown()
+      fetchSuggestMovies(el.dataset.value)
+    })
+  })
+}
+
+function showSuggestLoading() {
+  suggestDropdown.innerHTML = '<div class="status">Buscando…</div>'
+  suggestDropdown.classList.add('open')
+}
+
+function showSuggestError(msg) {
+  suggestDropdown.innerHTML = `<div class="status error">Error: ${escapeHtml(msg)}</div>`
+  suggestDropdown.classList.add('open')
+}
+
+function closeSuggestDropdown() {
+  suggestDropdown.classList.remove('open')
+  suggestDropdown.innerHTML = ''
+}
+
+function fetchSuggestMovies(value) {
+  const key = queryKeys[currentField]
+  const url = `${API_BASE}/movies?${key}=${encodeURIComponent(value)}`
+  showSuggestResultsLoading()
+  fetch(url)
+    .then(res => {
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      return res.json()
+    })
+    .then(data => renderSuggestMovies(data, value))
+    .catch(err => showSuggestResultsError(err.message))
+}
+
+function renderSuggestMovies(data, value) {
+  if (data.data.length === 0) {
+    showSuggestResultsEmpty(value)
+    return
+  }
+
+  const label = fieldLabels[currentField]
+  const header = `<div class="results-header">${data.meta.total} película(s) encontradas para ${label}: "${escapeHtml(value)}"</div>`
+  const cards = data.data.map(m => `
+    <div class="movie-card">
+      <div class="row1">
+        <span class="title">${escapeHtml(m.title)}</span>
+        <span class="year">(${m.year})</span>
+      </div>
+      <div class="row2">
+        <span class="rating">★ ${m.rating}</span>
+        <span class="director">${escapeHtml(m.director)}</span>
+        <span class="genres">${m.genres.map(g => `<span>${escapeHtml(g)}</span>`).join('')}</span>
+      </div>
+    </div>
+  `).join('')
+
+  suggestResults.innerHTML = header + cards
+  suggestResults.classList.add('open')
+}
+
+function showSuggestResultsLoading() {
+  suggestResults.innerHTML = '<div class="results-status">Buscando películas…</div>'
+  suggestResults.classList.add('open')
+}
+
+function showSuggestResultsEmpty(value) {
+  const label = fieldLabels[currentField]
+  suggestResults.innerHTML = `<div class="results-status">Sin películas para ${label}: "${escapeHtml(value)}"</div>`
+  suggestResults.classList.add('open')
+}
+
+function showSuggestResultsError(msg) {
+  suggestResults.innerHTML = `<div class="results-status" style="color:#ef5350;">Error: ${escapeHtml(msg)}</div>`
+  suggestResults.classList.add('open')
+}
+
+function escapeHtml(str) {
+  const div = document.createElement('div')
+  div.textContent = str
+  return div.innerHTML
+}
+</script>
+</body>
+</html>
