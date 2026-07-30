@@ -149,6 +149,12 @@ class MovieRepository {
         return result[0].id
     }
 
+    async findRandomBatch(query: RandomMovieQueryDTO){
+        
+
+
+    }
+
     async suggest(query: SuggestQueryDTO): Promise<string[]>{
 
         const {sql, params, column} = MovieQueryBuilder.buildSuggest(query)

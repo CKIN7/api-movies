@@ -110,6 +110,16 @@ class MovieService {
         }
     }
 
+    async findRandomBatch(params: RandomMovieQueryDTO){
+        try {
+            
+        } catch (error) {
+            if (error instanceof AppError) throw error
+            logger.error(`Error en findRandom: ${(error as Error).message}`)
+            throw new AppError('Error al obtener películas aleatorias', 500)
+        }
+    }
+
     async suggest(dto: SuggestQueryDTO){
         try {
             
