@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Suggest — Prueba Manual</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #111;
+    display: flex;
+    justify-content: center;
+    padding-top: 80px;
+    min-height: 100vh;
+  }
+  .container { width: 420px; }
+
+  h1 { font-size: 1.2rem; color: #eee; margin-bottom: 20px; text-align: center; }
+
+  .tabs { display: flex; gap: 4px; margin-bottom: 12px; }
+  .tab {
+    flex: 1; padding: 8px 0; border: 1px solid #444;
+    background: #222; cursor: pointer; font-size: 0.85rem;
+    border-radius: 6px; transition: all .15s; text-align: center; color: #aaa;
+  }
+  .tab:hover { background: #333; }
+  .tab.active { background: #0066cc; color: #fff; border-color: #0066cc; }
+
+  .autocomplete { position: relative; }
+  .autocomplete input {
+    width: 100%; padding: 12px 14px; font-size: 1rem; color: #eee;
+    border: 2px solid #444; border-radius: 8px; outline: none; background: #1a1a1a;
+    transition: border-color .15s;
+  }
+  .autocomplete input:focus { border-color: #0066cc; }
+  .autocomplete input::placeholder { color: #666; }
+
+  .dropdown {
+    position: absolute; top: 100%; left: 0; right: 0;
+    background: #1a1a1a; border: 1px solid #444; border-radius: 0 0 8px 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,.5); z-index: 10;
+    max-height: 240px; overflow-y: auto; display: none;
+  }
+  .dropdown.open { display: block; }
+
+  .dropdown .item {
+    padding: 10px 14px; cursor: pointer; font-size: 0.9rem; color: #ccc;
+    border-bottom: 1px solid #2a2a2a; transition: background .1s;
+  }
+  .dropdown .item:last-child { border-bottom: none; }
+  .dropdown .item:hover { background: #0d2b4e; }
+
+  .dropdown .status {
+    padding: 14px; text-align: center; color: #888; font-size: 0.85rem;
+  }
+  .dropdown .status.error { color: #ef5350; }
+
+  .hint { margin-top: 24px; padding: 12px; background: #1e1e1e; border-radius: 8px; font-size: 0.8rem; color: #aaa; border: 1px solid #333; }
+  .hint code { background: #2a2a2a; padding: 1px 4px; border-radius: 3px; color: #ccc; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>🔍 Suggest — Prueba Manual</h1>
+
+  <div class="tabs" id="tabs">
+    <button class="tab active" data-field="title">Título</button>
+    <button class="tab" data-field="director">Director</button>
+    <button class="tab" data-field="genre">Género</button>
+  </div>
+
+  <div class="autocomplete">
+    <input type="text" id="input" placeholder="Escribí un título…" autocomplete="off">
+    <div class="dropdown" id="dropdown"></div>
+  </div>
+
+  <div class="hint">
+    Escribe al menos 3 caracteres. El debounce de 300ms dispara el request.
+    Prueba <code>Inc</code>, <code>The</code>, <code>Dark</code> en título;
+    <code>Christ</code>, <code>Frank</code> en director;
+    <code>act</code>, <code>sci</code>, <code>dra</code> en género.
+  </div>
+</div>
+
+<script>
+const API_BASE = 'http://localhost:8089'
+
+const input = document.getElementById('input')
+const dropdown = document.getElementById('dropdown')
+const tabs = document.querySelectorAll('.tab')
+
+let currentField = 'title'
+let timer = null
+
+const placeholders = {
+  title: 'Escribe un título…',
+  director: 'Escribe un director…',
+  genre: 'Escribe un género…',
+}
+
+tabs.forEach(tab => {
+  tab.addEventListener('click', () => {
+    tabs.forEach(t => t.classList.remove('active'))
+    tab.classList.add('active')
+    currentField = tab.dataset.field
+    input.placeholder = placeholders[currentField]
+    input.value = ''
+    closeDropdown()
+  })
+})
+
+input.addEventListener('input', () => {
+  clearTimeout(timer)
+  const q = input.value.trim()
+
+  if (q.length < 3) {
+    closeDropdown()
+    return
+  }
+
+  timer = setTimeout(() => fetchSuggestions(q), 300)
+})
+
+input.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeDropdown()
+})
+
+document.addEventListener('click', e => {
+  if (!e.target.closest('.autocomplete')) closeDropdown()
+})
+
+function fetchSuggestions(q) {
+  const url = `${API_BASE}/movies/suggest?q=${encodeURIComponent(q)}&field=${currentField}`
+  showLoading()
+
+  fetch(url)
+    .then(res => {
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      return res.json()
+    })
+    .then(data => renderResults(data, q))
+    .catch(err => showError(err.message))
+}
+
+function renderResults(items, q) {
+  if (items.length === 0) {
+    dropdown.innerHTML = `<div class="status">Sin sugerencias para "<strong>${escapeHtml(q)}</strong>"</div>`
+    dropdown.classList.add('open')
+    return
+  }
+
+  dropdown.innerHTML = items.map(item =>
+    `<div class="item" data-value="${escapeHtml(item)}">${escapeHtml(item)}</div>`
+  ).join('')
+  dropdown.classList.add('open')
+
+  dropdown.querySelectorAll('.item').forEach(el => {
+    el.addEventListener('click', () => {
+      input.value = el.dataset.value
+      closeDropdown()
+    })
+  })
+}
+
+function showLoading() {
+  dropdown.innerHTML = '<div class="status">Buscando…</div>'
+  dropdown.classList.add('open')
+}
+
+function showError(msg) {
+  dropdown.innerHTML = `<div class="status error">Error: ${escapeHtml(msg)}</div>`
+  dropdown.classList.add('open')
+}
+
+function closeDropdown() {
+  dropdown.classList.remove('open')
+  dropdown.innerHTML = ''
+}
+
+function escapeHtml(str) {
+  const div = document.createElement('div')
+  div.textContent = str
+  return div.innerHTML
+}
+</script>
+</body>
+</html>
