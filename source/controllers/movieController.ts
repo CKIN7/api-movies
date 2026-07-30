@@ -57,6 +57,11 @@ class MovieController {
 
     }
 
+    getGenres = async (_req: Request, resp: Response) => {
+        const genres = await this.movieService.getAllGenres()
+        resp.json(genres)
+    }
+
     getSuggest = async (req: Request, resp: Response) => {
         const filters = suggestQuerySchema.parse(req.query)
 

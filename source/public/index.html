@@ -163,6 +163,9 @@
       <label>Rating min
         <input type="number" id="filter-minRating" placeholder="0" min="0" max="10" step="0.1">
       </label>
+      <label>Count
+        <input type="number" id="filter-count" value="12" min="1" max="50">
+      </label>
       <button class="btn" id="btn-refresh">Refrescar</button>
     </div>
 
@@ -202,7 +205,6 @@
 
 <script>
 const API_BASE = 'http://localhost:8089'
-const CAROUSEL_COUNT = 12
 
 // ── Carousel ──
 const sliderViewport = document.getElementById('slider-viewport')
@@ -217,13 +219,14 @@ const filterGenre = document.getElementById('filter-genre')
 const filterMinYear = document.getElementById('filter-minYear')
 const filterMaxYear = document.getElementById('filter-maxYear')
 const filterMinRating = document.getElementById('filter-minRating')
+const filterCount = document.getElementById('filter-count')
 
 let movies = []
 let currentIndex = 0
 
 // Cargar lista de géneros para el dropdown
-fetch(`${API_BASE}/movies/suggest?field=genre&q=a&limit=50`)
-  .then(r => r.json())
+fetch(`${API_BASE}/movies/genres`)
+  .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json() })
   .then(genres => {
     genres.forEach(g => {
       const opt = document.createElement('option')
@@ -240,10 +243,12 @@ function getFilters() {
   const minYear = filterMinYear.value
   const maxYear = filterMaxYear.value
   const minRating = filterMinRating.value
+  const count = filterCount.value
   if (genre) params.genre = genre
   if (minYear) params.minYear = Number(minYear)
   if (maxYear) params.maxYear = Number(maxYear)
   if (minRating) params.minRating = Number(minRating)
+  if (count) params.count = Number(count)
   return params
 }
 
@@ -254,7 +259,7 @@ function fetchCarousel() {
   if (filters.minYear) params.set('minYear', String(filters.minYear))
   if (filters.maxYear) params.set('maxYear', String(filters.maxYear))
   if (filters.minRating) params.set('minRating', String(filters.minRating))
-  params.set('count', String(CAROUSEL_COUNT))
+  if (filters.count) params.set('count', String(filters.count))
 
   sliderStatus.textContent = 'Cargando...'
   sliderStatus.className = 'status-msg'

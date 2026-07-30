@@ -127,6 +127,10 @@ class MovieService {
         }
     }
 
+    async getAllGenres(): Promise<string[]> {
+        return this.genreRepo.findAll()
+    }
+
     async suggest(dto: SuggestQueryDTO){
         try {
             
