@@ -58,6 +58,27 @@
 
   .hint { margin-top: 24px; padding: 12px; background: #1e1e1e; border-radius: 8px; font-size: 0.8rem; color: #aaa; border: 1px solid #333; }
   .hint code { background: #2a2a2a; padding: 1px 4px; border-radius: 3px; color: #ccc; }
+
+  .results { margin-top: 20px; display: none; }
+  .results.open { display: block; }
+  .results-header { color: #888; font-size: 0.75rem; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px; }
+
+  .movie-card {
+    background: #1a1a1a; border: 1px solid #333; border-radius: 8px;
+    padding: 14px; margin-bottom: 8px; transition: border-color .15s;
+  }
+  .movie-card:hover { border-color: #555; }
+
+  .movie-card .row1 { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 4px; }
+  .movie-card .title { color: #eee; font-weight: 600; font-size: 0.95rem; }
+  .movie-card .year  { color: #888; font-size: 0.8rem; }
+  .movie-card .row2 { display: flex; gap: 12px; font-size: 0.8rem; color: #aaa; }
+  .movie-card .director { color: #8ab4f8; }
+  .movie-card .rating { color: #fdd835; }
+  .movie-card .genres { color: #888; }
+  .movie-card .genres span { background: #2a2a2a; padding: 1px 6px; border-radius: 4px; margin-right: 4px; }
+
+  .results-status { text-align: center; color: #888; font-size: 0.85rem; padding: 30px 0; }
 </style>
 </head>
 <body>
@@ -75,6 +96,8 @@
     <div class="dropdown" id="dropdown"></div>
   </div>
 
+  <div class="results" id="results"></div>
+
   <div class="hint">
     Escribe al menos 3 caracteres. El debounce de 300ms dispara el request.
     Prueba <code>Inc</code>, <code>The</code>, <code>Dark</code> en título;
@@ -88,6 +111,7 @@ const API_BASE = 'http://localhost:8089'
 
 const input = document.getElementById('input')
 const dropdown = document.getElementById('dropdown')
+const results = document.getElementById('results')
 const tabs = document.querySelectorAll('.tab')
 
 let currentField = 'title'
@@ -97,6 +121,18 @@ const placeholders = {
   title: 'Escribe un título…',
   director: 'Escribe un director…',
   genre: 'Escribe un género…',
+}
+
+const queryKeys = {
+  title: 'title',
+  director: 'director',
+  genre: 'genre',
+}
+
+const fieldLabels = {
+  title: 'Título',
+  director: 'Director',
+  genre: 'Género',
 }
 
 tabs.forEach(tab => {
@@ -123,7 +159,14 @@ input.addEventListener('input', () => {
 })
 
 input.addEventListener('keydown', e => {
-  if (e.key === 'Escape') closeDropdown()
+  if (e.key === 'Escape') { closeDropdown(); return }
+  if (e.key === 'Enter') {
+    const q = input.value.trim()
+    if (q.length >= 3) {
+      closeDropdown()
+      fetchMovies(q)
+    }
+  }
 })
 
 document.addEventListener('click', e => {
@@ -159,6 +202,7 @@ function renderResults(items, q) {
     el.addEventListener('click', () => {
       input.value = el.dataset.value
       closeDropdown()
+      fetchMovies(el.dataset.value)
     })
   })
 }
@@ -176,6 +220,62 @@ function showError(msg) {
 function closeDropdown() {
   dropdown.classList.remove('open')
   dropdown.innerHTML = ''
+}
+
+function fetchMovies(value) {
+  const key = queryKeys[currentField]
+  const url = `${API_BASE}/movies?${key}=${encodeURIComponent(value)}`
+  showResultsLoading()
+
+  fetch(url)
+    .then(res => {
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      return res.json()
+    })
+    .then(data => renderMovies(data, value))
+    .catch(err => showResultsError(err.message))
+}
+
+function renderMovies(data, value) {
+  if (data.data.length === 0) {
+    showResultsEmpty(value)
+    return
+  }
+
+  const label = fieldLabels[currentField]
+  const header = `<div class="results-header">${data.meta.total} película(s) encontradas para ${label}: "${escapeHtml(value)}"</div>`
+  const cards = data.data.map(m => `
+    <div class="movie-card">
+      <div class="row1">
+        <span class="title">${escapeHtml(m.title)}</span>
+        <span class="year">(${m.year})</span>
+      </div>
+      <div class="row2">
+        <span class="rating">★ ${m.rating}</span>
+        <span class="director">${escapeHtml(m.director)}</span>
+        <span class="genres">${m.genres.map(g => `<span>${escapeHtml(g)}</span>`).join('')}</span>
+      </div>
+    </div>
+  `).join('')
+
+  results.innerHTML = header + cards
+  results.classList.add('open')
+}
+
+function showResultsLoading() {
+  results.innerHTML = '<div class="results-status">Buscando películas…</div>'
+  results.classList.add('open')
+}
+
+function showResultsEmpty(value) {
+  const label = fieldLabels[currentField]
+  results.innerHTML = `<div class="results-status">Sin películas para ${label}: "${escapeHtml(value)}"</div>`
+  results.classList.add('open')
+}
+
+function showResultsError(msg) {
+  results.innerHTML = `<div class="results-status" style="color:#ef5350;">Error: ${escapeHtml(msg)}</div>`
+  results.classList.add('open')
 }
 
 function escapeHtml(str) {
