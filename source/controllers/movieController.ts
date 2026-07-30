@@ -47,8 +47,14 @@ class MovieController {
             return resp.status(400).json({ error: parsed.error.message })
         }
 
-        const result = await this.movieService.findRandom(parsed.data)
-        resp.json(result)
+        if(parsed.data.count !== undefined){
+            const randomMovies = await this.movieService.findRandomBatch(parsed.data)
+            resp.json(randomMovies)
+        } else {
+            const randomMovie = await this.movieService.findRandom(parsed.data)
+            resp.json(randomMovie)
+        }
+
     }
 
     getSuggest = async (req: Request, resp: Response) => {
