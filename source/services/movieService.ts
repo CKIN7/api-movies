@@ -115,7 +115,7 @@ class MovieService {
             const ids = await this.movieRepo.findRandomIds(params)
             if(ids.length === 0) throw new AppError('No se encontraron películas con esos filtros', 404);
 
-
+            const randomMovies = await this.movieRepo.findByIds(ids)
             
         } catch (error) {
             if (error instanceof AppError) throw error

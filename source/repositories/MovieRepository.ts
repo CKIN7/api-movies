@@ -150,10 +150,28 @@ class MovieRepository {
         return result
     }
 
-    async findRandomBatch(query: number[]){
+    async findByIds(ids: number[]): Promise<MovieRow[]> {
+        if (ids.length === 0) return []
         
-
-
+        const placeholders = ids.map(() => '?').join(',')
+        const sql = `
+            SELECT m.id, m.title, m.year, d.director_name AS director,
+                   m.rating, m.duration, m.plot, m.poster, m.age_rating,
+                   GROUP_CONCAT(DISTINCT g.genre_name ORDER BY g.genre_name SEPARATOR ', ') AS genres,
+                   GROUP_CONCAT(DISTINCT CONCAT(a.actor_name, '||', ma.character_name)
+                       ORDER BY a.actor_name SEPARATOR '|||') AS \`cast\`
+            FROM movies m
+            JOIN directors d ON m.id_director = d.director_id
+            JOIN movie_genres mg ON m.id = mg.movie_id
+            JOIN genres g ON mg.genre_id = g.id_genre
+            LEFT JOIN movie_actors ma ON m.id = ma.movie_id
+            LEFT JOIN actors a ON ma.actor_id = a.actor_id
+            WHERE m.id IN (${placeholders})
+            GROUP BY m.id
+            ORDER BY FIELD(m.id, ${placeholders})
+        `
+        const [rows] = await this.query(sql, [...ids, ...ids])
+        return rows as MovieRow[]
     }
 
     async suggest(query: SuggestQueryDTO): Promise<string[]>{
