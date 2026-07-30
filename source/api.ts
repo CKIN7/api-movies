@@ -34,6 +34,7 @@ export function createApp(movieService?: MovieService) {
     app.disable('x-powered-by')
     app.use(express.json())
     app.use(requestLogger)
+    app.use(express.static('public'))
 
     const conn = connection
 
