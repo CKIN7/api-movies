@@ -129,10 +129,12 @@ class MovieRepository {
         return { rows: rows as SimilarMovieRow[], total }
     }
 
-    async findRandom (query: RandomMovieQueryDTO): Promise<number | null> {
+    async findRandomIds (query: RandomMovieQueryDTO): Promise<number[]> {
+        const count = query.count ?? 1
         let sql = `SELECT m.id FROM movies m`
         
         const {conditions, params} = new MovieQueryBuilder(query).buildRandom()
+        params.push(count)
 
         if(conditions.length > 0){
             const where = ` WHERE ${conditions.join(' AND ')}`
@@ -140,16 +142,15 @@ class MovieRepository {
         }
 
         sql += ` ORDER BY RAND()
-                LIMIT 1;`        
+                LIMIT ?;`
         const [rows] = await this.query(sql, params)
 
-        const result = rows as { id: number }[]
+        const result = rows.map((row: { id: number }) => row.id)
         
-        if (result.length === 0) return null
-        return result[0].id
+        return result
     }
 
-    async findRandomBatch(query: RandomMovieQueryDTO){
+    async findRandomBatch(query: number[]){
         
 
 

@@ -89,15 +89,15 @@ class MovieService {
 
     async findRandom(params: RandomMovieQueryDTO){
         try {
-            const id = await this.movieRepo.findRandom({
+            const id = await this.movieRepo.findRandomIds({
                 genre: params.genre,
                 minYear: params.minYear,
                 maxYear: params.maxYear,
                 minRating: params.minRating})      
 
-            if(!id) throw new AppError('No se encontraron películas con esos filtros', 404);
+            if(id.length === 0) throw new AppError('No se encontraron películas con esos filtros', 404);
             
-            const randomMovie = await this.movieRepo.findById(id)
+            const randomMovie = await this.movieRepo.findById(id[0])
 
             if(!randomMovie) throw new AppError('La película seleccionada ya no está disponible', 404)
             
@@ -112,6 +112,10 @@ class MovieService {
 
     async findRandomBatch(params: RandomMovieQueryDTO){
         try {
+            const ids = await this.movieRepo.findRandomIds(params)
+            if(ids.length === 0) throw new AppError('No se encontraron películas con esos filtros', 404);
+
+
             
         } catch (error) {
             if (error instanceof AppError) throw error
