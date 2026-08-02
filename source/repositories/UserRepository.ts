@@ -10,7 +10,7 @@ class UserRepository {
     async findByEmail(email: string):Promise<string | null> {
         const [rows] = await this.query('SELECT email FROM users WHERE email = ?', [email]);
         
-        if(rows.length > 0) return rows.email
+        if(rows.length > 0) return rows[0].email
         return null
     }
 
