@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-const emptyToUndefined = (val: unknown) => (val === '' ? undefined : val)
+const emptyToUndefined = (val: unknown) => (typeof val === 'string' && val.trim() === '' ? undefined : val)
 
 export const movieQuerySchema = z.object({
     genre: z.preprocess(
@@ -33,7 +33,13 @@ export const movieQuerySchema = z.object({
             if (val === undefined || val === '') return undefined
             const arr = Array.isArray(val) ? val : [val]
             const valid = ['G', 'PG', 'PG-13', 'R', 'NC-17']
-            const cleaned = arr.filter((s: unknown) => typeof s === 'string' && valid.includes(s))
+            const cleaned = [...new Set(
+                arr
+                    .filter((s: unknown): s is string => typeof s === 'string')
+                    .map((s) => s.trim())
+                    .map((s) => valid.find((v) => v.toLowerCase() === s.toLowerCase()))
+                    .filter((s): s is string => s !== undefined)
+            )]
             return cleaned.length > 0 ? cleaned : undefined
         },
         z.array(z.enum(['G', 'PG', 'PG-13', 'R', 'NC-17'])).min(1).optional()

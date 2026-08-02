@@ -15,19 +15,19 @@ export const randomMovieQuerySchema = z.object({
         z.array(z.string()).min(1).max(10).optional()
     ),
     minYear: z.preprocess(
-        (val) => (val === '' ? undefined : val),
+        (val) => (typeof val === 'string' && val.trim() === '' ? undefined : val),
         z.coerce.number().int().min(1895).max(2026).optional()
     ),
     maxYear: z.preprocess(
-        (val) => (val === '' ? undefined : val),
+        (val) => (typeof val === 'string' && val.trim() === '' ? undefined : val),
         z.coerce.number().int().min(1895).max(2026).optional()
     ),
     minRating: z.preprocess(
-        (val) => (val === '' ? undefined : val),
+        (val) => (typeof val === 'string' && val.trim() === '' ? undefined : val),
         z.coerce.number().min(0).max(10).optional()
     ),
     count: z.preprocess(
-        (val) => (val === '' ? undefined : val),
+        (val) => (typeof val === 'string' && val.trim() === '' ? undefined : val),
         z.coerce.number().int().min(1).max(50).optional()
     )
 }).refine(

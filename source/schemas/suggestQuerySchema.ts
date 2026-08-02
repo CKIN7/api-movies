@@ -1,6 +1,6 @@
 import {z} from 'zod';
 
-const emptyToUndefined = (val: unknown) => (val === '' ? undefined : val)
+const emptyToUndefined = (val: unknown) => (typeof val === 'string' && val.trim() === '' ? undefined : val)
 
 export const suggestQuerySchema = z.object({
     q: z.preprocess(
