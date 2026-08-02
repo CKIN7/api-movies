@@ -10,14 +10,14 @@ beforeEach(async () => { await clearTestData(db); await seedTestData(db) })
 
 describe('UserRepository — integración real con DB', () => {
 
-    // test('create inserta un usuario y findByEmail lo recupera', async () => {
-    //     const repo = new UserRepository(db)
+    test('create inserta un usuario y findByEmail lo recupera', async () => {
+        const repo = new UserRepository(db)
 
-    //     await repo.create({ email: 'test@example.com', passwordHash: 'hash-test', role: 'user' })
+        await repo.create({ email: 'test@example.com', passwordHash: 'hash-test', role: 'user' })
 
-    //     const email = await repo.findByEmail('test@example.com')
-    //     expect(email).toBe('test@example.com')
-    // })
+        const email = await repo.findByEmail('test@example.com')
+        expect(email).toBe('test@example.com')
+    })
 
     test('findByEmail devuelve el email', async () => {
         const repo = new UserRepository(db)

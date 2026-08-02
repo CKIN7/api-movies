@@ -1,4 +1,6 @@
+import { InsertUserParams } from "../types/user";
 import { DbLogger } from "../utils/DbLogger";
+import { randomUUID } from 'crypto'
 
 class UserRepository {
     constructor(private conn: any) {}
@@ -14,11 +16,25 @@ class UserRepository {
         return null
     }
 
-    async findById(){
+    async findById(id: string){
+        const [rows] = await this.query('SELECT * FROM users where id = ?', [id])
 
+        if(rows.length > 0) return rows[0].id
+        return null
     }
 
-    async create(){
+    async create(params: InsertUserParams){
+        const userId = randomUUID();
+        const userRole = params.role ?? 'user'
+
+        const [rows] = await this.query(`INSERT INTO users('id', 'email', 'password_hash', 'role') VALUES(?,?,?,?)`
+            ,[userId, params.email, params.passwordHash, userRole])
+
+        return {
+            userId, 
+            email: params.email, 
+            userRole
+        }
 
     }
 }
