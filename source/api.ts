@@ -16,6 +16,11 @@ import connection from './db/connection'
 import ExportService from './services/exportService'
 import ExportController from './controllers/exportController'
 import { createExportRoutes } from './routes/exportRoutes'
+import AuthService from './services/authService'
+import UserRepository from './repositories/UserRepository'
+import RefreshTokenRepository from './repositories/RefreshTokenRepository'
+import AuthController from './controllers/authController'
+import { createAuthRoutes } from './routes/authRoutes'
 
 // ═══════════════════════════════════════════════════════════════
 //  Patrones: Dependency Injection + Factory + Chain of Resp.
@@ -43,6 +48,8 @@ export function createApp(movieService?: MovieService) {
     const genreRepo = new GenreRepository(conn)
     const auditRepo = new AuditLogRepository(conn)
     const castRepo = new CastRepository(conn)
+    const userRepository = new UserRepository(conn)
+    const refreshTokenRepository = new RefreshTokenRepository(conn)
     const _service = movieService || new MovieService(movieRepo, directorRepo, genreRepo, auditRepo, castRepo)
     const controller = new MovieController(_service)
     const router = createMovieRoutes(controller)
@@ -51,8 +58,13 @@ export function createApp(movieService?: MovieService) {
     const exportController = new ExportController(exportService)
     const exportRouter = createExportRoutes(exportController)
 
+    const authService = new AuthService(userRepository, refreshTokenRepository)
+    const authController = new AuthController(authService)
+    const authRouter = createAuthRoutes(authController)
+
     app.use('/movies', exportRouter)
     app.use('/movies', router)
+    app.use('/auth', authRouter)
 
     app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
         const statusCode = err instanceof AppError ? err.statusCode : err instanceof ZodError ? 400 : 500
