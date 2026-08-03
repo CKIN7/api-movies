@@ -43,6 +43,15 @@ class AuthService {
         }
     }
 
+    async register(params){
+        try {
+            const emailIsRegister = await this.userRepository.findByEmail(params)
+            if(!email)
+            
+        } catch (error) {
+            
+        }
+    }
 }
 
 export default AuthService
