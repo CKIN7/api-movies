@@ -43,11 +43,15 @@ class AuthService {
         }
     }
 
-    async register(params){
+    async register(email: string, password: string){
         try {
-            const emailIsRegister = await this.userRepository.findByEmail(params)
-            if(!email)
+
+            const existingUser = await this.userRepository.findByEmail(email)
+            if(existingUser) throw new AppError('El email ya está registrado', 409);
+
+            const passwordHash = await bcrypt.hash(password, 10);
             
+            return await this.userRepository.create({email, passwordHash, role: 'user' });
         } catch (error) {
             
         }
