@@ -31,7 +31,7 @@ class UserRepository {
         return null
     }
 
-    async create(params: InsertUserParams): Promise<{userId: string, email: string, userRole: string}>{
+    async create(params: InsertUserParams): Promise<{id: string, email: string, role: string}>{
         const userId = randomUUID();
         const userRole = params.role ?? 'user'
 
@@ -39,9 +39,9 @@ class UserRepository {
             ,[userId, params.email, params.passwordHash, userRole])
 
         return {
-            userId, 
+            id: userId, 
             email: params.email, 
-            userRole
+            role: userRole
         }
 
     }
