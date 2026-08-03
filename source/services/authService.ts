@@ -53,7 +53,9 @@ class AuthService {
             
             return await this.userRepository.create({email, passwordHash, role: 'user' });
         } catch (error) {
-            
+            if (error instanceof AppError) throw error
+            logger.error(`Error en register: ${(error as Error).message}`)
+            throw new AppError('Error interno', 500)
         }
     }
 }
