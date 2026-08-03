@@ -26,33 +26,33 @@ describe('UserRepository — integración real con DB', () => {
         expect(email).toBe('admin@example.com')
     })
 
-    // test('findByEmail devuelve null si el email no existe', async () => {
-    //     const repo = new UserRepository(db)
+    test('findByEmail devuelve null si el email no existe', async () => {
+        const repo = new UserRepository(db)
 
-    //     const email = await repo.findByEmail('nadie@example.com')
-    //     expect(email).toBeNull()
-    // })
+        const email = await repo.findByEmail('nadie@example.com')
+        expect(email).toBeNull()
+    })
 
-    // test('findByEmail distingue entre usuarios distintos', async () => {
-    //     const repo = new UserRepository(db)
+    test('findByEmail distingue entre usuarios distintos', async () => {
+        const repo = new UserRepository(db)
 
-    //     // await repo.create({ email: 'a@example.com', passwordHash: 'hash-a', role: 'user' })
-    //     // await repo.create({ email: 'b@example.com', passwordHash: 'hash-b', role: 'user' })
+        await repo.create({ email: 'a@example.com', passwordHash: 'hash-a', role: 'user' })
+        await repo.create({ email: 'b@example.com', passwordHash: 'hash-b', role: 'user' })
 
-    //     expect(await repo.findByEmail('a@example.com')).toBe('a@example.com')
-    //     expect(await repo.findByEmail('b@example.com')).toBe('b@example.com')
-    //     expect(await repo.findByEmail('c@example.com')).toBeNull()
-    // })
+        expect(await repo.findByEmail('a@example.com')).toBe('a@example.com')
+        expect(await repo.findByEmail('b@example.com')).toBe('b@example.com')
+        expect(await repo.findByEmail('c@example.com')).toBeNull()
+    })
 
-    // test('findById devuelve el email del usuario por su id', async () => {
-    //     const repo = new UserRepository(db)
+    test('findById devuelve el email del usuario por su id', async () => {
+        const repo = new UserRepository(db)
 
-    //     await repo.create({ email: 'porid@example.com', passwordHash: 'hash-id', role: 'user' })
+        await repo.create({ email: 'porid@example.com', passwordHash: 'hash-id', role: 'user' })
 
-    //     const [rows] = await db.query('SELECT id FROM users WHERE email = ?', ['porid@example.com']) as any
-    //     const id = rows[0].id
+        const [rows] = await db.query('SELECT id FROM users WHERE email = ?', ['porid@example.com']) as any
+        const id = rows[0].id
 
-    //     const email = await repo.findById(id)
-    //     expect(email).toBe('porid@example.com')
-    // })
+        const email = await repo.findById(id)
+        expect(email).toBe('porid@example.com')
+    })
 })

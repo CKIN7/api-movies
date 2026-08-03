@@ -16,18 +16,18 @@ class UserRepository {
         return null
     }
 
-    async findById(id: string){
+    async findById(id: string):Promise<string | null> {
         const [rows] = await this.query('SELECT * FROM users where id = ?', [id])
 
-        if(rows.length > 0) return rows[0].id
+        if(rows.length > 0) return rows[0].email
         return null
     }
 
-    async create(params: InsertUserParams){
+    async create(params: InsertUserParams): Promise<{userId: string, email: string, userRole: string}>{
         const userId = randomUUID();
         const userRole = params.role ?? 'user'
 
-        const [rows] = await this.query(`INSERT INTO users('id', 'email', 'password_hash', 'role') VALUES(?,?,?,?)`
+        const [rows] = await this.query(`INSERT INTO users(id, email, password_hash, role) VALUES(?,?,?,?)`
             ,[userId, params.email, params.passwordHash, userRole])
 
         return {
