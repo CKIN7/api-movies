@@ -11,3 +11,5 @@ export interface InsertUserParams {
     passwordHash: string
     role: string
 }
+
+export const DEFAULT_ROLE = 'user' as const

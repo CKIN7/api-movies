@@ -4,6 +4,7 @@ import AppError from "../utils/AppError";
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import logger from "../utils/logger";
+import { DEFAULT_ROLE } from "../types/user";
 
 class AuthService {
     constructor(
@@ -38,7 +39,7 @@ class AuthService {
             }
         } catch (error) {
             if (error instanceof AppError) throw error
-            logger.error(`Error en findRandom: ${(error as Error).message}`)
+            logger.error(`Error en login: ${(error as Error).message}`)
             throw new AppError('Error interno', 500)
         }
     }
@@ -51,7 +52,7 @@ class AuthService {
 
             const passwordHash = await bcrypt.hash(password, 10);
             
-            return await this.userRepository.create({email, passwordHash, role: 'user' });
+            return await this.userRepository.create({email, passwordHash, role: DEFAULT_ROLE });
         } catch (error) {
             if (error instanceof AppError) throw error
             logger.error(`Error en register: ${(error as Error).message}`)
