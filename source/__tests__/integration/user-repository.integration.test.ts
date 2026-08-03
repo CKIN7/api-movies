@@ -15,22 +15,29 @@ describe('UserRepository — integración real con DB', () => {
 
         await repo.create({ email: 'test@example.com', passwordHash: 'hash-test', role: 'user' })
 
-        const email = await repo.findByEmail('test@example.com')
-        expect(email).toBe('test@example.com')
+        const row = await repo.findByEmail('test@example.com')
+        expect(row).not.toBeNull()
+        expect(row!.email).toBe('test@example.com')
+        expect(row!.passwordHash).toBe('hash-test')
+        expect(row!.role).toBe('user')
+        expect(row!.id).toBeDefined()
     })
 
-    test('findByEmail devuelve el email', async () => {
+    test('findByEmail devuelve la fila completa', async () => {
         const repo = new UserRepository(db)
 
-        const email = await repo.findByEmail('admin@example.com')
-        expect(email).toBe('admin@example.com')
+        const row = await repo.findByEmail('admin@example.com')
+        expect(row).not.toBeNull()
+        expect(row!.email).toBe('admin@example.com')
+        expect(row!.role).toBeDefined()
+        expect(row!.passwordHash).toBeDefined()
     })
 
     test('findByEmail devuelve null si el email no existe', async () => {
         const repo = new UserRepository(db)
 
-        const email = await repo.findByEmail('nadie@example.com')
-        expect(email).toBeNull()
+        const row = await repo.findByEmail('nadie@example.com')
+        expect(row).toBeNull()
     })
 
     test('findByEmail distingue entre usuarios distintos', async () => {
@@ -39,8 +46,12 @@ describe('UserRepository — integración real con DB', () => {
         await repo.create({ email: 'a@example.com', passwordHash: 'hash-a', role: 'user' })
         await repo.create({ email: 'b@example.com', passwordHash: 'hash-b', role: 'user' })
 
-        expect(await repo.findByEmail('a@example.com')).toBe('a@example.com')
-        expect(await repo.findByEmail('b@example.com')).toBe('b@example.com')
+        const a = await repo.findByEmail('a@example.com')
+        const b = await repo.findByEmail('b@example.com')
+        expect(a).not.toBeNull()
+        expect(b).not.toBeNull()
+        expect(a!.email).toBe('a@example.com')
+        expect(b!.email).toBe('b@example.com')
         expect(await repo.findByEmail('c@example.com')).toBeNull()
     })
 
