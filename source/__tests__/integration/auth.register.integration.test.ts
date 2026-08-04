@@ -70,6 +70,39 @@ describe('POST /auth/register (integración real con DB)', () => {
         expect(res.body.error).toBeDefined()
     })
 
+    test('registro ignora el role enviado en el body y siempre crea role user', async () => {
+        const app = createApp()
+
+        const res = await request(app)
+            .post('/auth/register')
+            .send({ email: 'privilegios@example.com', password: 'Password123!', role: 'admin' })
+
+        expect(res.status).toBe(201)
+        expect(res.body.role).toBe('user')
+    })
+
+    test('registro normaliza el email (trim + lowercase) y lo devuelve limpio', async () => {
+        const app = createApp()
+
+        const res = await request(app)
+            .post('/auth/register')
+            .send({ email: '  Nuevo@Example.COM  ', password: 'Password123!' })
+
+        expect(res.status).toBe(201)
+        expect(res.body.email).toBe('nuevo@example.com')
+    })
+
+    test('registro con el mismo email pero distinto casing devuelve 409', async () => {
+        const app = createApp()
+
+        const res = await request(app)
+            .post('/auth/register')
+            .send({ email: 'Admin@Example.COM', password: 'Password123!' })
+
+        expect(res.status).toBe(409)
+        expect(res.body.error).toBeDefined()
+    })
+
     test('el usuario registrado puede loguear después (register → login)', async () => {
         const app = createApp()
 

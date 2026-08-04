@@ -1,6 +1,6 @@
 import {z} from 'zod';
 
-const emailSchema = z.string()
+export const emailSchema = z.string()
     .trim()
     .toLowerCase()
     .pipe(z.email())
