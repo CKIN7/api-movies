@@ -33,15 +33,14 @@ class UserRepository {
 
     async create(params: InsertUserParams): Promise<{id: string, email: string, role: string}>{
         const userId = randomUUID();
-        const userRole = params.role ?? 'user'
 
         const [rows] = await this.query(`INSERT INTO users(id, email, password_hash, role) VALUES(?,?,?,?)`
-            ,[userId, params.email, params.passwordHash, userRole])
+            ,[userId, params.email, params.passwordHash, params.role])
 
         return {
             id: userId, 
             email: params.email, 
-            role: userRole
+            role: params.role
         }
 
     }
