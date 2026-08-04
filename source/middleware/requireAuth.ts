@@ -3,17 +3,24 @@ import AppError from '../utils/AppError'
 import jwt from 'jsonwebtoken'
 
 export function requireAuth(req: Request, resp: Response, next: NextFunction) {
-    const bearer = req.headers.authorization
+    const header = req.headers.authorization
 
-    if(!bearer) throw new AppError('El bearer no puede estar vacio', 401)
-    if(bearer && !bearer.startsWith('Bearer')) throw new AppError('Error', 401)
+    if(!header) throw new AppError('El bearer no puede estar vacio', 401)
+    if(!header.startsWith('Bearer ')) throw new AppError('Formato de token inválido', 401)
     
-    const token = bearer.slice(7)
-    if(!token) throw new AppError('Error', 401)
+    const token = header.slice(7)
+    if(!token) throw new AppError('Token vacío', 401)
     
-    const payload = jwt.verify(token, process.env.JWT_SECRET!) as jwt.JwtPayload
+    let payload: { sub?: string; type?: string }
+    try {
+    payload = jwt.verify(token, process.env.JWT_SECRET!) as { sub?: string; type?: string }
 
-    if(payload.type === 'refresh') throw new AppError('Error', 401)
-    
-    
+    } catch {
+      throw new AppError('Token inválido o expirado', 401) 
+    }
+    if(!payload.sub) throw new AppError('Token inválido', 401)
+    if(payload.type !== 'access') throw new AppError('Token inválido', 401)
+
+    req.user = {id: payload.sub}
+    next();
 }
