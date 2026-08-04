@@ -18,6 +18,8 @@ class AuthController {
     register = async (req: Request, resp: Response) => {
         const parsed = registerSchema.parse(req.body)
         
+        const user = await this.authService.register(parsed.email, parsed.password)
+        resp.status(201).json(user);
     }
 }
 
