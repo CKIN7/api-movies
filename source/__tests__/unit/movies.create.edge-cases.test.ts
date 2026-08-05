@@ -1,5 +1,8 @@
 import request from 'supertest'
 import { createApp } from '../../api'
+import { authHeader } from '../helpers/auth'
+
+const AUTH = authHeader()
 
 function createMockService() {
     return {
@@ -49,7 +52,7 @@ describe('POST /movies — year edge cases', () => {
         const app = createApp(service as any)
         const payload = { ...validPayload, year: 1895 }
 
-        const res = await request(app).post('/movies').send(payload)
+        const res = await request(app).post('/movies').set(AUTH).send(payload)
 
         expect(res.status).toBe(201)
         expect(res.body.message).toBe('Pelicula creada con exito')
@@ -63,7 +66,7 @@ describe('POST /movies — year edge cases', () => {
         const app = createApp(service as any)
         const payload = { ...validPayload, year: 1894 }
 
-        const res = await request(app).post('/movies').send(payload)
+        const res = await request(app).post('/movies').set(AUTH).send(payload)
 
         expect(res.status).toBe(400)
         expect(res.body).toHaveProperty('error')
@@ -76,7 +79,7 @@ describe('POST /movies — year edge cases', () => {
         const app = createApp(service as any)
         const payload = { ...validPayload, year: 2026 }
 
-        const res = await request(app).post('/movies').send(payload)
+        const res = await request(app).post('/movies').set(AUTH).send(payload)
 
         expect(res.status).toBe(201)
         expect(res.body.message).toBe('Pelicula creada con exito')
@@ -90,7 +93,7 @@ describe('POST /movies — year edge cases', () => {
         const app = createApp(service as any)
         const payload = { ...validPayload, year: 2027 }
 
-        const res = await request(app).post('/movies').send(payload)
+        const res = await request(app).post('/movies').set(AUTH).send(payload)
 
         expect(res.status).toBe(400)
         expect(res.body).toHaveProperty('error')
@@ -102,7 +105,7 @@ describe('POST /movies — year edge cases', () => {
         const app = createApp(service as any)
         const payload = { ...validPayload, year: 1999.5 }
 
-        const res = await request(app).post('/movies').send(payload)
+        const res = await request(app).post('/movies').set(AUTH).send(payload)
 
         expect(res.status).toBe(400)
         expect(res.body).toHaveProperty('error')
@@ -114,7 +117,7 @@ describe('POST /movies — year edge cases', () => {
         const app = createApp(service as any)
         const payload = { ...validPayload, year: '1999' }
 
-        const res = await request(app).post('/movies').send(payload)
+        const res = await request(app).post('/movies').set(AUTH).send(payload)
 
         expect(res.status).toBe(400)
         expect(res.body).toHaveProperty('error')
@@ -126,7 +129,7 @@ describe('POST /movies — year edge cases', () => {
         const app = createApp(service as any)
         const payload = { ...validPayload, year: -500 }
 
-        const res = await request(app).post('/movies').send(payload)
+        const res = await request(app).post('/movies').set(AUTH).send(payload)
 
         expect(res.status).toBe(400)
         expect(res.body).toHaveProperty('error')
@@ -138,7 +141,7 @@ describe('POST /movies — year edge cases', () => {
         const app = createApp(service as any)
         const payload = { ...validPayload, year: null }
 
-        const res = await request(app).post('/movies').send(payload)
+        const res = await request(app).post('/movies').set(AUTH).send(payload)
 
         expect(res.status).toBe(400)
         expect(res.body).toHaveProperty('error')
@@ -153,7 +156,7 @@ describe('POST /movies — genre edge cases', () => {
         const app = createApp(service as any)
         const payload = { ...validPayload, genre: [] }
 
-        const res = await request(app).post('/movies').send(payload)
+        const res = await request(app).post('/movies').set(AUTH).send(payload)
 
         expect(res.status).toBe(400)
         expect(res.body).toHaveProperty('error')
@@ -165,7 +168,7 @@ describe('POST /movies — genre edge cases', () => {
         const app = createApp(service as any)
         const payload = { ...validPayload, genre: [''] }
 
-        const res = await request(app).post('/movies').send(payload)
+        const res = await request(app).post('/movies').set(AUTH).send(payload)
 
         expect(res.status).toBe(400)
         expect(res.body).toHaveProperty('error')
@@ -178,7 +181,7 @@ describe('POST /movies — genre edge cases', () => {
         const app = createApp(service as any)
         const payload = { ...validPayload, genre: ['drama', 'DRAMA', 'Drama'] }
 
-        const res = await request(app).post('/movies').send(payload)
+        const res = await request(app).post('/movies').set(AUTH).send(payload)
 
         expect(res.status).toBe(201)
         expect(service.createMovie).toHaveBeenCalledWith(
@@ -193,7 +196,7 @@ describe('POST /movies — genre edge cases', () => {
         const app = createApp(service as any)
         const { genre, ...payload } = validPayload
 
-        const res = await request(app).post('/movies').send(payload)
+        const res = await request(app).post('/movies').set(AUTH).send(payload)
 
         expect(res.status).toBe(400)
         expect(res.body).toHaveProperty('error')
@@ -208,7 +211,7 @@ describe('POST /movies — rating edge cases', () => {
         const app = createApp(service as any)
         const payload = { ...validPayload, rating: 0 }
 
-        const res = await request(app).post('/movies').send(payload)
+        const res = await request(app).post('/movies').set(AUTH).send(payload)
 
         expect(res.status).toBe(201)
         expect(res.body.message).toBe('Pelicula creada con exito')
@@ -223,7 +226,7 @@ describe('POST /movies — rating edge cases', () => {
         const app = createApp(service as any)
         const payload = { ...validPayload, rating: 10 }
 
-        const res = await request(app).post('/movies').send(payload)
+        const res = await request(app).post('/movies').set(AUTH).send(payload)
 
         expect(res.status).toBe(201)
         expect(res.body.message).toBe('Pelicula creada con exito')
@@ -234,7 +237,7 @@ describe('POST /movies — rating edge cases', () => {
         const app = createApp(service as any)
         const payload = { ...validPayload, rating: -0.01 }
 
-        const res = await request(app).post('/movies').send(payload)
+        const res = await request(app).post('/movies').set(AUTH).send(payload)
 
         expect(res.status).toBe(400)
         expect(res.body).toHaveProperty('error')
@@ -246,7 +249,7 @@ describe('POST /movies — rating edge cases', () => {
         const app = createApp(service as any)
         const payload = { ...validPayload, rating: 10.1 }
 
-        const res = await request(app).post('/movies').send(payload)
+        const res = await request(app).post('/movies').set(AUTH).send(payload)
 
         expect(res.status).toBe(400)
         expect(res.body).toHaveProperty('error')
@@ -259,7 +262,7 @@ describe('POST /movies — rating edge cases', () => {
         const app = createApp(service as any)
         const { rating, ...payload } = validPayload
 
-        const res = await request(app).post('/movies').send(payload)
+        const res = await request(app).post('/movies').set(AUTH).send(payload)
 
         expect(res.status).toBe(201)
         expect(res.body.message).toBe('Pelicula creada con exito')
@@ -277,7 +280,7 @@ describe('POST /movies — duration edge cases', () => {
         const app = createApp(service as any)
         const payload = { ...validPayload, duration: 1 }
 
-        const res = await request(app).post('/movies').send(payload)
+        const res = await request(app).post('/movies').set(AUTH).send(payload)
 
         expect(res.status).toBe(201)
         expect(res.body.message).toBe('Pelicula creada con exito')
@@ -288,7 +291,7 @@ describe('POST /movies — duration edge cases', () => {
         const app = createApp(service as any)
         const payload = { ...validPayload, duration: 0 }
 
-        const res = await request(app).post('/movies').send(payload)
+        const res = await request(app).post('/movies').set(AUTH).send(payload)
 
         expect(res.status).toBe(400)
         expect(res.body).toHaveProperty('error')
@@ -300,7 +303,7 @@ describe('POST /movies — duration edge cases', () => {
         const app = createApp(service as any)
         const payload = { ...validPayload, duration: -10 }
 
-        const res = await request(app).post('/movies').send(payload)
+        const res = await request(app).post('/movies').set(AUTH).send(payload)
 
         expect(res.status).toBe(400)
         expect(res.body).toHaveProperty('error')
@@ -312,7 +315,7 @@ describe('POST /movies — duration edge cases', () => {
         const app = createApp(service as any)
         const payload = { ...validPayload, duration: 120.5 }
 
-        const res = await request(app).post('/movies').send(payload)
+        const res = await request(app).post('/movies').set(AUTH).send(payload)
 
         expect(res.status).toBe(400)
         expect(res.body).toHaveProperty('error')
@@ -327,7 +330,7 @@ describe('POST /movies — poster edge cases', () => {
         const app = createApp(service as any)
         const payload = { ...validPayload, poster: 'not-a-url' }
 
-        const res = await request(app).post('/movies').send(payload)
+        const res = await request(app).post('/movies').set(AUTH).send(payload)
 
         expect(res.status).toBe(400)
         expect(res.body).toHaveProperty('error')
@@ -339,7 +342,7 @@ describe('POST /movies — poster edge cases', () => {
         const app = createApp(service as any)
         const payload = { ...validPayload, poster: '' }
 
-        const res = await request(app).post('/movies').send(payload)
+        const res = await request(app).post('/movies').set(AUTH).send(payload)
 
         expect(res.status).toBe(400)
         expect(res.body).toHaveProperty('error')
@@ -351,7 +354,7 @@ describe('POST /movies — poster edge cases', () => {
         const app = createApp(service as any)
         const { poster, ...payload } = validPayload
 
-        const res = await request(app).post('/movies').send(payload)
+        const res = await request(app).post('/movies').set(AUTH).send(payload)
 
         expect(res.status).toBe(400)
         expect(res.body).toHaveProperty('error')
@@ -365,7 +368,7 @@ describe('POST /movies — string vacíos', () => {
         const app = createApp(service as any)
         const payload = { ...validPayload, title: '' }
 
-        const res = await request(app).post('/movies').send(payload)
+        const res = await request(app).post('/movies').set(AUTH).send(payload)
 
         expect(res.status).toBe(400)
         expect(res.body).toHaveProperty('error')
@@ -378,7 +381,7 @@ describe('POST /movies — string vacíos', () => {
         const app = createApp(service as any)
         const payload = { ...validPayload, director: '' }
 
-        const res = await request(app).post('/movies').send(payload)
+        const res = await request(app).post('/movies').set(AUTH).send(payload)
 
         expect(res.status).toBe(400)
         expect(res.body).toHaveProperty('error')
@@ -392,7 +395,7 @@ describe('POST /movies — payload malformed', () => {
         const service = createMockService()
         const app = createApp(service as any)
 
-        const res = await request(app).post('/movies').send({})
+        const res = await request(app).post('/movies').set(AUTH).send({})
 
         expect(res.status).toBe(400)
         expect(res.body).toHaveProperty('error')
@@ -404,7 +407,7 @@ describe('POST /movies — payload malformed', () => {
         const app = createApp(service as any)
         const payload = { ...validPayload, extraField: 'ignorado' }
 
-        const res = await request(app).post('/movies').send(payload)
+        const res = await request(app).post('/movies').set(AUTH).send(payload)
 
         expect(res.status).toBe(201)
         expect(res.body.message).toBe('Pelicula creada con exito')
@@ -419,7 +422,7 @@ describe('POST /movies — payload malformed', () => {
         const app = createApp(service as any)
         const { available, ...payload } = validPayload
 
-        const res = await request(app).post('/movies').send(payload)
+        const res = await request(app).post('/movies').set(AUTH).send(payload)
 
         expect(res.status).toBe(201)
         expect(res.body.message).toBe('Pelicula creada con exito')
@@ -436,7 +439,7 @@ describe('POST /movies — payload malformed', () => {
                 Object.entries(validPayload).filter(([key]) => key !== field)
             )
 
-            const res = await request(app).post('/movies').send(payload)
+            const res = await request(app).post('/movies').set(AUTH).send(payload)
 
             expect(res.status).toBe(400)
             expect(res.body).toHaveProperty('error')
@@ -453,7 +456,7 @@ describe('POST /movies — trim en strings', () => {
         const app = createApp(service as any)
         const payload = { ...validPayload, title: '  Mi Película  ' }
 
-        const res = await request(app).post('/movies').send(payload)
+        const res = await request(app).post('/movies').set(AUTH).send(payload)
 
         expect(res.status).toBe(201)
         expect(service.createMovie).toHaveBeenCalledWith(
@@ -468,7 +471,7 @@ describe('POST /movies — trim en strings', () => {
         const app = createApp(service as any)
         const payload = { ...validPayload, director: '  Nolan  ' }
 
-        const res = await request(app).post('/movies').send(payload)
+        const res = await request(app).post('/movies').set(AUTH).send(payload)
 
         expect(res.status).toBe(201)
         expect(service.createMovie).toHaveBeenCalledWith(
@@ -484,7 +487,7 @@ describe('POST /movies — bloqueo de etiquetas HTML', () => {
         const app = createApp(service as any)
         const payload = { ...validPayload, title: "<script>alert('xss')</script>" }
 
-        const res = await request(app).post('/movies').send(payload)
+        const res = await request(app).post('/movies').set(AUTH).send(payload)
 
         expect(res.status).toBe(400)
         expect(res.body).toHaveProperty('error')
@@ -496,7 +499,7 @@ describe('POST /movies — bloqueo de etiquetas HTML', () => {
         const app = createApp(service as any)
         const payload = { ...validPayload, director: '<b>Nolan</b>' }
 
-        const res = await request(app).post('/movies').send(payload)
+        const res = await request(app).post('/movies').set(AUTH).send(payload)
 
         expect(res.status).toBe(400)
         expect(res.body).toHaveProperty('error')
@@ -508,7 +511,7 @@ describe('POST /movies — bloqueo de etiquetas HTML', () => {
         const app = createApp(service as any)
         const payload = { ...validPayload, plot: '<p>html content</p>' }
 
-        const res = await request(app).post('/movies').send(payload)
+        const res = await request(app).post('/movies').set(AUTH).send(payload)
 
         expect(res.status).toBe(400)
         expect(res.body).toHaveProperty('error')
@@ -521,7 +524,7 @@ describe('POST /movies — bloqueo de etiquetas HTML', () => {
         const app = createApp(service as any)
         const payload = { ...validPayload, title: 'A & B' }
 
-        const res = await request(app).post('/movies').send(payload)
+        const res = await request(app).post('/movies').set(AUTH).send(payload)
 
         expect(res.status).toBe(201)
         expect(res.body.message).toBe('Pelicula creada con exito')
@@ -535,7 +538,7 @@ describe('POST /movies — rating decimal (.multipleOf)', () => {
         const app = createApp(service as any)
         const payload = { ...validPayload, rating: 5.55 }
 
-        const res = await request(app).post('/movies').send(payload)
+        const res = await request(app).post('/movies').set(AUTH).send(payload)
 
         expect(res.status).toBe(400)
         expect(res.body).toHaveProperty('error')
@@ -548,7 +551,7 @@ describe('POST /movies — rating decimal (.multipleOf)', () => {
         const app = createApp(service as any)
         const payload = { ...validPayload, rating: 5.5 }
 
-        const res = await request(app).post('/movies').send(payload)
+        const res = await request(app).post('/movies').set(AUTH).send(payload)
 
         expect(res.status).toBe(201)
     })
@@ -558,7 +561,7 @@ describe('POST /movies — rating decimal (.multipleOf)', () => {
         const app = createApp(service as any)
         const payload = { ...validPayload, rating: 7.89 }
 
-        const res = await request(app).post('/movies').send(payload)
+        const res = await request(app).post('/movies').set(AUTH).send(payload)
 
         expect(res.status).toBe(400)
         expect(res.body).toHaveProperty('error')
@@ -571,7 +574,7 @@ describe('POST /movies — rating decimal (.multipleOf)', () => {
         const app = createApp(service as any)
         const payload = { ...validPayload, rating: 7.9 }
 
-        const res = await request(app).post('/movies').send(payload)
+        const res = await request(app).post('/movies').set(AUTH).send(payload)
 
         expect(res.status).toBe(201)
     })
@@ -585,7 +588,7 @@ describe('POST /movies — duration max', () => {
         const app = createApp(service as any)
         const payload = { ...validPayload, duration: 300 }
 
-        const res = await request(app).post('/movies').send(payload)
+        const res = await request(app).post('/movies').set(AUTH).send(payload)
 
         expect(res.status).toBe(201)
     })
@@ -595,7 +598,7 @@ describe('POST /movies — duration max', () => {
         const app = createApp(service as any)
         const payload = { ...validPayload, duration: 1001 }
 
-        const res = await request(app).post('/movies').send(payload)
+        const res = await request(app).post('/movies').set(AUTH).send(payload)
 
         expect(res.status).toBe(400)
         expect(res.body).toHaveProperty('error')
@@ -610,7 +613,7 @@ describe('POST /movies — cantidad de géneros por película', () => {
         const app = createApp(service as any)
         const payload = { ...validPayload, genre: Array.from({ length: 11 }, (_, i) => `genre${i}`) }
 
-        const res = await request(app).post('/movies').send(payload)
+        const res = await request(app).post('/movies').set(AUTH).send(payload)
 
         expect(res.status).toBe(400)
         expect(res.body).toHaveProperty('error')
@@ -623,7 +626,7 @@ describe('POST /movies — cantidad de géneros por película', () => {
         const app = createApp(service as any)
         const payload = { ...validPayload, genre: Array.from({ length: 10 }, (_, i) => `genre${i}`) }
 
-        const res = await request(app).post('/movies').send(payload)
+        const res = await request(app).post('/movies').set(AUTH).send(payload)
 
         expect(res.status).toBe(201)
         expect(service.createMovie).toHaveBeenCalledTimes(1)
@@ -637,7 +640,7 @@ describe('POST /movies — max length en campos de texto', () => {
         const app = createApp(service as any)
         const payload = { ...validPayload, title: 'a'.repeat(256) }
 
-        const res = await request(app).post('/movies').send(payload)
+        const res = await request(app).post('/movies').set(AUTH).send(payload)
 
         expect(res.status).toBe(400)
         expect(res.body).toHaveProperty('error')
@@ -650,7 +653,7 @@ describe('POST /movies — max length en campos de texto', () => {
         const app = createApp(service as any)
         const payload = { ...validPayload, title: 'a'.repeat(255) }
 
-        const res = await request(app).post('/movies').send(payload)
+        const res = await request(app).post('/movies').set(AUTH).send(payload)
 
         expect(res.status).toBe(201)
     })
@@ -660,7 +663,7 @@ describe('POST /movies — max length en campos de texto', () => {
         const app = createApp(service as any)
         const payload = { ...validPayload, director: 'a'.repeat(256) }
 
-        const res = await request(app).post('/movies').send(payload)
+        const res = await request(app).post('/movies').set(AUTH).send(payload)
 
         expect(res.status).toBe(400)
         expect(res.body).toHaveProperty('error')
@@ -672,7 +675,7 @@ describe('POST /movies — max length en campos de texto', () => {
         const app = createApp(service as any)
         const payload = { ...validPayload, genre: ['a'.repeat(101)] }
 
-        const res = await request(app).post('/movies').send(payload)
+        const res = await request(app).post('/movies').set(AUTH).send(payload)
 
         expect(res.status).toBe(400)
         expect(res.body).toHaveProperty('error')
@@ -685,7 +688,7 @@ describe('POST /movies — max length en campos de texto', () => {
         const app = createApp(service as any)
         const payload = { ...validPayload, genre: ['a'.repeat(100)] }
 
-        const res = await request(app).post('/movies').send(payload)
+        const res = await request(app).post('/movies').set(AUTH).send(payload)
 
         expect(res.status).toBe(201)
     })
@@ -695,7 +698,7 @@ describe('POST /movies — max length en campos de texto', () => {
         const app = createApp(service as any)
         const payload = { ...validPayload, plot: 'a'.repeat(2001) }
 
-        const res = await request(app).post('/movies').send(payload)
+        const res = await request(app).post('/movies').set(AUTH).send(payload)
 
         expect(res.status).toBe(400)
         expect(res.body).toHaveProperty('error')
@@ -708,7 +711,7 @@ describe('POST /movies — max length en campos de texto', () => {
         const app = createApp(service as any)
         const payload = { ...validPayload, plot: 'a'.repeat(2000) }
 
-        const res = await request(app).post('/movies').send(payload)
+        const res = await request(app).post('/movies').set(AUTH).send(payload)
 
         expect(res.status).toBe(201)
     })

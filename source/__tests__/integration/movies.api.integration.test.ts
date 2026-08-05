@@ -7,7 +7,10 @@ import GenreRepository from '../../repositories/GenreRepository'
 import AuditLogRepository from '../../repositories/AuditLogRepository'
 import CastRepository from '../../repositories/CastRepository'
 import { setupTestDb, teardownTestDb, clearTestData, seedTestData } from '../helpers/db'
+import { authHeader } from '../helpers/auth'
 import type { Connection } from 'mysql2/promise'
+
+const AUTH = authHeader()
 
 let db: Connection
 
@@ -103,7 +106,7 @@ describe('POST /movies (integración con DB)', () => {
             available: true
         }
 
-        const res = await request(app).post('/movies').send(newMovie)
+        const res = await request(app).post('/movies').set(AUTH).send(newMovie)
 
         expect(res.status).toBe(201)
         expect(res.body).toHaveProperty('message', 'Pelicula creada con exito')
@@ -135,7 +138,7 @@ describe('POST /movies (integración con DB)', () => {
             available: true
         }
 
-        const res = await request(app).post('/movies').send(newMovie)
+        const res = await request(app).post('/movies').set(AUTH).send(newMovie)
 
         expect(res.status).toBe(201)
         expect(res.body.data).toMatchObject({
@@ -155,7 +158,7 @@ describe('POST /movies (integración con DB)', () => {
     test('debe devolver 400 con datos inválidos', async () => {
         const app = createApp(createTestService())
 
-        const res = await request(app).post('/movies').send({ title: 'Incomplete' })
+        const res = await request(app).post('/movies').set(AUTH).send({ title: 'Incomplete' })
 
         expect(res.status).toBe(400)
         expect(res.body).toHaveProperty('error')
@@ -166,7 +169,7 @@ describe('PATCH /movies/:id (integración con DB)', () => {
     test('debe actualizar el título de una película', async () => {
         const app = createApp(createTestService())
 
-        const res = await request(app).patch('/movies/1').send({ title: 'Updated Title' })
+        const res = await request(app).patch('/movies/1').set(AUTH).send({ title: 'Updated Title' })
 
         expect(res.status).toBe(200)
         expect(res.body).toHaveProperty('message')
@@ -175,7 +178,7 @@ describe('PATCH /movies/:id (integración con DB)', () => {
     test('debe devolver 404 si no existe', async () => {
         const app = createApp(createTestService())
 
-        const res = await request(app).patch('/movies/9999').send({ title: 'Nope' })
+        const res = await request(app).patch('/movies/9999').set(AUTH).send({ title: 'Nope' })
 
         expect(res.status).toBe(404)
         expect(res.body).toHaveProperty('error')
@@ -186,7 +189,7 @@ describe('DELETE /movies/:id (integración con DB)', () => {
     test('debe borrar una película existente', async () => {
         const app = createApp(createTestService())
 
-        const res = await request(app).delete('/movies/1')
+        const res = await request(app).delete('/movies/1').set(AUTH)
 
         expect(res.status).toBe(200)
         expect(res.body).toHaveProperty('message', 'Pelicula borrada con exito')
@@ -195,7 +198,7 @@ describe('DELETE /movies/:id (integración con DB)', () => {
     test('debe devolver 404 si no existe', async () => {
         const app = createApp(createTestService())
 
-        const res = await request(app).delete('/movies/9999')
+        const res = await request(app).delete('/movies/9999').set(AUTH)
 
         expect(res.status).toBe(404)
     })
