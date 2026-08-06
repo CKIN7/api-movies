@@ -18,5 +18,16 @@ export const registerSchema = z.object({
     password: passwordSchema,
 })
 
+export const refreshSchema = z.object({
+    refreshToken: z.string().min(1).max(500)
+})
+
+export const logoutSchema = z.object({
+    refreshToken: z.string().min(1).max(500)
+})
+
+export type RefreshDTO = z.infer<typeof refreshSchema>
+export type LogoutDTO = z.infer<typeof logoutSchema>
+
 export type LoginDTO = z.infer<typeof loginSchema>
 export type RegisterDTO = z.infer<typeof registerSchema>

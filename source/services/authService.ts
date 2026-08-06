@@ -5,6 +5,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import logger from "../utils/logger";
 import { DEFAULT_ROLE } from "../types/user";
+import { RefreshDTO } from "../schemas/auth";
 
 class AuthService {
     constructor(
@@ -53,6 +54,22 @@ class AuthService {
             const passwordHash = await bcrypt.hash(password, 10);
             
             return await this.userRepository.create({email, passwordHash, role: DEFAULT_ROLE });
+        } catch (error) {
+            if (error instanceof AppError) throw error
+            logger.error(`Error en register: ${(error as Error).message}`)
+            throw new AppError('Error interno', 500)
+        }
+    }
+
+    async refreshToken(RefreshDTO: RefreshDTO) {
+        try {
+            
+            const payload = jwt.verify(RefreshDTO.refreshToken, process.env.JWT_REFRESH_SECRET!)  as { sub?: string; type?: string }
+            
+            if(payload.type !== 'refresh') throw new AppError('Token inválido o expirado', 401)
+            
+            const isValid = await this.refreshTokenRepository.
+            
         } catch (error) {
             if (error instanceof AppError) throw error
             logger.error(`Error en register: ${(error as Error).message}`)

@@ -18,6 +18,10 @@ class RefreshTokenRepository {
         
         return id;
     }
+
+    async findValid(){
+        
+    }
 }
 
 export default RefreshTokenRepository
