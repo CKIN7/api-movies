@@ -33,6 +33,7 @@ class RefreshTokenRepository {
     }
 
     async revoke(token: string): Promise<boolean> {
+        const [rows] = await this.query(`UPDATE refresh_tokens SET revoked_at = NOW() WHERE token = ?`, [token])
         
     }
 }
