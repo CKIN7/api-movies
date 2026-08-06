@@ -1,5 +1,5 @@
 import { randomUUID } from "crypto";
-import { InsertRefreshTokenParams } from "../types/refreshToken";
+import { InsertRefreshTokenParams, RefreshTokenRow } from "../types/refreshToken";
 import { DbLogger } from "../utils/DbLogger";
 
 class RefreshTokenRepository {
@@ -19,7 +19,20 @@ class RefreshTokenRepository {
         return id;
     }
 
-    async findValid(){
+    async findValid(token: string): Promise<RefreshTokenRow | null> {
+        const [rows] = await this.query(
+            `SELECT id, user_id, token, expires_at, revoked_at, created_at 
+             FROM refresh_tokens
+             WHERE token = ?
+             AND revoked_at IS NULL
+             AND expires_at > NOW()
+            `, [token])
+
+        if(rows.length > 0) return rows[0];
+        return null
+    }
+
+    async revoke(token: string): Promise<boolean> {
         
     }
 }

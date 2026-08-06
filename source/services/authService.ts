@@ -68,7 +68,9 @@ class AuthService {
             
             if(payload.type !== 'refresh') throw new AppError('Token inválido o expirado', 401)
             
-            const isValid = await this.refreshTokenRepository.
+            const validToken = await this.refreshTokenRepository.findValid(RefreshDTO.refreshToken)
+
+            const user = this.userRepository.findById(validToken?.id)
             
         } catch (error) {
             if (error instanceof AppError) throw error
