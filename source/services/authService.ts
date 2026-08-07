@@ -111,7 +111,7 @@ class AuthService {
             
         } catch (error) {
             if (error instanceof AppError) throw error
-            logger.error(`Error en register: ${(error as Error).message}`)
+            logger.error(`Error en refresh: ${(error as Error).message}`)
             throw new AppError('Error interno', 500)
         }
     }
@@ -137,7 +137,7 @@ class AuthService {
             
         } catch (error) {
             if (error instanceof AppError) throw error
-            logger.error(`Error en register: ${(error as Error).message}`)
+            logger.error(`Error en logout: ${(error as Error).message}`)
             throw new AppError('Error interno', 500)
         }
     }

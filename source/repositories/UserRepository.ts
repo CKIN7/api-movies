@@ -24,7 +24,7 @@ class UserRepository {
         return null
     }
 
-    async findById(id: string | undefined):Promise<UserRow | null> {
+    async findById(id: string):Promise<UserRow | null> {
         const [rows] = await this.query('SELECT id, email, password_hash, role, created_at FROM users where id = ?', [id])
 
         if(rows.length > 0) {
