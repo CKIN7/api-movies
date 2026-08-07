@@ -114,6 +114,32 @@ class AuthService {
             throw new AppError('Error interno', 500)
         }
     }
+
+    async logout(refreshToken: string) {
+        try {
+            
+            let payload: { sub?: string; type?: string }
+            try {
+                payload = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET!) as { sub?: string; type?: string }
+            } catch (error) {
+              throw new AppError('Token inválido o expirado', 401)
+            }
+
+            if(payload.type !== 'refresh') throw new AppError('Token inválido o expirado', 401)
+            if(!payload.sub) throw new AppError('Token inválido o expirado', 401)
+            
+            await this.refreshTokenRepository.revokeAllByUserId(payload.sub)
+            
+            return {
+                message: "Sesión Cerrada"
+            }
+            
+        } catch (error) {
+            if (error instanceof AppError) throw error
+            logger.error(`Error en register: ${(error as Error).message}`)
+            throw new AppError('Error interno', 500)
+        }
+    }
 }
 
 export default AuthService
