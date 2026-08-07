@@ -7,7 +7,10 @@ import GenreRepository from '../../repositories/GenreRepository'
 import AuditLogRepository from '../../repositories/AuditLogRepository'
 import CastRepository from '../../repositories/CastRepository'
 import { setupTestDb, teardownTestDb, clearTestData, seedTestData } from '../helpers/db'
+import { authHeader } from '../helpers/auth'
 import type { Connection } from 'mysql2/promise'
+
+const AUTH = authHeader()
 
 let db: Connection
 
@@ -37,7 +40,7 @@ describe('GET /movies/export/:format (integración real con DB)', () => {
     test('debe exportar CSV con header y datos', async () => {
         const app = createApp(createTestService())
 
-        const res = await request(app).get('/movies/export/csv')
+        const res = await request(app).get('/movies/export/csv').set(AUTH)
 
         expect(res.status).toBe(200)
         expect(res.headers['content-type']).toContain('text/csv')
@@ -51,7 +54,7 @@ describe('GET /movies/export/:format (integración real con DB)', () => {
     test('debe exportar CSV filtrado', async () => {
         const app = createApp(createTestService())
 
-        const res = await request(app).get('/movies/export/csv?minRating=9')
+        const res = await request(app).get('/movies/export/csv?minRating=9').set(AUTH)
 
         expect(res.status).toBe(200)
         expect(res.text).toContain('Título')
@@ -60,7 +63,7 @@ describe('GET /movies/export/:format (integración real con DB)', () => {
     test('debe exportar JSON con datos', async () => {
         const app = createApp(createTestService())
 
-        const res = await request(app).get('/movies/export/json')
+        const res = await request(app).get('/movies/export/json').set(AUTH)
 
         expect(res.status).toBe(200)
         expect(res.headers['content-type']).toContain('application/json')
@@ -78,7 +81,7 @@ describe('GET /movies/export/:format (integración real con DB)', () => {
     test('debe devolver 400 si el formato no es válido', async () => {
         const app = createApp(createTestService())
 
-        const res = await request(app).get('/movies/export/xml')
+        const res = await request(app).get('/movies/export/xml').set(AUTH)
 
         expect(res.status).toBe(400)
     })
@@ -86,7 +89,7 @@ describe('GET /movies/export/:format (integración real con DB)', () => {
     test('debe devolver 400 si los filtros son inválidos', async () => {
         const app = createApp(createTestService())
 
-        const res = await request(app).get('/movies/export/csv?minYear=abc')
+        const res = await request(app).get('/movies/export/csv?minYear=abc').set(AUTH)
 
         expect(res.status).toBe(400)
     })

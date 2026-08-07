@@ -1,5 +1,8 @@
 import request from 'supertest'
 import { createApp } from '../../api'
+import { authHeader } from '../helpers/auth'
+
+const AUTH = authHeader()
 
 function createMockService() {
     return {
@@ -102,7 +105,7 @@ describe('POST /movies', () => {
         }
 
         const app = createApp(service as any)
-        const res = await request(app).post('/movies').send(newMovie)
+        const res = await request(app).post('/movies').set(AUTH).send(newMovie)
 
         expect(res.status).toBe(201)
         expect(res.body).toEqual({
@@ -116,7 +119,7 @@ describe('POST /movies', () => {
         const invalidMovie = { title: 'No year' }
 
         const app = createApp(service as any)
-        const res = await request(app).post('/movies').send(invalidMovie)
+        const res = await request(app).post('/movies').set(AUTH).send(invalidMovie)
 
         expect(res.status).toBe(400)
         expect(res.body).toHaveProperty('error')
@@ -139,7 +142,7 @@ describe('POST /movies', () => {
         }
 
         const app = createApp(service as any)
-        const res = await request(app).post('/movies').send(newMovie)
+        const res = await request(app).post('/movies').set(AUTH).send(newMovie)
 
         expect(res.status).toBe(500)
         expect(res.body).toHaveProperty('error')
@@ -153,7 +156,7 @@ describe('PATCH /movies/:id', () => {
         service.updateMovie.mockResolvedValue(updatedMovie)
 
         const app = createApp(service as any)
-        const res = await request(app).patch('/movies/1').send({ title: 'Updated Title' })
+        const res = await request(app).patch('/movies/1').set(AUTH).send({ title: 'Updated Title' })
 
         expect(res.status).toBe(200)
         expect(res.body).toHaveProperty('message')
@@ -164,7 +167,7 @@ describe('PATCH /movies/:id', () => {
         service.updateMovie.mockRejectedValue(new (require('../../utils/AppError').default)('Película no encontrada', 404))
 
         const app = createApp(service as any)
-        const res = await request(app).patch('/movies/999').send({ title: 'Nope' })
+        const res = await request(app).patch('/movies/999').set(AUTH).send({ title: 'Nope' })
 
         expect(res.status).toBe(404)
         expect(res.body).toHaveProperty('error')
@@ -177,7 +180,7 @@ describe('DELETE /movies/:id', () => {
         service.deleteMovie.mockResolvedValue(undefined)
 
         const app = createApp(service as any)
-        const res = await request(app).delete('/movies/1')
+        const res = await request(app).delete('/movies/1').set(AUTH)
 
         expect(res.status).toBe(200)
     })
@@ -187,7 +190,7 @@ describe('DELETE /movies/:id', () => {
         service.deleteMovie.mockRejectedValue(new (require('../../utils/AppError').default)('Película no encontrada', 404))
 
         const app = createApp(service as any)
-        const res = await request(app).delete('/movies/999')
+        const res = await request(app).delete('/movies/999').set(AUTH)
 
         expect(res.status).toBe(404)
     })

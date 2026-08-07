@@ -7,7 +7,10 @@ import GenreRepository from '../../repositories/GenreRepository'
 import AuditLogRepository from '../../repositories/AuditLogRepository'
 import CastRepository from '../../repositories/CastRepository'
 import { setupTestDb, teardownTestDb, clearTestData, seedTestData } from '../helpers/db'
+import { authHeader } from '../helpers/auth'
 import type { Connection, RowDataPacket } from 'mysql2/promise'
+
+const AUTH = authHeader()
 
 let db: Connection
 
@@ -40,7 +43,7 @@ describe('POST /movies — director y género en DB', () => {
             available: true
         }
 
-        const res = await request(app).post('/movies').send(payload)
+        const res = await request(app).post('/movies').set(AUTH).send(payload)
         const [rows] = await db.execute(
             `SELECT COUNT(*) AS count FROM directors WHERE director_name = 'Christopher Nolan'`
         ) as unknown as [RowDataPacket[], unknown]
@@ -64,7 +67,7 @@ describe('POST /movies — director y género en DB', () => {
             available: true
         }
 
-        const res = await request(app).post('/movies').send(payload)
+        const res = await request(app).post('/movies').set(AUTH).send(payload)
         const [genreRows] = await db.execute(
             `SELECT COUNT(*) AS count FROM genres WHERE genre_name = 'drama'`
         ) as unknown as [RowDataPacket[], unknown]
@@ -89,7 +92,7 @@ describe('POST /movies — director y género en DB', () => {
             available: true
         }
 
-        const res = await request(app).post('/movies').send(payload)
+        const res = await request(app).post('/movies').set(AUTH).send(payload)
 
         expect(res.status).toBe(201)
         expect(res.body.data.director).toBe('Directora Nova')
@@ -114,8 +117,8 @@ describe('POST /movies — duplicados', () => {
             available: true
         }
 
-        const res1 = await request(app).post('/movies').send(payload)
-        const res2 = await request(app).post('/movies').send({ ...payload, plot: 'Segunda' })
+        const res1 = await request(app).post('/movies').set(AUTH).send(payload)
+        const res2 = await request(app).post('/movies').set(AUTH).send({ ...payload, plot: 'Segunda' })
 
         expect(res1.status).toBe(201)
         expect(res2.status).toBe(201)
@@ -136,7 +139,7 @@ describe('POST /movies — duplicados', () => {
             available: true
         }
 
-        const res = await request(app).post('/movies').send(payload)
+        const res = await request(app).post('/movies').set(AUTH).send(payload)
         const [mgRows] = await db.execute(
             'SELECT COUNT(*) AS count FROM movie_genres WHERE movie_id = ?', [res.body.data.id]
         ) as unknown as [RowDataPacket[], unknown]
@@ -163,7 +166,7 @@ describe('POST /movies — caracteres especiales', () => {
             available: true
         }
 
-        const res = await request(app).post('/movies').send(payload)
+        const res = await request(app).post('/movies').set(AUTH).send(payload)
 
         expect(res.status).toBe(201)
         expect(res.body.data.title).toBe('Película Época Ñoña 🎬')
@@ -184,7 +187,7 @@ describe('POST /movies — caracteres especiales', () => {
             available: true
         }
 
-        const res = await request(app).post('/movies').send(payload)
+        const res = await request(app).post('/movies').set(AUTH).send(payload)
 
         expect(res.status).toBe(201)
         const [movieRows] = await db.execute(
@@ -214,7 +217,7 @@ describe('POST /movies — year límite en DB', () => {
             available: true
         }
 
-        const res = await request(app).post('/movies').send(payload)
+        const res = await request(app).post('/movies').set(AUTH).send(payload)
 
         expect(res.status).toBe(201)
         expect(Number(res.body.data.year)).toBe(2026)

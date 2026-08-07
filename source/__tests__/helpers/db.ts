@@ -23,6 +23,8 @@ export async function teardownTestDb(conn: Connection): Promise<void> {
 
 export async function clearTestData(conn: Connection): Promise<void> {
     await conn.execute('SET FOREIGN_KEY_CHECKS = 0')
+    await conn.execute('DELETE FROM refresh_tokens')
+    await conn.execute('DELETE FROM users')
     await conn.execute('DELETE FROM movie_actors')
     await conn.execute('DELETE FROM movie_genres')
     await conn.execute('DELETE FROM audit_log')
@@ -386,5 +388,7 @@ export async function seedTestData(conn: Connection): Promise<void> {
         [108, 15, 'Blondie'], [108, 30, 'Tuco'],
     ]
     await conn.query('INSERT INTO movie_actors (movie_id, actor_id, character_name) VALUES ?', [newMovieActors])
+    
+    await conn.query(`INSERT INTO users (id, email, password_hash, role) VALUES ('cfd74902-7d20-4653-bdf6-759bb4947956', 'admin@example.com', '$2b$10$oPAr9ogyknbTezqgxYTIKeMXQzbviHFT5Ea9Hc.vk3g2Qpfo2ddre', 'admin')`)
     await conn.execute('SET FOREIGN_KEY_CHECKS = 1')
 }
