@@ -69,11 +69,22 @@ class AuthService {
             if(payload.type !== 'refresh') throw new AppError('Token inválido o expirado', 401)
             
             const validToken = await this.refreshTokenRepository.findValid(RefreshDTO.refreshToken)
-            if(validToken === null){
-                const token = await this.refreshTokenRepository.findByToken()
+            if(validToken === null) {
+                const token = await this.refreshTokenRepository.findByToken(RefreshDTO.refreshToken)
+                if(!token) throw new AppError('Token no existe', 401)
+                if(token.revokedAt != null){
+                    await this.refreshTokenRepository.revokeAllByUserId(token.userId)
+                    throw new AppError('Token reutilizado', 401)
+                }
+
+                // caso expirado: fila existe pero revokedAt == null
+                // vencimiento natural → solo 401, sin revocar nada
+                throw new AppError('Token inválido o expirado', 401)
+                
             }
 
-            const user = await this.userRepository.findById(validToken?.id)
+            if(!payload.sub) throw new AppError('Token inválido', 401)
+            const user = await this.userRepository.findById(payload.sub)
 
             const accessToken = jwt.sign({sub: user?.id, type: 'access'}, process.env.JWT_SECRET!, {expiresIn: '15min'})
             const refreshToken = jwt.sign({sub: user?.id, type: 'refresh'}, process.env.JWT_REFRESH_SECRET!, {expiresIn: '7d'})

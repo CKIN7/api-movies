@@ -46,6 +46,10 @@ class RefreshTokenRepository {
         if(rows.length > 0) return rows[0];
         return null;
     }
+
+    async revokeAllByUserId(userId: string): Promise<void> {
+        await this.query(`UPDATE refresh_tokens SET revoked_at = NOW() WHERE user.id = ? AND revoked_at IS NULL `, [userId])
+    }
 }
 
 export default RefreshTokenRepository
