@@ -64,7 +64,12 @@ class AuthService {
     async refreshToken(RefreshDTO: RefreshDTO) {
         try {
             
-            const payload = jwt.verify(RefreshDTO.refreshToken, process.env.JWT_REFRESH_SECRET!)  as { sub?: string; type?: string }
+            let payload: { sub?: string; type?: string }
+            try {
+                payload = jwt.verify(RefreshDTO.refreshToken, process.env.JWT_REFRESH_SECRET!) as { sub?: string; type?: string }
+            } catch {
+                throw new AppError('Token inválido o expirado', 401)
+            }
             
             if(payload.type !== 'refresh') throw new AppError('Token inválido o expirado', 401)
             
