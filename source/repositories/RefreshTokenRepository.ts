@@ -28,7 +28,16 @@ class RefreshTokenRepository {
              AND expires_at > NOW()
             `, [token])
 
-        if(rows.length > 0) return rows[0];
+        if(rows.length > 0) {
+            return {
+                id: rows[0].id,
+                userId: rows[0].user_id,
+                token: rows[0].token,
+                expiresAt: rows[0].expires_at,
+                revokedAt: rows[0].revoked_at,
+                createdAt: rows[0].created_at,
+            }
+        }
         return null
     }
 
@@ -43,12 +52,21 @@ class RefreshTokenRepository {
             WHERE token = ?
             `, [token])
         
-        if(rows.length > 0) return rows[0];
+        if(rows.length > 0) {
+            return {
+                id: rows[0].id,
+                userId: rows[0].user_id,
+                token: rows[0].token,
+                expiresAt: rows[0].expires_at,
+                revokedAt: rows[0].revoked_at,
+                createdAt: rows[0].created_at,
+            }
+        }
         return null;
     }
 
     async revokeAllByUserId(userId: string): Promise<void> {
-        await this.query(`UPDATE refresh_tokens SET revoked_at = NOW() WHERE user.id = ? AND revoked_at IS NULL `, [userId])
+        await this.query(`UPDATE refresh_tokens SET revoked_at = NOW() WHERE user_id = ? AND revoked_at IS NULL `, [userId])
     }
 }
 
