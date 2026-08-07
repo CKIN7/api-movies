@@ -69,8 +69,16 @@ class AuthService {
             if(payload.type !== 'refresh') throw new AppError('Token inválido o expirado', 401)
             
             const validToken = await this.refreshTokenRepository.findValid(RefreshDTO.refreshToken)
+            if(validToken === null){
+                const token = await this.refreshTokenRepository.findByToken()
+            }
 
-            const user = this.userRepository.findById(validToken?.id)
+            const user = await this.userRepository.findById(validToken?.id)
+
+            const accessToken = jwt.sign({sub: user?.id, type: 'access'}, process.env.JWT_SECRET!, {expiresIn: '15min'})
+            const refreshToken = jwt.sign({sub: user?.id, type: 'refresh'}, process.env.JWT_REFRESH_SECRET!, {expiresIn: '7d'})
+
+
             
         } catch (error) {
             if (error instanceof AppError) throw error

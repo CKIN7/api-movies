@@ -35,6 +35,17 @@ class RefreshTokenRepository {
     async revoke(token: string): Promise<void> {
         await this.query(`UPDATE refresh_tokens SET revoked_at = NOW() WHERE token = ?`, [token])
     }
+
+    async findByToken(token: string): Promise<RefreshTokenRow | null> {
+        const [rows] = await this.query(
+            `SELECT id, user_id, token, expires_at, revoked_at, created_at
+            FROM refresh_tokens
+            WHERE token = ?
+            `, [token])
+        
+        if(rows.length > 0) return rows[0];
+        return null;
+    }
 }
 
 export default RefreshTokenRepository
