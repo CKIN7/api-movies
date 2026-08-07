@@ -88,8 +88,21 @@ class AuthService {
 
             const accessToken = jwt.sign({sub: user?.id, type: 'access'}, process.env.JWT_SECRET!, {expiresIn: '15min'})
             const refreshToken = jwt.sign({sub: user?.id, type: 'refresh'}, process.env.JWT_REFRESH_SECRET!, {expiresIn: '7d'})
+            
+            await this.refreshTokenRepository.revoke(validToken.token);
+            
+            const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+            await this.refreshTokenRepository.create({userId: payload.sub, token: refreshToken, expiresAt})
 
-
+            return {
+                accessToken,
+                refreshToken,
+                user: {
+                    id: user?.id,
+                    email: user?.email, 
+                    role: user?.role
+                }
+            }
             
         } catch (error) {
             if (error instanceof AppError) throw error
