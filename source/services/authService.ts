@@ -4,6 +4,7 @@ import AppError from "../utils/AppError";
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import logger from "../utils/logger";
+import { randomUUID } from 'crypto';
 import { DEFAULT_ROLE } from "../types/user";
 
 class AuthService {
@@ -22,7 +23,7 @@ class AuthService {
             if(!isValidPassword) throw new AppError('La contraseña o el email es invalido', 401)
             
             const accessToken = jwt.sign({sub: user.id, type: 'access'}, process.env.JWT_SECRET!, {expiresIn: '15min'})
-            const refreshToken = jwt.sign({sub: user.id, type: 'refresh'}, process.env.JWT_REFRESH_SECRET!, {expiresIn: '7d'})
+            const refreshToken = jwt.sign({sub: user.id, type: 'refresh', jti: randomUUID()}, process.env.JWT_REFRESH_SECRET!, {expiresIn: '7d'})
 
             const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
 
@@ -91,7 +92,7 @@ class AuthService {
             const user = await this.userRepository.findById(payload.sub)
 
             const accessToken = jwt.sign({sub: user?.id, type: 'access'}, process.env.JWT_SECRET!, {expiresIn: '15min'})
-            const newRefreshToken = jwt.sign({sub: user?.id, type: 'refresh'}, process.env.JWT_REFRESH_SECRET!, {expiresIn: '7d'})
+            const newRefreshToken = jwt.sign({sub: user?.id, type: 'refresh', jti: randomUUID()}, process.env.JWT_REFRESH_SECRET!, {expiresIn: '7d'})
             
             await this.refreshTokenRepository.revoke(validToken.token);
             

@@ -70,7 +70,7 @@ describe('AuthService - refresh', () => {
         expect(mockedSign).toHaveBeenCalledWith(
             { sub: 'user-1', type: 'access' }, process.env.JWT_SECRET, expect.any(Object))
         expect(mockedSign).toHaveBeenCalledWith(
-            { sub: 'user-1', type: 'refresh' }, process.env.JWT_REFRESH_SECRET, expect.any(Object))
+            { sub: 'user-1', type: 'refresh', jti: expect.any(String) }, process.env.JWT_REFRESH_SECRET, expect.any(Object))
         expect(repos.refreshTokenRepository.revoke).toHaveBeenCalledWith('refresh-old')
         expect(repos.refreshTokenRepository.create).toHaveBeenCalledWith({
             userId: 'user-1',

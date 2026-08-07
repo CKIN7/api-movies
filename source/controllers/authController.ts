@@ -1,6 +1,6 @@
 import type { Request, Response } from "express";
 import AuthService from "../services/authService";
-import { LoginDTO, loginSchema, registerSchema } from "../schemas/auth";
+import { LoginDTO, loginSchema, registerSchema, refreshSchema, logoutSchema } from "../schemas/auth";
 
 class AuthController {
     constructor(
@@ -20,6 +20,22 @@ class AuthController {
         
         const user = await this.authService.register(parsed.email, parsed.password)
         resp.status(201).json(user);
+    }
+
+    refresh = async (req: Request, resp: Response) => {
+        const parsed = refreshSchema.parse(req.body)
+
+        const authResponse = await this.authService.refresh(parsed.refreshToken)
+
+        resp.json(authResponse)
+    }
+
+    logout = async (req: Request, resp: Response) => {
+        const parsed = logoutSchema.parse(req.body)
+
+        const result = await this.authService.logout(parsed.refreshToken)
+
+        resp.status(200).json(result)
     }
 }
 
