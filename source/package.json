@@ -6,7 +6,9 @@
     "dev": "tsx watch api.ts",
     "build": "tsc",
     "start": "node dist/api.js",
-    "test": "jest"
+    "test": "jest",
+    "migrate": "tsx db/migrate.ts",
+    "migrate:status": "tsx db/migrate.ts status"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",
