@@ -6,11 +6,13 @@ import jwt from 'jsonwebtoken';
 import logger from "../utils/logger";
 import { randomUUID } from 'crypto';
 import { DEFAULT_ROLE } from "../types/user";
+import EmailVerificationRepository from "../repositories/EmailVerificationRepository";
 
 class AuthService {
     constructor(
         private userRepository: UserRepository,
-        private refreshTokenRepository: RefreshTokenRepository
+        private refreshTokenRepository: RefreshTokenRepository,
+        private emailVerificationRepository: EmailVerificationRepository
     ) {}
 
     async login(email: string, password: string){
@@ -53,7 +55,17 @@ class AuthService {
 
             const passwordHash = await bcrypt.hash(password, 10);
             
-            return await this.userRepository.create({email, passwordHash, role: DEFAULT_ROLE });
+            const registeredUser = await this.userRepository.create({email, passwordHash, role: DEFAULT_ROLE });
+
+            const verificationToken = randomUUID();
+            const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000)   // 24 horas (TTL verificación)
+
+            await this.emailVerificationRepository.create({
+                userId: registeredUser.id, 
+                token: verificationToken, 
+                expiresAt
+            })
+
         } catch (error) {
             if (error instanceof AppError) throw error
             logger.error(`Error en register: ${(error as Error).message}`)
