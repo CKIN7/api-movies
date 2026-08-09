@@ -5,7 +5,7 @@ export interface UserRow {
     role: string
     createdAt: string
     emailVerified: boolean
-    emailVerifiedAt: string
+    emailVerifiedAt: string | null
 }
 
 export interface InsertUserParams {

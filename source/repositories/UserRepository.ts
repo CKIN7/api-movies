@@ -19,8 +19,8 @@ class UserRepository {
                 passwordHash: rows[0].password_hash,
                 role: rows[0].role,
                 createdAt: rows[0].created_at,
-                emailVerified: rows[0].email_verified,
-                emailVerifiedAt: rows[0].email_verified_at
+                emailVerified: rows[0].email_verified === 1 || rows[0].email_verified === true,
+                emailVerifiedAt: rows[0].email_verified_at ?? null
             }
         }
         return null
@@ -36,8 +36,8 @@ class UserRepository {
                 passwordHash: rows[0].password_hash,
                 role: rows[0].role,
                 createdAt: rows[0].created_at,
-                emailVerified: rows[0].email_verified,
-                emailVerifiedAt: rows[0].email_verified_at
+                emailVerified: rows[0].email_verified === 1 || rows[0].email_verified === true,
+                emailVerifiedAt: rows[0].email_verified_at ?? null
             }
         }
         return null
