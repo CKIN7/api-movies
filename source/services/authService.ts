@@ -21,6 +21,8 @@ class AuthService {
             //Mismo error, así evitamos user enumeration
             if(!user) throw new AppError('La contraseña o el email es invalido', 401)
             
+            if(user.emailVerified === false) throw new AppError('Verifica tu email antes de iniciar sesión', 403)
+            
             const isValidPassword = await bcrypt.compare(password, user.passwordHash);
             if(!isValidPassword) throw new AppError('La contraseña o el email es invalido', 401)
             
@@ -55,6 +57,7 @@ class AuthService {
 
             const passwordHash = await bcrypt.hash(password, 10);
             
+            // El valor emailVerified lo define la BD (DEFAULT 0): todo usuario nuevo nace sin verificar.
             const registeredUser = await this.userRepository.create({email, passwordHash, role: DEFAULT_ROLE });
 
             const verificationToken = randomUUID();
