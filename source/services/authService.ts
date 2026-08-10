@@ -58,16 +58,18 @@ class AuthService {
             const passwordHash = await bcrypt.hash(password, 10);
             
             // El valor emailVerified lo define la BD (DEFAULT 0): todo usuario nuevo nace sin verificar.
-            const registeredUser = await this.userRepository.create({email, passwordHash, role: DEFAULT_ROLE });
+            const newUser = await this.userRepository.create({email, passwordHash, role: DEFAULT_ROLE });
 
             const verificationToken = randomUUID();
             const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000)   // 24 horas (TTL verificación)
 
             await this.emailVerificationRepository.create({
-                userId: registeredUser.id, 
+                userId: newUser.id, 
                 token: verificationToken, 
                 expiresAt
             })
+
+            return newUser
 
         } catch (error) {
             if (error instanceof AppError) throw error

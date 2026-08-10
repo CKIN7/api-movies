@@ -13,8 +13,8 @@ class EmailVerificationRepository {
         const id = randomUUID();
         
         const [rows] = await this.query(
-            `INSERT INTO email_verifications 
-            VALUES(id, user_id, token, expires_at) ?,?,?,?`, [id, params.userId, params.token, params.expiresAt])
+            `INSERT INTO email_verifications(id, user_id, token, expires_at)
+            VALUES(?,?,?,?)`, [id, params.userId, params.token, params.expiresAt])
     
         return id;
     }
