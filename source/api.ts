@@ -22,6 +22,7 @@ import RefreshTokenRepository from './repositories/RefreshTokenRepository'
 import AuthController from './controllers/authController'
 import { createAuthRoutes } from './routes/authRoutes'
 import EmailVerificationRepository from './repositories/EmailVerificationRepository'
+import DevEmailVerificationNotifier from './notifiers/DevEmailVerificationNotifier'
 
 // ═══════════════════════════════════════════════════════════════
 //  Patrones: Dependency Injection + Factory + Chain of Resp.
@@ -56,11 +57,13 @@ export function createApp(movieService?: MovieService) {
     const controller = new MovieController(_service)
     const router = createMovieRoutes(controller)
 
+    const notifier = new DevEmailVerificationNotifier()
+
     const exportService = new ExportService(movieRepo)
     const exportController = new ExportController(exportService)
     const exportRouter = createExportRoutes(exportController)
 
-    const authService = new AuthService(userRepository, refreshTokenRepository, emailVerificationRepository)
+    const authService = new AuthService(userRepository, refreshTokenRepository, emailVerificationRepository, notifier)
     const authController = new AuthController(authService)
     const authRouter = createAuthRoutes(authController)
 

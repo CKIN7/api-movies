@@ -8,12 +8,14 @@ import { randomUUID } from 'crypto';
 import { DEFAULT_ROLE } from "../types/user";
 import EmailVerificationRepository from "../repositories/EmailVerificationRepository";
 import { VerifyEmailDTO } from "../schemas/verifyEmailSchema";
+import DevEmailVerificationNotifier from "../notifiers/DevEmailVerificationNotifier";
 
 class AuthService {
     constructor(
         private userRepository: UserRepository,
         private refreshTokenRepository: RefreshTokenRepository,
-        private emailVerificationRepository: EmailVerificationRepository
+        private emailVerificationRepository: EmailVerificationRepository,
+        private emailVerificationNotifier: DevEmailVerificationNotifier
     ) {}
 
     async login(email: string, password: string){
@@ -70,6 +72,8 @@ class AuthService {
                 token: verificationToken, 
                 expiresAt
             })
+
+            await this.emailVerificationNotifier.sendVerificationEmail(newUser.email, verificationToken)
 
             return newUser
 
