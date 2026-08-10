@@ -37,6 +37,10 @@ class EmailVerificationRepository {
         return null
     }
 
+    async markEmail(userId: string){
+        await this.query(
+            `UPDATE users SET email_verified = 1, email_verified_at = NOW() WHERE id = ?`, [userId])
+    }
 }
 
 export default EmailVerificationRepository

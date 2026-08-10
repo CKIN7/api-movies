@@ -174,6 +174,7 @@ class AuthService {
                 throw new AppError('Token inválido o expirado', 401)
             }
 
+            await this.emailVerificationRepository.markEmail(userId)
 
         } catch (error) {
             if (error instanceof AppError) throw error
