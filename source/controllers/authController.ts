@@ -42,7 +42,7 @@ class AuthController {
     verify = async (req: Request, resp: Response) => {
         const parsed = verifyEmailSchema.parse(req.body)
 
-        const result = await this.authService.verifyEmail()
+        const result = await this.authService.verifyEmail(parsed)
     }
 }
 

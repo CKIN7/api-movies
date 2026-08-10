@@ -7,6 +7,7 @@ import logger from "../utils/logger";
 import { randomUUID } from 'crypto';
 import { DEFAULT_ROLE } from "../types/user";
 import EmailVerificationRepository from "../repositories/EmailVerificationRepository";
+import { VerifyEmailDTO } from "../schemas/verifyEmailSchema";
 
 class AuthService {
     constructor(
@@ -21,10 +22,11 @@ class AuthService {
             //Mismo error, así evitamos user enumeration
             if(!user) throw new AppError('La contraseña o el email es invalido', 401)
             
-            if(user.emailVerified === false) throw new AppError('Verifica tu email antes de iniciar sesión', 403)
             
             const isValidPassword = await bcrypt.compare(password, user.passwordHash);
             if(!isValidPassword) throw new AppError('La contraseña o el email es invalido', 401)
+            
+            if(user.emailVerified === false) throw new AppError('Verifica tu email antes de iniciar sesión', 403)
             
             const accessToken = jwt.sign({sub: user.id, type: 'access'}, process.env.JWT_SECRET!, {expiresIn: '15min'})
             const refreshToken = jwt.sign({sub: user.id, type: 'refresh', jti: randomUUID()}, process.env.JWT_REFRESH_SECRET!, {expiresIn: '7d'})
@@ -159,8 +161,25 @@ class AuthService {
         }
     }
 
-    async verifyEmail(){
-        
+    async verifyEmail(param: VerifyEmailDTO){
+        try {
+            const userId = await this.emailVerificationRepository.findValid(param.token)
+            if(userId === null){
+
+                const verification = await this.emailVerificationRepository.findByToken(param.token)
+                if(!verification) throw new AppError('Token no existe', 401)
+                
+                if(verification.used_at !== null) throw new AppError('Token reutilizado', 401)
+                
+                throw new AppError('Token inválido o expirado', 401)
+            }
+
+
+        } catch (error) {
+            if (error instanceof AppError) throw error
+            logger.error(`Error en logout: ${(error as Error).message}`)
+            throw new AppError('Error interno', 500) 
+        }
     }
 }
 
