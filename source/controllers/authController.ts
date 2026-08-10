@@ -43,6 +43,8 @@ class AuthController {
         const parsed = verifyEmailSchema.parse(req.body)
 
         const result = await this.authService.verifyEmail(parsed)
+
+        resp.status(200).json(result)
     }
 }
 

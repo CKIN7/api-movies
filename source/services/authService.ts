@@ -176,6 +176,10 @@ class AuthService {
 
             await this.emailVerificationRepository.markEmail(userId)
 
+            await this.emailVerificationRepository.markUsed(param.token)
+
+            return {message: 'Email verificado'}
+
         } catch (error) {
             if (error instanceof AppError) throw error
             logger.error(`Error en logout: ${(error as Error).message}`)
