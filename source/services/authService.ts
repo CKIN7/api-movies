@@ -158,6 +158,10 @@ class AuthService {
             throw new AppError('Error interno', 500)
         }
     }
+
+    async verifyEmail(){
+        
+    }
 }
 
 export default AuthService

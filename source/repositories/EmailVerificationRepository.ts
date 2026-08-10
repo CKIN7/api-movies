@@ -19,6 +19,15 @@ class EmailVerificationRepository {
         return id;
     }
 
+    async findValid(token: string): Promise<string | null>{
+        const [rows] = await this.query(
+            `SELECT user_id FROM email_verifications 
+            WHERE token = ? AND expires_at > NOW()`, [token])
+        
+        if(rows.length > 0) return rows[0].user_id
+        return null
+    }
+
 }
 
 export default EmailVerificationRepository
