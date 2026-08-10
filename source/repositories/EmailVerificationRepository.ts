@@ -37,11 +37,6 @@ class EmailVerificationRepository {
         return null
     }
 
-    async markEmail(userId: string){
-        await this.query(
-            `UPDATE users SET email_verified = 1, email_verified_at = NOW() WHERE id = ?`, [userId])
-    }
-
     async markUsed(token: string){
         await this.query(
             `UPDATE email_verifications SET used_at = NOW() WHERE token = ?`, [token])
