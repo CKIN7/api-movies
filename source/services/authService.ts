@@ -201,7 +201,16 @@ class AuthService {
             }
 
             await this.emailVerificationRepository.revokeAllByUserId(user.id)
-            
+
+            const verificationToken = randomUUID()
+            const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+
+            await this.emailVerificationRepository.create({userId: user.id, token: verificationToken, expiresAt})
+
+            await this.emailVerificationNotifier.sendVerificationEmail(user.email, verificationToken)
+
+            return {message: RESEND_GENERIC_MESSAGE}
+
         } catch (error) {
             if (error instanceof AppError) throw error
             logger.error(`Error en resendVerification: ${(error as Error).message}`)
