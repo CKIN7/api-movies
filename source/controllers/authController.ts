@@ -1,6 +1,6 @@
 import type { Request, Response } from "express";
 import AuthService from "../services/authService";
-import { loginSchema, registerSchema, refreshSchema, logoutSchema } from "../schemas/auth";
+import { loginSchema, registerSchema, refreshSchema, logoutSchema, resendVerificationSchema } from "../schemas/auth";
 import { verifyEmailSchema } from "../schemas/auth";
 
 class AuthController {
@@ -43,6 +43,14 @@ class AuthController {
         const parsed = verifyEmailSchema.parse(req.body)
 
         const result = await this.authService.verifyEmail(parsed)
+
+        resp.status(200).json(result)
+    }
+
+    resend = async (req: Request, resp: Response) => {
+        const parsed = await resendVerificationSchema.parse(req.body)
+
+        const result = await this.authService.resendVerification(parsed)
 
         resp.status(200).json(result)
     }

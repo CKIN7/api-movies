@@ -203,7 +203,7 @@ class AuthService {
             await this.emailVerificationRepository.revokeAllByUserId(user.id)
 
             const verificationToken = randomUUID()
-            const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+            const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000)
 
             await this.emailVerificationRepository.create({userId: user.id, token: verificationToken, expiresAt})
 
