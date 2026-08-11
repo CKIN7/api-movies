@@ -43,7 +43,8 @@ class EmailVerificationRepository {
     }
 
     async revokeAllByUserId(userId: string){
-        
+        await this.query(
+            `UPDATE email_verifications SET used_at = NOW() WHERE user_id = ? AND used_at IS NULL`, [userId])
     }
 }
 

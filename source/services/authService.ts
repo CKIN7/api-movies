@@ -196,10 +196,12 @@ class AuthService {
             const RESEND_GENERIC_MESSAGE = 'Si el email está registrado y no verificado, recibirás un nuevo enlace de verificación'
 
             const user = await this.userRepository.findByEmail(dto.email)
-            if(!user || user.emailVerified !== null){
+            if(!user || user.emailVerified === true){
                 return {message: RESEND_GENERIC_MESSAGE}
             }
 
+            await this.emailVerificationRepository.revokeAllByUserId(user.id)
+            
         } catch (error) {
             if (error instanceof AppError) throw error
             logger.error(`Error en resendVerification: ${(error as Error).message}`)
