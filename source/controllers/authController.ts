@@ -1,7 +1,7 @@
 import type { Request, Response } from "express";
 import AuthService from "../services/authService";
-import { LoginDTO, loginSchema, registerSchema, refreshSchema, logoutSchema } from "../schemas/auth";
-import { verifyEmailSchema } from "../schemas/verifyEmailSchema";
+import { loginSchema, registerSchema, refreshSchema, logoutSchema } from "../schemas/auth";
+import { verifyEmailSchema } from "../schemas/auth";
 
 class AuthController {
     constructor(
