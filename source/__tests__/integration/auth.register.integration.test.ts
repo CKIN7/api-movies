@@ -18,6 +18,14 @@ beforeEach(async () => {
     await seedTestData(db)
 })
 
+async function getVerificationToken(userId: string) {
+    const [rows] = await db.query(
+        'SELECT token FROM email_verifications WHERE user_id = ? ORDER BY created_at DESC LIMIT 1',
+        [userId],
+    ) as any
+    return rows[0]?.token as string
+}
+
 describe('POST /auth/register (integración real con DB)', () => {
     test('registro exitoso devuelve 201 con el user sin passwordHash y sin tokens', async () => {
         const app = createApp()
@@ -103,7 +111,7 @@ describe('POST /auth/register (integración real con DB)', () => {
         expect(res.body.error).toBeDefined()
     })
 
-    test('el usuario registrado puede loguear después (register → login)', async () => {
+    test('el usuario registrado solo puede loguear después de verificar su email', async () => {
         const app = createApp()
 
         const registerRes = await request(app)
@@ -111,12 +119,25 @@ describe('POST /auth/register (integración real con DB)', () => {
             .send({ email: 'endtoend@example.com', password: 'Password123!' })
         expect(registerRes.status).toBe(201)
 
-        const loginRes = await request(app)
+        const loginBefore = await request(app)
+            .post('/auth/login')
+            .send({ email: 'endtoend@example.com', password: 'Password123!' })
+        expect(loginBefore.status).toBe(403)
+
+        const token = await getVerificationToken(registerRes.body.id)
+        expect(token).toBeDefined()
+
+        const verifyRes = await request(app)
+            .post('/auth/verify')
+            .send({ token })
+        expect(verifyRes.status).toBe(200)
+
+        const loginAfter = await request(app)
             .post('/auth/login')
             .send({ email: 'endtoend@example.com', password: 'Password123!' })
 
-        expect(loginRes.status).toBe(200)
-        expect(loginRes.body.accessToken).toBeDefined()
-        expect(loginRes.body.refreshToken).toBeDefined()
+        expect(loginAfter.status).toBe(200)
+        expect(loginAfter.body.accessToken).toBeDefined()
+        expect(loginAfter.body.refreshToken).toBeDefined()
     })
 })

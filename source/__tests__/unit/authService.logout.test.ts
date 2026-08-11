@@ -14,6 +14,7 @@ function createMockRepos() {
             findByEmail: jest.fn(),
             findById: jest.fn(),
             create: jest.fn(),
+            markEmail: jest.fn(),
         },
         refreshTokenRepository: {
             create: jest.fn(),
@@ -22,7 +23,26 @@ function createMockRepos() {
             revoke: jest.fn(),
             revokeAllByUserId: jest.fn(),
         },
+        emailVerificationRepository: {
+            create: jest.fn(),
+            findValid: jest.fn(),
+            findByToken: jest.fn(),
+            markUsed: jest.fn(),
+            revokeAllByUserId: jest.fn(),
+        },
+        emailVerificationNotifier: {
+            sendVerificationEmail: jest.fn(),
+        },
     }
+}
+
+function buildService(repos: ReturnType<typeof createMockRepos>) {
+    return new AuthService(
+        repos.userRepository as any,
+        repos.refreshTokenRepository as any,
+        repos.emailVerificationRepository as any,
+        repos.emailVerificationNotifier as any,
+    )
 }
 
 describe('AuthService - logout', () => {
@@ -33,7 +53,7 @@ describe('AuthService - logout', () => {
     test('cierra sesión revocando TODAS las sesiones del user', async () => {
         const repos = createMockRepos()
         mockedVerify.mockReturnValue({ sub: 'user-1', type: 'refresh' })
-        const service = new AuthService(repos.userRepository as any, repos.refreshTokenRepository as any)
+        const service = buildService(repos)
 
         await service.logout('refresh-token')
 
@@ -44,7 +64,7 @@ describe('AuthService - logout', () => {
     test('token inválido lanza 401 y no revoca nada', async () => {
         const repos = createMockRepos()
         mockedVerify.mockImplementation(() => { throw new Error('invalid signature') })
-        const service = new AuthService(repos.userRepository as any, repos.refreshTokenRepository as any)
+        const service = buildService(repos)
 
         await expect(service.logout('token-malo')).rejects.toMatchObject({ statusCode: 401 })
         expect(repos.refreshTokenRepository.revokeAllByUserId).not.toHaveBeenCalled()
@@ -54,7 +74,7 @@ describe('AuthService - logout', () => {
         const repos = createMockRepos()
         mockedVerify.mockReturnValue({ sub: 'user-1', type: 'refresh' })
         repos.refreshTokenRepository.revokeAllByUserId.mockRejectedValue(new Error('db caida'))
-        const service = new AuthService(repos.userRepository as any, repos.refreshTokenRepository as any)
+        const service = buildService(repos)
 
         await expect(service.logout('refresh-token')).rejects.toMatchObject({ statusCode: 500 })
     })

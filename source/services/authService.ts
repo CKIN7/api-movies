@@ -8,14 +8,14 @@ import { randomUUID } from 'crypto';
 import { DEFAULT_ROLE } from "../types/user";
 import EmailVerificationRepository from "../repositories/EmailVerificationRepository";
 import { VerifyEmailDTO } from "../schemas/verifyEmailSchema";
-import DevEmailVerificationNotifier from "../notifiers/DevEmailVerificationNotifier";
+import EmailVerificationNotifier from "../notifiers/EmailVerificationNotifier";
 
 class AuthService {
     constructor(
         private userRepository: UserRepository,
         private refreshTokenRepository: RefreshTokenRepository,
         private emailVerificationRepository: EmailVerificationRepository,
-        private emailVerificationNotifier: DevEmailVerificationNotifier
+        private emailVerificationNotifier: EmailVerificationNotifier
     ) {}
 
     async login(email: string, password: string){
@@ -160,8 +160,8 @@ class AuthService {
             
         } catch (error) {
             if (error instanceof AppError) throw error
-            logger.error(`Error en logout: ${(error as Error).message}`)
-            throw new AppError('Error interno', 500)
+            logger.error(`Error en verifyEmail: ${(error as Error).message}`)
+            throw new AppError('Error interno', 500) 
         }
     }
 
@@ -186,7 +186,7 @@ class AuthService {
 
         } catch (error) {
             if (error instanceof AppError) throw error
-            logger.error(`Error en logout: ${(error as Error).message}`)
+            logger.error(`Error en verifyEmail: ${(error as Error).message}`)
             throw new AppError('Error interno', 500) 
         }
     }
