@@ -31,7 +31,7 @@ export const verifyEmailSchema = z.object({
 })
 
 export const resendVerificationSchema = z.object({
-    token: z.string().min(1).max(500)
+     email: emailSchema
 })
 
 export type VerifyEmailDTO = z.infer<typeof verifyEmailSchema>

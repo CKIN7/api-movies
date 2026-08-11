@@ -160,7 +160,7 @@ class AuthService {
             
         } catch (error) {
             if (error instanceof AppError) throw error
-            logger.error(`Error en verifyEmail: ${(error as Error).message}`)
+            logger.error(`Error en logout: ${(error as Error).message}`)
             throw new AppError('Error interno', 500) 
         }
     }
@@ -187,6 +187,16 @@ class AuthService {
         } catch (error) {
             if (error instanceof AppError) throw error
             logger.error(`Error en verifyEmail: ${(error as Error).message}`)
+            throw new AppError('Error interno', 500) 
+        }
+    }
+
+    async resendVerification(){
+        try {
+            
+        } catch (error) {
+            if (error instanceof AppError) throw error
+            logger.error(`Error en resendVerification: ${(error as Error).message}`)
             throw new AppError('Error interno', 500) 
         }
     }

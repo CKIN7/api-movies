@@ -41,6 +41,10 @@ class EmailVerificationRepository {
         await this.query(
             `UPDATE email_verifications SET used_at = NOW() WHERE token = ?`, [token])
     }
+
+    async revokeAllByUserId(userId: string){
+        
+    }
 }
 
 export default EmailVerificationRepository
