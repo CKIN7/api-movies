@@ -9,13 +9,15 @@ import { DEFAULT_ROLE } from "../types/user";
 import EmailVerificationRepository from "../repositories/EmailVerificationRepository";
 import { ForgotSchema, ResendVerificationDTO, VerifyEmailDTO } from "../schemas/auth";
 import EmailVerificationNotifier from "../notifiers/EmailVerificationNotifier";
+import PasswordResetNotifier from "../notifiers/PasswordResetNotifier";
 
 class AuthService {
     constructor(
         private userRepository: UserRepository,
         private refreshTokenRepository: RefreshTokenRepository,
         private emailVerificationRepository: EmailVerificationRepository,
-        private emailVerificationNotifier: EmailVerificationNotifier
+        private emailVerificationNotifier: EmailVerificationNotifier,
+        private passwordResetNotifier: PasswordResetNotifier
     ) {}
 
     async login(email: string, password: string){
@@ -238,7 +240,9 @@ class AuthService {
                 expiresAt: passwordResetTokenExpiresAt
             })
 
+            await this.passwordResetNotifier.sendResetEmail(user.email, passwordResetToken)
 
+            return {message: RESEND_GENERIC_MESSAGE}
 
         } catch (error) {
             if (error instanceof AppError) throw error

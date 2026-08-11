@@ -9,5 +9,6 @@ export function createAuthRoutes(controller: AuthController){
     router.post('/logout', controller.logout)
     router.post('/verify', controller.verify)
     router.post('/resend', controller.resend)
+    router.post('/forgot', controller.forgot)
     return router
 }

@@ -1,6 +1,6 @@
 import type { Request, Response } from "express";
 import AuthService from "../services/authService";
-import { loginSchema, registerSchema, refreshSchema, logoutSchema, verifyEmailSchema, resendVerificationSchema } from "../schemas/auth";
+import { loginSchema, registerSchema, refreshSchema, logoutSchema, verifyEmailSchema, resendVerificationSchema, forgotSchema } from "../schemas/auth";
 
 class AuthController {
     constructor(
@@ -50,6 +50,14 @@ class AuthController {
         const parsed = resendVerificationSchema.parse(req.body)
 
         const result = await this.authService.resendVerification(parsed)
+
+        resp.status(200).json(result)
+    }
+
+    forgot = async (req: Request, resp: Response) => {
+        const parsed = forgotSchema.parse(req.body)
+
+        const result = await this.authService.forgotPassword(parsed)
 
         resp.status(200).json(result)
     }
