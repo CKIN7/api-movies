@@ -34,8 +34,13 @@ export const resendVerificationSchema = z.object({
      email: emailSchema
 })
 
+export const forgotSchema = z.object({
+     email: emailSchema
+})
+
 export type VerifyEmailDTO = z.infer<typeof verifyEmailSchema>
 export type ResendVerificationDTO = z.infer<typeof resendVerificationSchema>
+export type ForgotSchema = z.infer<typeof forgotSchema>
 
 
 export type RefreshDTO = z.infer<typeof refreshSchema>

@@ -7,7 +7,7 @@ import logger from "../utils/logger";
 import { randomUUID } from 'crypto';
 import { DEFAULT_ROLE } from "../types/user";
 import EmailVerificationRepository from "../repositories/EmailVerificationRepository";
-import { ResendVerificationDTO, VerifyEmailDTO } from "../schemas/auth";
+import { ForgotSchema, ResendVerificationDTO, VerifyEmailDTO } from "../schemas/auth";
 import EmailVerificationNotifier from "../notifiers/EmailVerificationNotifier";
 
 class AuthService {
@@ -216,6 +216,10 @@ class AuthService {
             logger.error(`Error en resendVerification: ${(error as Error).message}`)
             throw new AppError('Error interno', 500) 
         }
+    }
+
+    async forgotPassword(dto: ForgotSchema){
+
     }
 }
 
