@@ -9,6 +9,7 @@ import { DEFAULT_ROLE } from "../types/user";
 import EmailVerificationRepository from "../repositories/EmailVerificationRepository";
 import { VerifyEmailDTO } from "../schemas/verifyEmailSchema";
 import EmailVerificationNotifier from "../notifiers/EmailVerificationNotifier";
+import { ResendVerificationDTO } from "../schemas/auth";
 
 class AuthService {
     constructor(
@@ -191,7 +192,7 @@ class AuthService {
         }
     }
 
-    async resendVerification(){
+    async resendVerification(dto: ResendVerificationDTO){
         try {
             
         } catch (error) {
