@@ -4,6 +4,8 @@ export interface UserRow {
     passwordHash: string
     role: string
     createdAt: string
+    emailVerified: boolean
+    emailVerifiedAt: string | null
 }
 
 export interface InsertUserParams {

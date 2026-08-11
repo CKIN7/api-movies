@@ -6,11 +6,16 @@ import jwt from 'jsonwebtoken';
 import logger from "../utils/logger";
 import { randomUUID } from 'crypto';
 import { DEFAULT_ROLE } from "../types/user";
+import EmailVerificationRepository from "../repositories/EmailVerificationRepository";
+import { ResendVerificationDTO, VerifyEmailDTO } from "../schemas/auth";
+import EmailVerificationNotifier from "../notifiers/EmailVerificationNotifier";
 
 class AuthService {
     constructor(
         private userRepository: UserRepository,
-        private refreshTokenRepository: RefreshTokenRepository
+        private refreshTokenRepository: RefreshTokenRepository,
+        private emailVerificationRepository: EmailVerificationRepository,
+        private emailVerificationNotifier: EmailVerificationNotifier
     ) {}
 
     async login(email: string, password: string){
@@ -19,8 +24,11 @@ class AuthService {
             //Mismo error, así evitamos user enumeration
             if(!user) throw new AppError('La contraseña o el email es invalido', 401)
             
+            
             const isValidPassword = await bcrypt.compare(password, user.passwordHash);
             if(!isValidPassword) throw new AppError('La contraseña o el email es invalido', 401)
+            
+            if(user.emailVerified === false) throw new AppError('Verifica tu email antes de iniciar sesión', 403)
             
             const accessToken = jwt.sign({sub: user.id, type: 'access'}, process.env.JWT_SECRET!, {expiresIn: '15min'})
             const refreshToken = jwt.sign({sub: user.id, type: 'refresh', jti: randomUUID()}, process.env.JWT_REFRESH_SECRET!, {expiresIn: '7d'})
@@ -53,7 +61,22 @@ class AuthService {
 
             const passwordHash = await bcrypt.hash(password, 10);
             
-            return await this.userRepository.create({email, passwordHash, role: DEFAULT_ROLE });
+            // El valor emailVerified lo define la BD (DEFAULT 0): todo usuario nuevo nace sin verificar.
+            const newUser = await this.userRepository.create({email, passwordHash, role: DEFAULT_ROLE });
+
+            const verificationToken = randomUUID();
+            const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000)   // 24 horas (TTL verificación)
+
+            await this.emailVerificationRepository.create({
+                userId: newUser.id, 
+                token: verificationToken, 
+                expiresAt
+            })
+
+            await this.emailVerificationNotifier.sendVerificationEmail(newUser.email, verificationToken)
+
+            return newUser
+
         } catch (error) {
             if (error instanceof AppError) throw error
             logger.error(`Error en register: ${(error as Error).message}`)
@@ -138,7 +161,60 @@ class AuthService {
         } catch (error) {
             if (error instanceof AppError) throw error
             logger.error(`Error en logout: ${(error as Error).message}`)
-            throw new AppError('Error interno', 500)
+            throw new AppError('Error interno', 500) 
+        }
+    }
+
+    async verifyEmail(param: VerifyEmailDTO){
+        try {
+            const userId = await this.emailVerificationRepository.findValid(param.token)
+            if(userId === null){
+
+                const verification = await this.emailVerificationRepository.findByToken(param.token)
+                if(!verification) throw new AppError('Token no existe', 401)
+                
+                if(verification.used_at !== null) throw new AppError('Token reutilizado', 401)
+                
+                throw new AppError('Token inválido o expirado', 401)
+            }
+
+            await this.userRepository.markEmail(userId)
+
+            await this.emailVerificationRepository.markUsed(param.token)
+
+            return {message: 'Email verificado'}
+
+        } catch (error) {
+            if (error instanceof AppError) throw error
+            logger.error(`Error en verifyEmail: ${(error as Error).message}`)
+            throw new AppError('Error interno', 500) 
+        }
+    }
+
+    async resendVerification(dto: ResendVerificationDTO){
+        try {
+            const RESEND_GENERIC_MESSAGE = 'Si el email está registrado y no verificado, recibirás un nuevo enlace de verificación'
+
+            const user = await this.userRepository.findByEmail(dto.email)
+            if(!user || user.emailVerified === true){
+                return {message: RESEND_GENERIC_MESSAGE}
+            }
+
+            await this.emailVerificationRepository.revokeAllByUserId(user.id)
+
+            const verificationToken = randomUUID()
+            const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000)
+
+            await this.emailVerificationRepository.create({userId: user.id, token: verificationToken, expiresAt})
+
+            await this.emailVerificationNotifier.sendVerificationEmail(user.email, verificationToken)
+
+            return {message: RESEND_GENERIC_MESSAGE}
+
+        } catch (error) {
+            if (error instanceof AppError) throw error
+            logger.error(`Error en resendVerification: ${(error as Error).message}`)
+            throw new AppError('Error interno', 500) 
         }
     }
 }

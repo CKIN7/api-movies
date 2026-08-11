@@ -15,6 +15,7 @@ function createMockRepos() {
             findByEmail: jest.fn(),
             findById: jest.fn(),
             create: jest.fn(),
+            markEmail: jest.fn(),
         },
         refreshTokenRepository: {
             create: jest.fn(),
@@ -23,7 +24,26 @@ function createMockRepos() {
             revoke: jest.fn(),
             revokeAllByUserId: jest.fn(),
         },
+        emailVerificationRepository: {
+            create: jest.fn(),
+            findValid: jest.fn(),
+            findByToken: jest.fn(),
+            markUsed: jest.fn(),
+            revokeAllByUserId: jest.fn(),
+        },
+        emailVerificationNotifier: {
+            sendVerificationEmail: jest.fn(),
+        },
     }
+}
+
+function buildService(repos: ReturnType<typeof createMockRepos>) {
+    return new AuthService(
+        repos.userRepository as any,
+        repos.refreshTokenRepository as any,
+        repos.emailVerificationRepository as any,
+        repos.emailVerificationNotifier as any,
+    )
 }
 
 function revokedRow(revokedAt: string | null) {
@@ -54,7 +74,7 @@ describe('AuthService - refresh', () => {
             createdAt: '2026-01-01 00:00:00',
         })
         mockedSign.mockReturnValueOnce('access-nuevo').mockReturnValueOnce('refresh-nuevo')
-        const service = new AuthService(repos.userRepository as any, repos.refreshTokenRepository as any)
+        const service = buildService(repos)
 
         const result = await service.refresh('refresh-old')
 
@@ -82,7 +102,7 @@ describe('AuthService - refresh', () => {
     test('token inválido o expirado lanza 401 y no consulta la DB', async () => {
         const repos = createMockRepos()
         mockedVerify.mockImplementation(() => { throw new Error('jwt expired') })
-        const service = new AuthService(repos.userRepository as any, repos.refreshTokenRepository as any)
+        const service = buildService(repos)
 
         await expect(service.refresh('token-malo')).rejects.toMatchObject({ statusCode: 401 })
         expect(repos.refreshTokenRepository.findValid).not.toHaveBeenCalled()
@@ -92,7 +112,7 @@ describe('AuthService - refresh', () => {
     test('token de tipo access lanza 401 y no rota', async () => {
         const repos = createMockRepos()
         mockedVerify.mockReturnValue({ sub: 'user-1', type: 'access' })
-        const service = new AuthService(repos.userRepository as any, repos.refreshTokenRepository as any)
+        const service = buildService(repos)
 
         await expect(service.refresh('access-token')).rejects.toMatchObject({ statusCode: 401 })
         expect(repos.refreshTokenRepository.findValid).not.toHaveBeenCalled()
@@ -102,7 +122,7 @@ describe('AuthService - refresh', () => {
     test('token sin sub lanza 401', async () => {
         const repos = createMockRepos()
         mockedVerify.mockReturnValue({ type: 'refresh' })
-        const service = new AuthService(repos.userRepository as any, repos.refreshTokenRepository as any)
+        const service = buildService(repos)
 
         await expect(service.refresh('sin-sub')).rejects.toMatchObject({ statusCode: 401 })
     })
@@ -113,7 +133,7 @@ describe('AuthService - refresh', () => {
         repos.refreshTokenRepository.findValid.mockResolvedValue(null)
         repos.refreshTokenRepository.findByToken.mockResolvedValue(
             revokedRow('2026-08-07 00:00:00'))
-        const service = new AuthService(repos.userRepository as any, repos.refreshTokenRepository as any)
+        const service = buildService(repos)
 
         await expect(service.refresh('refresh-old')).rejects.toMatchObject({ statusCode: 401 })
         expect(repos.refreshTokenRepository.findByToken).toHaveBeenCalledWith('refresh-old')
@@ -125,7 +145,7 @@ describe('AuthService - refresh', () => {
         mockedVerify.mockReturnValue({ sub: 'user-1', type: 'refresh' })
         repos.refreshTokenRepository.findValid.mockResolvedValue(null)
         repos.refreshTokenRepository.findByToken.mockResolvedValue(null)
-        const service = new AuthService(repos.userRepository as any, repos.refreshTokenRepository as any)
+        const service = buildService(repos)
 
         await expect(service.refresh('no-existe')).rejects.toMatchObject({ statusCode: 401 })
         expect(repos.refreshTokenRepository.revokeAllByUserId).not.toHaveBeenCalled()
@@ -135,7 +155,7 @@ describe('AuthService - refresh', () => {
         const repos = createMockRepos()
         mockedVerify.mockReturnValue({ sub: 'user-1', type: 'refresh' })
         repos.refreshTokenRepository.findValid.mockRejectedValue(new Error('db caida'))
-        const service = new AuthService(repos.userRepository as any, repos.refreshTokenRepository as any)
+        const service = buildService(repos)
 
         await expect(service.refresh('refresh-old')).rejects.toMatchObject({ statusCode: 500 })
     })

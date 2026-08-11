@@ -7,5 +7,7 @@ export function createAuthRoutes(controller: AuthController){
     router.post('/register', controller.register)
     router.post('/refresh', controller.refresh)
     router.post('/logout', controller.logout)
+    router.post('/verify', controller.verify)
+    router.post('/resend', controller.resend)
     return router
 }

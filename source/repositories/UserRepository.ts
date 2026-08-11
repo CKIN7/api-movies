@@ -10,7 +10,7 @@ class UserRepository {
     }
 
     async findByEmail(email: string):Promise<UserRow | null> {
-        const [rows] = await this.query('SELECT id, email, password_hash, role, created_at FROM users WHERE email = ?', [email]);
+        const [rows] = await this.query('SELECT id, email, password_hash, role, created_at, email_verified, email_verified_at FROM users WHERE email = ?', [email]);
         
         if(rows.length > 0){
             return {
@@ -18,14 +18,16 @@ class UserRepository {
                 email: rows[0].email,
                 passwordHash: rows[0].password_hash,
                 role: rows[0].role,
-                createdAt: rows[0].created_at
+                createdAt: rows[0].created_at,
+                emailVerified: rows[0].email_verified === 1 || rows[0].email_verified === true,
+                emailVerifiedAt: rows[0].email_verified_at ?? null
             }
         }
         return null
     }
 
     async findById(id: string):Promise<UserRow | null> {
-        const [rows] = await this.query('SELECT id, email, password_hash, role, created_at FROM users where id = ?', [id])
+        const [rows] = await this.query('SELECT id, email, password_hash, role, created_at, email_verified, email_verified_at FROM users where id = ?', [id])
 
         if(rows.length > 0) {
             return {
@@ -33,7 +35,9 @@ class UserRepository {
                 email: rows[0].email,
                 passwordHash: rows[0].password_hash,
                 role: rows[0].role,
-                createdAt: rows[0].created_at
+                createdAt: rows[0].created_at,
+                emailVerified: rows[0].email_verified === 1 || rows[0].email_verified === true,
+                emailVerifiedAt: rows[0].email_verified_at ?? null
             }
         }
         return null
@@ -51,6 +55,11 @@ class UserRepository {
             role: params.role
         }
 
+    }
+
+    async markEmail(userId: string){
+        await this.query(
+            `UPDATE users SET email_verified = 1, email_verified_at = NOW() WHERE id = ?`, [userId])
     }
 }
 
