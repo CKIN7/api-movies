@@ -7,9 +7,8 @@ import logger from "../utils/logger";
 import { randomUUID } from 'crypto';
 import { DEFAULT_ROLE } from "../types/user";
 import EmailVerificationRepository from "../repositories/EmailVerificationRepository";
-import { VerifyEmailDTO } from "../schemas/verifyEmailSchema";
+import { ResendVerificationDTO, VerifyEmailDTO } from "../schemas/auth";
 import EmailVerificationNotifier from "../notifiers/EmailVerificationNotifier";
-import { ResendVerificationDTO } from "../schemas/auth";
 
 class AuthService {
     constructor(
@@ -194,7 +193,13 @@ class AuthService {
 
     async resendVerification(dto: ResendVerificationDTO){
         try {
-            
+            const RESEND_GENERIC_MESSAGE = 'Si el email está registrado y no verificado, recibirás un nuevo enlace de verificación'
+
+            const user = await this.userRepository.findByEmail(dto.email)
+            if(!user || user.emailVerified !== null){
+                return {message: RESEND_GENERIC_MESSAGE}
+            }
+
         } catch (error) {
             if (error instanceof AppError) throw error
             logger.error(`Error en resendVerification: ${(error as Error).message}`)
