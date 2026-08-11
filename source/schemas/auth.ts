@@ -40,7 +40,7 @@ export const forgotSchema = z.object({
 
 export type VerifyEmailDTO = z.infer<typeof verifyEmailSchema>
 export type ResendVerificationDTO = z.infer<typeof resendVerificationSchema>
-export type ForgotSchema = z.infer<typeof forgotSchema>
+export type ForgotSchemaDTO = z.infer<typeof forgotSchema>
 
 
 export type RefreshDTO = z.infer<typeof refreshSchema>

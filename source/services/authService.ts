@@ -7,7 +7,7 @@ import logger from "../utils/logger";
 import { randomUUID } from 'crypto';
 import { DEFAULT_ROLE } from "../types/user";
 import EmailVerificationRepository from "../repositories/EmailVerificationRepository";
-import { ForgotSchema, ResendVerificationDTO, VerifyEmailDTO } from "../schemas/auth";
+import { ForgotSchemaDTO, ResendVerificationDTO, VerifyEmailDTO } from "../schemas/auth";
 import EmailVerificationNotifier from "../notifiers/EmailVerificationNotifier";
 import PasswordResetNotifier from "../notifiers/PasswordResetNotifier";
 
@@ -220,13 +220,13 @@ class AuthService {
         }
     }
 
-    async forgotPassword(dto: ForgotSchema){
+    async forgotPassword(dto: ForgotSchemaDTO){
         try {
-            const RESEND_GENERIC_MESSAGE = 'Si el email está registrado y verificado, recibirás un enlace para restablecer tu contraseña'
+            const FORGOT_GENERIC_MESSAGE = 'Si el email está registrado y verificado, recibirás un enlace para restablecer tu contraseña'
 
             const user = await this.userRepository.findByEmail(dto.email)
             if(!user || user.emailVerified === false) {
-                return {message: RESEND_GENERIC_MESSAGE}
+                return {message: FORGOT_GENERIC_MESSAGE}
             }
 
             await this.emailVerificationRepository.revokeAllByUserId(user.id)
@@ -242,7 +242,7 @@ class AuthService {
 
             await this.passwordResetNotifier.sendResetEmail(user.email, passwordResetToken)
 
-            return {message: RESEND_GENERIC_MESSAGE}
+            return {message: FORGOT_GENERIC_MESSAGE}
 
         } catch (error) {
             if (error instanceof AppError) throw error
