@@ -219,7 +219,32 @@ class AuthService {
     }
 
     async forgotPassword(dto: ForgotSchema){
+        try {
+            const RESEND_GENERIC_MESSAGE = 'Si el email está registrado y verificado, recibirás un enlace para restablecer tu contraseña'
 
+            const user = await this.userRepository.findByEmail(dto.email)
+            if(!user || user.emailVerified === false) {
+                return {message: RESEND_GENERIC_MESSAGE}
+            }
+
+            await this.emailVerificationRepository.revokeAllByUserId(user.id)
+
+            const passwordResetToken = randomUUID()
+            const passwordResetTokenExpiresAt = new Date(Date.now() + 60 * 60 * 1000)
+            
+            await this.emailVerificationRepository.create({
+                userId: user.id,
+                token: passwordResetToken,
+                expiresAt: passwordResetTokenExpiresAt
+            })
+
+
+
+        } catch (error) {
+            if (error instanceof AppError) throw error
+            logger.error(`Error en forgotPassword: ${(error as Error).message}`)
+            throw new AppError('Error interno', 500) 
+        }
     }
 }
 
