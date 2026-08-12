@@ -234,6 +234,7 @@ class AuthService {
             && await this.emailVerificationRepository.hasRecentResetRequest(user.id, this.resetCooldownMinutes))
             {return {message: FORGOT_GENERIC_MESSAGE}}
 
+            if(await this.emailVerificationRepository.findActiveTokenByUserId(user.id)) return {message: FORGOT_GENERIC_MESSAGE}
 
 
             await this.emailVerificationRepository.revokeAllByUserId(user.id)
