@@ -7,7 +7,7 @@ import logger from "../utils/logger";
 import { randomUUID } from 'crypto';
 import { DEFAULT_ROLE } from "../types/user";
 import EmailVerificationRepository from "../repositories/EmailVerificationRepository";
-import { ForgotDTO, ResendVerificationDTO, VerifyEmailDTO } from "../schemas/auth";
+import { ForgotDTO, ResendVerificationDTO, ResetDTO, VerifyEmailDTO } from "../schemas/auth";
 import EmailVerificationNotifier from "../notifiers/EmailVerificationNotifier";
 import PasswordResetNotifier from "../notifiers/PasswordResetNotifier";
 
@@ -255,6 +255,16 @@ class AuthService {
         } catch (error) {
             if (error instanceof AppError) throw error
             logger.error(`Error en forgotPassword: ${(error as Error).message}`)
+            throw new AppError('Error interno', 500) 
+        }
+    }
+
+    async resetPassword(dto: ResetDTO){
+        try {
+            
+        } catch (error) {
+            if (error instanceof AppError) throw error
+            logger.error(`Error en resetPassword: ${(error as Error).message}`)
             throw new AppError('Error interno', 500) 
         }
     }

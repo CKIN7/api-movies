@@ -65,7 +65,7 @@ class AuthController {
     reset = async (req: Request, resp: Response) => {
         const parsed = resetSchema.parse(req.body)
 
-        const result = await this.authService.
+        const result = await this.authService.resetPassword(parsed)
 
         resp.status(200).json(result)
     }
