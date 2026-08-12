@@ -7,7 +7,7 @@ import logger from "../utils/logger";
 import { randomUUID } from 'crypto';
 import { DEFAULT_ROLE } from "../types/user";
 import EmailVerificationRepository from "../repositories/EmailVerificationRepository";
-import { ForgotSchemaDTO, ResendVerificationDTO, VerifyEmailDTO } from "../schemas/auth";
+import { ForgotDTO, ResendVerificationDTO, VerifyEmailDTO } from "../schemas/auth";
 import EmailVerificationNotifier from "../notifiers/EmailVerificationNotifier";
 import PasswordResetNotifier from "../notifiers/PasswordResetNotifier";
 
@@ -221,7 +221,7 @@ class AuthService {
         }
     }
 
-    async forgotPassword(dto: ForgotSchemaDTO){
+    async forgotPassword(dto: ForgotDTO){
         try {
             const FORGOT_GENERIC_MESSAGE = 'Si el email está registrado y verificado, recibirás un enlace para restablecer tu contraseña'
 

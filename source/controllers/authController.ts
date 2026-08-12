@@ -1,6 +1,6 @@
 import type { Request, Response } from "express";
 import AuthService from "../services/authService";
-import { loginSchema, registerSchema, refreshSchema, logoutSchema, verifyEmailSchema, resendVerificationSchema, forgotSchema } from "../schemas/auth";
+import { loginSchema, registerSchema, refreshSchema, logoutSchema, verifyEmailSchema, resendVerificationSchema, forgotSchema, resetSchema } from "../schemas/auth";
 
 class AuthController {
     constructor(
@@ -61,6 +61,15 @@ class AuthController {
 
         resp.status(200).json(result)
     }
+
+    reset = async (req: Request, resp: Response) => {
+        const parsed = resetSchema.parse(req.body)
+
+        const result = await this.authService.
+
+        resp.status(200).json(result)
+    }
+    
 }
 
 export default AuthController
