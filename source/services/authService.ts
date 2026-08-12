@@ -17,7 +17,8 @@ class AuthService {
         private refreshTokenRepository: RefreshTokenRepository,
         private emailVerificationRepository: EmailVerificationRepository,
         private emailVerificationNotifier: EmailVerificationNotifier,
-        private passwordResetNotifier: PasswordResetNotifier
+        private passwordResetNotifier: PasswordResetNotifier,
+        private resetCooldownMinutes: number = 2
     ) {}
 
     async login(email: string, password: string){
@@ -229,10 +230,16 @@ class AuthService {
                 return {message: FORGOT_GENERIC_MESSAGE}
             }
 
+            if(this.resetCooldownMinutes > 0
+            && await this.emailVerificationRepository.hasRecentResetRequest(user.id, this.resetCooldownMinutes))
+            {return {message: FORGOT_GENERIC_MESSAGE}}
+
+
+
             await this.emailVerificationRepository.revokeAllByUserId(user.id)
 
             const passwordResetToken = randomUUID()
-            const passwordResetTokenExpiresAt = new Date(Date.now() + 60 * 60 * 1000)
+            const passwordResetTokenExpiresAt = new Date(Date.now() + 5 * 60 * 1000)
             
             await this.emailVerificationRepository.create({
                 userId: user.id,

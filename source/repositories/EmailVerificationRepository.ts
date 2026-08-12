@@ -46,6 +46,27 @@ class EmailVerificationRepository {
         await this.query(
             `UPDATE email_verifications SET used_at = NOW() WHERE user_id = ? AND used_at IS NULL`, [userId])
     }
+
+    async hasRecentResetRequest(userId: string, minutes: number): Promise<boolean> {
+       const [rows] = await this.query(
+            `SELECT id FROM email_verifications 
+            WHERE user_id = ?
+            AND created_at > DATE_SUB(NOW(), INTERVAL ? MINUTE)
+            LIMIT 1`, [userId, minutes])
+
+        return rows.length > 0
+
+    }
+
+    async findActiveTokenByUserId(userId: string): Promise<boolean> {
+        const [rows] = await this.query(
+            `SELECT id FROM email_verifications
+            WHERE user_id = ? AND used_at IS NULL AND expires_at > NOW() LIMIT 1`,
+            [userId])
+    
+        return rows.length > 0
+
+    }
 }
 
 export default EmailVerificationRepository
