@@ -270,6 +270,8 @@ class AuthService {
                 
                 throw new AppError('Token inválido o expirado', 401)
             }
+
+            await this.userRepository.updatePassword()
         } catch (error) {
             if (error instanceof AppError) throw error
             logger.error(`Error en resetPassword: ${(error as Error).message}`)

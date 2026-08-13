@@ -69,6 +69,21 @@ class EmailVerificationRepository {
         return rows.length > 0
 
     }
+
+    // ═══════════════════════════════════════════════════════════
+    //  Patrón: Transaction Script
+    // ═══════════════════════════════════════════════════════════
+    async transaction<T>(fn: () => Promise<T>): Promise<T> {
+        await this.conn.beginTransaction()
+        try {
+            const result = await fn()
+            await this.conn.commit()
+            return result
+        } catch (error) {
+            await this.conn.rollback()
+            throw error
+        }
+    }
 }
 
 export default EmailVerificationRepository

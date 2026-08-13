@@ -61,6 +61,10 @@ class UserRepository {
         await this.query(
             `UPDATE users SET email_verified = 1, email_verified_at = NOW() WHERE id = ?`, [userId])
     }
+
+    async updatePassword(){
+        
+    }
 }
 
 export default UserRepository
