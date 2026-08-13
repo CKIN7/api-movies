@@ -271,7 +271,15 @@ class AuthService {
                 throw new AppError('Token inválido o expirado', 401)
             }
 
-            await this.userRepository.updatePassword()
+            return await this.emailVerificationRepository.transaction(async () => {
+                const passwordHash = await bcrypt.hash(dto.newPassword, 10);
+
+                await this.userRepository.updatePassword(passwordHash, validToken)
+
+                await this.emailVerificationRepository.markUsed(dto.token)
+
+                return {message: "Contraseña actualizada"}
+            })
         } catch (error) {
             if (error instanceof AppError) throw error
             logger.error(`Error en resetPassword: ${(error as Error).message}`)
