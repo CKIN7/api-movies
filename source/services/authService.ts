@@ -271,8 +271,9 @@ class AuthService {
                 throw new AppError('Token inválido o expirado', 401)
             }
 
+            const passwordHash = await bcrypt.hash(dto.newPassword, 10);
+            
             return await this.emailVerificationRepository.transaction(async () => {
-                const passwordHash = await bcrypt.hash(dto.newPassword, 10);
 
                 await this.userRepository.updatePassword(passwordHash, userId)
 
