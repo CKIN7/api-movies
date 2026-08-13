@@ -62,8 +62,10 @@ class UserRepository {
             `UPDATE users SET email_verified = 1, email_verified_at = NOW() WHERE id = ?`, [userId])
     }
 
-    async updatePassword(){
-        
+    async updatePassword(passwordHash: string, userId: string){
+        await this.query(
+            `UPDATE users SET password_hash = ? WHERE id = ?`, [passwordHash, userId]
+        )
     }
 }
 
