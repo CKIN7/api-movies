@@ -266,7 +266,9 @@ class AuthService {
 
                 const token = await this.emailVerificationRepository.findByToken(dto.token)
                 if(!token) throw new AppError('Token no existe', 401)
-                if(token.usedAt)
+                if(token.usedAt !== null) throw new AppError('Token reutilizado', 401)
+                
+                throw new AppError('Token inválido o expirado', 401)
             }
         } catch (error) {
             if (error instanceof AppError) throw error
