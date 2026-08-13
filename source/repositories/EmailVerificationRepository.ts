@@ -1,5 +1,5 @@
 import { randomUUID } from "crypto";
-import { InsertEmailVerificationParams } from "../types/emailVerification";
+import { EmailVerificationTokenLookup, InsertEmailVerificationParams } from "../types/emailVerification";
 import { DbLogger } from "../utils/DbLogger";
 
 class EmailVerificationRepository {
@@ -28,12 +28,14 @@ class EmailVerificationRepository {
         return null
     }
 
-    async findByToken(token: string){
+    async findByToken(token: string): Promise<EmailVerificationTokenLookup | null>{
         const [rows] = await this.query(
             `SELECT token, used_at FROM email_verifications
             WHERE token = ? `, [token])
 
-        if(rows.length > 0) return rows[0]
+        if(rows.length > 0){
+            return { token: rows[0].token, usedAt: rows[0].used_at ?? null }
+        }
         return null
     }
 

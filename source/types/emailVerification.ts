@@ -12,3 +12,8 @@ export interface InsertEmailVerificationParams {
     token: string
     expiresAt: Date | string
 }
+
+export interface EmailVerificationTokenLookup {
+    token: string
+    usedAt: string | null
+}

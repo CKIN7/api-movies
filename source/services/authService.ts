@@ -176,7 +176,7 @@ class AuthService {
                 const verification = await this.emailVerificationRepository.findByToken(param.token)
                 if(!verification) throw new AppError('Token no existe', 401)
                 
-                if(verification.used_at !== null) throw new AppError('Token reutilizado', 401)
+                if(verification.usedAt !== null) throw new AppError('Token reutilizado', 401)
                 
                 throw new AppError('Token inválido o expirado', 401)
             }
@@ -261,7 +261,13 @@ class AuthService {
 
     async resetPassword(dto: ResetDTO){
         try {
-            
+            const validToken = await this.emailVerificationRepository.findValid(dto.token)
+            if(validToken === null){
+
+                const token = await this.emailVerificationRepository.findByToken(dto.token)
+                if(!token) throw new AppError('Token no existe', 401)
+                if(token.usedAt)
+            }
         } catch (error) {
             if (error instanceof AppError) throw error
             logger.error(`Error en resetPassword: ${(error as Error).message}`)
