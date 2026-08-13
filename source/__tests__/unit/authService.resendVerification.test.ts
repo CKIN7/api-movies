@@ -25,6 +25,9 @@ function createMockRepos() {
         emailVerificationNotifier: {
             sendVerificationEmail: jest.fn(),
         },
+        passwordResetNotifier: {
+            sendResetEmail: jest.fn(),
+        },
     }
 }
 
@@ -34,6 +37,7 @@ function buildService(repos: ReturnType<typeof createMockRepos>) {
         repos.refreshTokenRepository as any,
         repos.emailVerificationRepository as any,
         repos.emailVerificationNotifier as any,
+        repos.passwordResetNotifier as any,
     )
 }
 

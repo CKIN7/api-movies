@@ -25,6 +25,9 @@ function createMockRepos() {
         emailVerificationNotifier: {
             sendVerificationEmail: jest.fn(),
         },
+        passwordResetNotifier: {
+            sendResetEmail: jest.fn(),
+        },
     }
 }
 
@@ -34,6 +37,7 @@ function buildService(repos: ReturnType<typeof createMockRepos>) {
         repos.refreshTokenRepository as any,
         repos.emailVerificationRepository as any,
         repos.emailVerificationNotifier as any,
+        repos.passwordResetNotifier as any,
     )
 }
 
@@ -65,7 +69,7 @@ describe('AuthService - verifyEmail', () => {
     test('token ya reutilizado lanza 401', async () => {
         const repos = createMockRepos()
         repos.emailVerificationRepository.findValid.mockResolvedValue(null)
-        repos.emailVerificationRepository.findByToken.mockResolvedValue({ token: 't', used_at: new Date() })
+        repos.emailVerificationRepository.findByToken.mockResolvedValue({ token: 't', usedAt: new Date() })
         const service = buildService(repos)
 
         await expect(service.verifyEmail({ token: 'reutilizado' }))
@@ -75,7 +79,7 @@ describe('AuthService - verifyEmail', () => {
     test('token expirado (sin usar pero fuera de TTL) lanza 401', async () => {
         const repos = createMockRepos()
         repos.emailVerificationRepository.findValid.mockResolvedValue(null)
-        repos.emailVerificationRepository.findByToken.mockResolvedValue({ token: 't', used_at: null })
+        repos.emailVerificationRepository.findByToken.mockResolvedValue({ token: 't', usedAt: null })
         const service = buildService(repos)
 
         await expect(service.verifyEmail({ token: 'expirado' }))
