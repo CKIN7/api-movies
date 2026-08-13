@@ -261,8 +261,8 @@ class AuthService {
 
     async resetPassword(dto: ResetDTO){
         try {
-            const validToken = await this.emailVerificationRepository.findValid(dto.token)
-            if(validToken === null){
+            const userId = await this.emailVerificationRepository.findValid(dto.token)
+            if(userId === null){
 
                 const token = await this.emailVerificationRepository.findByToken(dto.token)
                 if(!token) throw new AppError('Token no existe', 401)
@@ -274,9 +274,11 @@ class AuthService {
             return await this.emailVerificationRepository.transaction(async () => {
                 const passwordHash = await bcrypt.hash(dto.newPassword, 10);
 
-                await this.userRepository.updatePassword(passwordHash, validToken)
+                await this.userRepository.updatePassword(passwordHash, userId)
 
                 await this.emailVerificationRepository.markUsed(dto.token)
+
+                await this.refreshTokenRepository.revokeAllByUserId(userId)
 
                 return {message: "Contraseña actualizada"}
             })
