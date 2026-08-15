@@ -7,15 +7,18 @@ import logger from "../utils/logger";
 import { randomUUID } from 'crypto';
 import { DEFAULT_ROLE } from "../types/user";
 import EmailVerificationRepository from "../repositories/EmailVerificationRepository";
-import { ResendVerificationDTO, VerifyEmailDTO } from "../schemas/auth";
+import { ForgotDTO, ResendVerificationDTO, ResetDTO, VerifyEmailDTO } from "../schemas/auth";
 import EmailVerificationNotifier from "../notifiers/EmailVerificationNotifier";
+import PasswordResetNotifier from "../notifiers/PasswordResetNotifier";
 
 class AuthService {
     constructor(
         private userRepository: UserRepository,
         private refreshTokenRepository: RefreshTokenRepository,
         private emailVerificationRepository: EmailVerificationRepository,
-        private emailVerificationNotifier: EmailVerificationNotifier
+        private emailVerificationNotifier: EmailVerificationNotifier,
+        private passwordResetNotifier: PasswordResetNotifier,
+        private resetCooldownMinutes: number = 2
     ) {}
 
     async login(email: string, password: string){
@@ -173,7 +176,7 @@ class AuthService {
                 const verification = await this.emailVerificationRepository.findByToken(param.token)
                 if(!verification) throw new AppError('Token no existe', 401)
                 
-                if(verification.used_at !== null) throw new AppError('Token reutilizado', 401)
+                if(verification.usedAt !== null) throw new AppError('Token reutilizado', 401)
                 
                 throw new AppError('Token inválido o expirado', 401)
             }
@@ -214,6 +217,75 @@ class AuthService {
         } catch (error) {
             if (error instanceof AppError) throw error
             logger.error(`Error en resendVerification: ${(error as Error).message}`)
+            throw new AppError('Error interno', 500) 
+        }
+    }
+
+    async forgotPassword(dto: ForgotDTO){
+        try {
+            const FORGOT_GENERIC_MESSAGE = 'Si el email está registrado y verificado, recibirás un enlace para restablecer tu contraseña'
+
+            const user = await this.userRepository.findByEmail(dto.email)
+            if(!user || user.emailVerified === false) {
+                return {message: FORGOT_GENERIC_MESSAGE}
+            }
+
+            if(this.resetCooldownMinutes > 0
+            && await this.emailVerificationRepository.hasRecentResetRequest(user.id, this.resetCooldownMinutes))
+            {return {message: FORGOT_GENERIC_MESSAGE}}
+
+            if(await this.emailVerificationRepository.findActiveTokenByUserId(user.id)) return {message: FORGOT_GENERIC_MESSAGE}
+
+
+            await this.emailVerificationRepository.revokeAllByUserId(user.id)
+
+            const passwordResetToken = randomUUID()
+            const passwordResetTokenExpiresAt = new Date(Date.now() + 5 * 60 * 1000)
+            
+            await this.emailVerificationRepository.create({
+                userId: user.id,
+                token: passwordResetToken,
+                expiresAt: passwordResetTokenExpiresAt
+            })
+
+            await this.passwordResetNotifier.sendResetEmail(user.email, passwordResetToken)
+
+            return {message: FORGOT_GENERIC_MESSAGE}
+
+        } catch (error) {
+            if (error instanceof AppError) throw error
+            logger.error(`Error en forgotPassword: ${(error as Error).message}`)
+            throw new AppError('Error interno', 500) 
+        }
+    }
+
+    async resetPassword(dto: ResetDTO){
+        try {
+            const userId = await this.emailVerificationRepository.findValid(dto.token)
+            if(userId === null){
+
+                const token = await this.emailVerificationRepository.findByToken(dto.token)
+                if(!token) throw new AppError('Token no existe', 401)
+                if(token.usedAt !== null) throw new AppError('Token reutilizado', 401)
+                
+                throw new AppError('Token inválido o expirado', 401)
+            }
+
+            const passwordHash = await bcrypt.hash(dto.newPassword, 10);
+            
+            return await this.emailVerificationRepository.transaction(async () => {
+
+                await this.userRepository.updatePassword(passwordHash, userId)
+
+                await this.emailVerificationRepository.markUsed(dto.token)
+
+                await this.refreshTokenRepository.revokeAllByUserId(userId)
+
+                return {message: "Contraseña actualizada"}
+            })
+        } catch (error) {
+            if (error instanceof AppError) throw error
+            logger.error(`Error en resetPassword: ${(error as Error).message}`)
             throw new AppError('Error interno', 500) 
         }
     }

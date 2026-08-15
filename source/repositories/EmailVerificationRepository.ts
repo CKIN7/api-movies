@@ -1,5 +1,5 @@
 import { randomUUID } from "crypto";
-import { InsertEmailVerificationParams } from "../types/emailVerification";
+import { EmailVerificationTokenLookup, InsertEmailVerificationParams } from "../types/emailVerification";
 import { DbLogger } from "../utils/DbLogger";
 
 class EmailVerificationRepository {
@@ -28,12 +28,14 @@ class EmailVerificationRepository {
         return null
     }
 
-    async findByToken(token: string){
+    async findByToken(token: string): Promise<EmailVerificationTokenLookup | null>{
         const [rows] = await this.query(
             `SELECT token, used_at FROM email_verifications
             WHERE token = ? `, [token])
 
-        if(rows.length > 0) return rows[0]
+        if(rows.length > 0){
+            return { token: rows[0].token, usedAt: rows[0].used_at ?? null }
+        }
         return null
     }
 
@@ -45,6 +47,42 @@ class EmailVerificationRepository {
     async revokeAllByUserId(userId: string){
         await this.query(
             `UPDATE email_verifications SET used_at = NOW() WHERE user_id = ? AND used_at IS NULL`, [userId])
+    }
+
+    async hasRecentResetRequest(userId: string, minutes: number): Promise<boolean> {
+       const [rows] = await this.query(
+            `SELECT id FROM email_verifications 
+            WHERE user_id = ?
+            AND created_at > DATE_SUB(NOW(), INTERVAL ? MINUTE)
+            LIMIT 1`, [userId, minutes])
+
+        return rows.length > 0
+
+    }
+
+    async findActiveTokenByUserId(userId: string): Promise<boolean> {
+        const [rows] = await this.query(
+            `SELECT id FROM email_verifications
+            WHERE user_id = ? AND used_at IS NULL AND expires_at > NOW() LIMIT 1`,
+            [userId])
+    
+        return rows.length > 0
+
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    //  Patrón: Transaction Script
+    // ═══════════════════════════════════════════════════════════
+    async transaction<T>(fn: () => Promise<T>): Promise<T> {
+        await this.conn.beginTransaction()
+        try {
+            const result = await fn()
+            await this.conn.commit()
+            return result
+        } catch (error) {
+            await this.conn.rollback()
+            throw error
+        }
     }
 }
 
