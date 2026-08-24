@@ -9,8 +9,10 @@ class ReviewService {
         private movieRepository: MovieRepository
     ) {}
 
-    async getReviews(dto){
+    async getReviews(params){
         try {
+            const movieId = await this.movieRepository.findById(params.id)
+            if(!movieId) throw new AppError('Pelicula no existe', 400);
             
         } catch (error) {
             if (error instanceof AppError) throw error
