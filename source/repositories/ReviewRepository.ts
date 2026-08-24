@@ -6,6 +6,10 @@ class ReviewRepository {
     private async query(sql: string, params?: any[]) {
         return await DbLogger.query('query', sql, params || [], () => this.conn.query(sql, params)) as any
     }
+
+    async findByMovieId(params): Promise<>{
+        const result = await this.query('SELECT * FROM reviews')
+    }
 }
 
 export default ReviewRepository
