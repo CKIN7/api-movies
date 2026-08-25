@@ -8,7 +8,7 @@ class ReviewRepository {
         return await DbLogger.query('query', sql, params || [], () => this.conn.query(sql, params)) as any
     }
 
-    async findByMovieId(params): Promise<ReviewRow[]>{
+    async findByMovieId({movie, page, limit}): Promise<ReviewRow[]>{
         const result = await this.query(
             `SELECT r.*, u.email FROM reviews r
             JOIN users u ON r.user_id = u.id
