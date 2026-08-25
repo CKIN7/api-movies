@@ -13,8 +13,9 @@ class ReviewService {
         try {
             const movie = await this.movieRepository.findById(movieId)
             if(!movie) throw new AppError('Pelicula no existe', 400);
-
-            const review = await this.reviewRepository.findByMovieId({movie, page, limit})
+            
+            const offset = (page - 1) * limit
+            const review = await this.reviewRepository.findByMovieId({movie, limit, offset})
         } catch (error) {
             if (error instanceof AppError) throw error
             logger.error(`Error en getReviews: ${(error as Error).message}`)
