@@ -42,6 +42,21 @@ class ReviewService {
             throw new AppError('Error al obtener reviews', 500)
         }
     } 
+
+    async createReview(userId, movieId, dto){
+        try {
+
+            const movie = await this.movieRepository.findById(movieId)
+            if(!movie) throw new AppError('Pelicula no existe', 400);
+            
+            const {review, isNew} = await this.reviewRepository.upsert(movieId, userId, dto)
+
+        } catch (error) {
+            if (error instanceof AppError) throw error
+            logger.error(`Error en createReview: ${(error as Error).message}`)
+            throw new AppError('Error al intentar crear una pelicula', 500)
+        }
+    }
 }
 
 export default ReviewService

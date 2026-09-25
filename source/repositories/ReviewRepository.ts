@@ -32,6 +32,10 @@ class ReviewRepository {
             count: row.count as number
         }
     }
+
+    async upsert(userId, movieId, parsed){
+        
+    }
 }
 
 export default ReviewRepository
