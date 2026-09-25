@@ -15,7 +15,7 @@ class ReviewRepository {
             WHERE r.movie_id = ?
             ORDER BY r.created_at DESC
             LIMIT ? OFFSET ?
-            `, [movie, limit, offset])
+            `, [movieId, limit, offset])
         
         return rows as ReviewRow[]
     }
