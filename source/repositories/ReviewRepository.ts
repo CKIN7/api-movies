@@ -1,4 +1,4 @@
-import { ReviewRow } from "../types/review";
+import { ReviewRow, ReviewsSummary } from "../types/review";
 import { DbLogger } from "../utils/DbLogger";
 
 class ReviewRepository {
@@ -18,6 +18,19 @@ class ReviewRepository {
             `, [movie, limit, offset])
         
         return rows as ReviewRow[]
+    }
+
+    async summaryByMovieId(movieId: number): Promise<ReviewsSummary> {
+        const [rows] = await this.query(
+            `SELECT AVG(rating) as avg_rating, COUNT(*) as count
+            FROM reviews WHERE movie_id = ?`, [movieId]
+        )
+
+        const row = rows[0]
+        return {
+            average: row.avg_rating !== null ? Number(row.avg_rating) : null,
+            count: row.count as number
+        }
     }
 }
 
