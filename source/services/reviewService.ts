@@ -27,6 +27,14 @@ class ReviewService {
 
             const data = reviews.map(r => Review.fromRow(r).toResponse());
 
+            const totalPages = Math.ceil(summary.count / limit);
+
+            return {
+                data,
+                meta: {total: summary.count, page, limit, totalPages},
+                summary
+            }
+
             
         } catch (error) {
             if (error instanceof AppError) throw error
