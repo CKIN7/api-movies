@@ -3,6 +3,7 @@ import ReviewRepository from "../repositories/ReviewRepository";
 import AppError from "../utils/AppError";
 import logger from "../utils/logger";
 import type { PaginatedReviewsResponse } from '../types/review';
+import { Review } from "../domain/Review";
 
 
 class ReviewService {
@@ -18,10 +19,13 @@ class ReviewService {
             
             const offset = (page - 1) * limit
 
+            // 3. Queries paralelas (listado + summary)
             const [reviews, summary] = await Promise.all([
                 this.reviewRepository.findByMovieId(movieId, limit, offset),
                 this.reviewRepository.summaryByMovieId(movieId)
             ]) 
+
+            const data = reviews.map(r => Review.fromRow(r).toResponse());
 
             
         } catch (error) {
