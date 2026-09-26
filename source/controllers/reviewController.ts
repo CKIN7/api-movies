@@ -1,6 +1,6 @@
 import type { Request, Response } from "express";
 import ReviewService from "../services/reviewService";
-import { reviewParamsSchema } from "../schemas/reviews";
+import { reviewParamsSchema, reviewSchema } from "../schemas/reviews";
 import { reviewQuerySchema } from "../schemas/reviewQuery";
 
 class ReviewController {
@@ -18,7 +18,16 @@ class ReviewController {
     }
 
     createReview = async (req: Request, resp: Response) => {
-        
+        const { id: movieId } = reviewParamsSchema.parse(req.params);
+
+        const parsed = reviewSchema.parse(req.body);
+
+        const userId = req.user!.id;
+
+        const result = await this.reviewService(userId, )
+
+
+
     }
 }
 
