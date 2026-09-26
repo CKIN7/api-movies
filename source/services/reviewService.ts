@@ -51,6 +51,11 @@ class ReviewService {
             
             const {review, isNew} = await this.reviewRepository.upsert(movieId, userId, dto)
 
+            return {
+                review: Review.fromRow(review).toResponse(),
+                isNew
+            }
+
         } catch (error) {
             if (error instanceof AppError) throw error
             logger.error(`Error en createReview: ${(error as Error).message}`)
