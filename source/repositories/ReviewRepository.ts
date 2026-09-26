@@ -43,6 +43,13 @@ class ReviewRepository {
             updated_at = NOW()`
         , [userId, movieId, parsed.rating, parsed.comment])
         
+        const isNew = rows.insertId !== 0
+
+        const reviewId = isNew ? rows.insertId : await this.getExistingId(movieId, userId);
+
+        const review = await this.findById(reviewId);
+
+        return {review, isNew}
     }
 }
 
