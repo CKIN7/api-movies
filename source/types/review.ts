@@ -36,12 +36,12 @@ export interface PaginatedReviewsResponse {
 
 export interface CreateReviewDTO {
     rating: number;           // 1.0 - 5.0, step 0.5
-    comment?: string;         // opcional, max 2000, no HTML
+    comment?: string | null;         // opcional, max 2000, no HTML
 }
 
 export interface UpdateReviewDTO {
     rating?: number;          // 1.0 - 5.0, step 0.5
-    comment?: string;         // opcional, max 2000, no HTML
+    comment?: string | null;         // opcional, max 2000, no HTML
 }
 
 export interface CreateReviewResult {

@@ -24,7 +24,7 @@ class ReviewController {
 
         const userId = req.user!.id;
 
-        const result = await this.reviewService(userId, )
+        const result = await this.reviewService.createReview(userId, movieId, parsed)
 
 
 
