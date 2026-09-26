@@ -62,6 +62,16 @@ class ReviewService {
             throw new AppError('Error al intentar crear una pelicula', 500)
         }
     }
+    
+    async getMyReview(userId, movieId) {
+        try {
+            
+        } catch (error) {
+            if (error instanceof AppError) throw error
+            logger.error(`Error en getMyReview: ${(error as Error).message}`)
+            throw new AppError('Error al intentar obtener review', 500)
+        }
+    }
 }
 
 export default ReviewService
