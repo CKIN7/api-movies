@@ -34,6 +34,14 @@ class ReviewRepository {
     }
 
     async upsert(userId, movieId, parsed){
+        const [rows] = await this.query(`
+            INSERT INTO reviews (user_id, movie_id, rating, comment, created_at, updated_at)
+            VALUES (?,?,?,?,NOW(), NOW())
+            ON DUPLICATE KEY UPDATE
+            rating = VALUES(rating),
+            comment = VALUES(comment),
+            updated_at = NOW()`
+        , [userId, movieId, parsed.rating, parsed.comment])
         
     }
 }
