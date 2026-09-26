@@ -33,6 +33,15 @@ class ReviewRepository {
         }
     }
 
+    private async getExistingId(movieId: number, userId: string): Promise<number> {
+        const [rows] = await this.query(
+        'SELECT id FROM reviews WHERE movie_id = ? AND user_id = ?',
+        [movieId, userId]);
+
+        return rows[0].id;
+    }
+
+
     async upsert(userId, movieId, parsed){
         const [rows] = await this.query(`
             INSERT INTO reviews (user_id, movie_id, rating, comment, created_at, updated_at)
