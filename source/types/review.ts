@@ -43,3 +43,8 @@ export interface UpdateReviewDTO {
     rating?: number;          // 1.0 - 5.0, step 0.5
     comment?: string;         // opcional, max 2000, no HTML
 }
+
+export interface CreateReviewResult {
+    review: ReviewResponse;
+    isNew: boolean;
+}

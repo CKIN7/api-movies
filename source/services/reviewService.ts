@@ -2,7 +2,7 @@ import MovieRepository from "../repositories/MovieRepository";
 import ReviewRepository from "../repositories/ReviewRepository";
 import AppError from "../utils/AppError";
 import logger from "../utils/logger";
-import type { PaginatedReviewsResponse } from '../types/review';
+import type { CreateReviewDTO, CreateReviewResult, PaginatedReviewsResponse } from '../types/review';
 import { Review } from "../domain/Review";
 
 
@@ -43,13 +43,13 @@ class ReviewService {
         }
     } 
 
-    async createReview(userId, movieId, dto){
+    async createReview(userId: string, movieId: number, dto: CreateReviewDTO): Promise<CreateReviewResult>{
         try {
 
             const movie = await this.movieRepository.findById(movieId)
             if(!movie) throw new AppError('Pelicula no existe', 400);
             
-            const {review, isNew} = await this.reviewRepository.upsert(movieId, userId, dto)
+            const {review, isNew} = await this.reviewRepository.upsert(userId, movieId, dto)
 
             return {
                 review: Review.fromRow(review).toResponse(),

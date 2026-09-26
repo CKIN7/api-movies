@@ -16,6 +16,10 @@ class ReviewController {
         
         resp.json(result);
     }
+
+    createReview = async (req: Request, resp: Response) => {
+        
+    }
 }
 
 export default ReviewController
