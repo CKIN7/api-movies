@@ -23,4 +23,4 @@ export const reviewParamsSchema = z.object({
 export type ReviewParamsDTO = z.infer<typeof reviewParamsSchema>;
 
 export type CreateReviewDTO = z.infer<typeof reviewSchema>;
-export type UpdateReviewDTO = z.infer<typeof reviewSchema.partial()>;
+export type UpdateReviewDTO = z.infer<typeof reviewSchema.partial>
