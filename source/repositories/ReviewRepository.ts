@@ -41,6 +41,13 @@ class ReviewRepository {
         return rows[0].id;
     }
 
+    async findById(id: number): Promise<ReviewRow | null> {
+        const [rows] = await this.query(
+        `SELECT r.*, u.email FROM reviews r JOIN users u ON r.user_id = u.id WHERE r.id = ?`,
+        [id]);
+        
+        return (rows as ReviewRow[])[0] || null;
+    }
 
     async upsert(userId, movieId, parsed){
         const [rows] = await this.query(`
