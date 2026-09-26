@@ -1,4 +1,4 @@
-import { ReviewRow, ReviewsSummary } from "../types/review";
+import { CreateReviewDTO, ReviewRow, ReviewsSummary } from "../types/review";
 import { DbLogger } from "../utils/DbLogger";
 
 class ReviewRepository {
@@ -49,7 +49,7 @@ class ReviewRepository {
         return (rows as ReviewRow[])[0] || null;
     }
 
-    async upsert(userId, movieId, parsed){
+    async upsert(userId: string, movieId: number, dto: CreateReviewDTO): Promise<{ review: ReviewRow; isNew: boolean }>{
         const [rows] = await this.query(`
             INSERT INTO reviews (user_id, movie_id, rating, comment, created_at, updated_at)
             VALUES (?,?,?,?,NOW(), NOW())
@@ -57,7 +57,7 @@ class ReviewRepository {
             rating = VALUES(rating),
             comment = VALUES(comment),
             updated_at = NOW()`
-        , [userId, movieId, parsed.rating, parsed.comment])
+        , [userId, movieId, dto.rating, dto.comment])
         
         const isNew = rows.insertId !== 0
 
@@ -65,7 +65,7 @@ class ReviewRepository {
 
         const review = await this.findById(reviewId);
 
-        return {review, isNew}
+        return {review: review!, isNew}
     }
 }
 
