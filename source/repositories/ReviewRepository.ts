@@ -49,7 +49,23 @@ class ReviewRepository {
         return (rows as ReviewRow[])[0] || null;
     }
 
+    async findByUserAndMovie(userId: string, movieId: number): Promise<ReviewRow | null> {
+        const [rows] = await this.query(
+            `SELECT r.id, r.movie_id, r.user_id, r.rating, r.comment, r.created_at, r.updated_at, u.email
+             FROM reviews r
+             JOIN users u ON r.user_id = u.id
+             WHERE r.movie_id = ? AND r.user_id = ?`,
+            [movieId, userId]
+        );
+    
+        return (rows as ReviewRow[])[0] || null;
+    }
+
     async upsert(userId: string, movieId: number, dto: CreateReviewDTO): Promise<{ review: ReviewRow; isNew: boolean }>{
+        
+        const existing = await this.findByUserAndMovie(userId, movieId);
+        const isNew = !existing;
+
         const [rows] = await this.query(`
             INSERT INTO reviews (user_id, movie_id, rating, comment, created_at, updated_at)
             VALUES (?,?,?,?,NOW(), NOW())
@@ -59,8 +75,6 @@ class ReviewRepository {
             updated_at = NOW()`
         , [userId, movieId, dto.rating, dto.comment])
         
-        const isNew = rows.insertId !== 0
-
         const reviewId = isNew ? rows.insertId : await this.getExistingId(movieId, userId);
 
         const review = await this.findById(reviewId);
