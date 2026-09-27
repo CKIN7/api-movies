@@ -1,4 +1,4 @@
-import { CreateReviewDTO, ReviewRow, ReviewsSummary } from "../types/review";
+import { CreateReviewDTO, ReviewRow, ReviewsSummary, UpdateReviewDTO } from "../types/review";
 import { DbLogger } from "../utils/DbLogger";
 
 class ReviewRepository {
@@ -80,6 +80,15 @@ class ReviewRepository {
         const review = await this.findById(reviewId);
 
         return {review: review!, isNew}
+    }
+
+    async update(userId: string, movieId: number, dto: UpdateReviewDTO): Promise<ReviewRow | null> {
+        const [rows] = await this.query(`
+            UPDATE reviews set rating = ?, comment = ?, updated_at = NOW()
+            WHERE user_id = ? AND movie_id = ?`
+        , [dto.rating, dto.comment, userId, movieId])
+        
+        
     }
 }
 
