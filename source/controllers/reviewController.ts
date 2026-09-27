@@ -32,6 +32,17 @@ class ReviewController {
         })
 
     }
+
+    getMyReview = async (req: Request, resp: Response) => {
+        const { id: movieId } = reviewParamsSchema.parse(req.params);
+
+        const userId = req.user!.id;
+
+        const review = await this.reviewService.getMyReview(userId, movieId)
+
+        resp.json({ data: review })
+
+    }
 }
 
 export default ReviewController

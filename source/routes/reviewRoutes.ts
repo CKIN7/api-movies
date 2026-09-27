@@ -8,5 +8,6 @@ export function createReviewRoutes(controller: ReviewController) {
 
     router.post('/:id/reviews', requireAuth,controller.createReview)
     router.get('/:id/reviews', controller.getReviews)
+    router.get('/:id/review/me', requireAuth, controller.getMyReview)
     return router
 }
