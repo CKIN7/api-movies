@@ -83,12 +83,34 @@ class ReviewRepository {
     }
 
     async update(userId: string, movieId: number, dto: UpdateReviewDTO): Promise<ReviewRow | null> {
+
+        const fields = [];
+        const values = [];
+
+        if (dto.rating !== undefined) {
+            fields.push('rating = ?');
+            values.push(dto.rating);
+        }
+
+        if (dto.comment !== undefined) {
+            fields.push('comment = ?');
+            values.push(dto.comment);
+        }
+
+        if (fields.length === 0) return null;
+        
+        fields.push('updated_at = NOW()')
+        values.push(userId, movieId);
+
         const [rows] = await this.query(`
-            UPDATE reviews set rating = ?, comment = ?, updated_at = NOW()
+            UPDATE reviews set ${fields.join(', ')}
             WHERE user_id = ? AND movie_id = ?`
-        , [dto.rating, dto.comment, userId, movieId])
+        , values)
         
+        if (rows.affectedRows === 0) return null
         
+        return this.findByUserAndMovie(userId, movieId);
+
     }
 }
 
