@@ -2,8 +2,9 @@ import MovieRepository from "../repositories/MovieRepository";
 import ReviewRepository from "../repositories/ReviewRepository";
 import AppError from "../utils/AppError";
 import logger from "../utils/logger";
-import type { CreateReviewDTO, CreateReviewResult, PaginatedReviewsResponse, ReviewRow } from '../types/review';
+import type { CreateReviewDTO, CreateReviewResult, PaginatedReviewsResponse, ReviewResponse, ReviewRow } from '../types/review';
 import { Review } from "../domain/Review";
+import { UpdateReviewDTO } from "../schemas/reviews";
 
 
 class ReviewService {
@@ -76,6 +77,16 @@ class ReviewService {
             if (error instanceof AppError) throw error
             logger.error(`Error en getMyReview: ${(error as Error).message}`)
             throw new AppError('Error al intentar obtener review', 500)
+        }
+    }
+
+    async updateMyReview(userId: string, movieId: number, dto: UpdateReviewDTO): Promise<ReviewResponse> {
+        try {
+            
+        } catch (error) {
+            if (error instanceof AppError) throw error
+            logger.error(`Error en updateMyReview: ${(error as Error).message}`)
+            throw new AppError('Error al intentar actualizar review', 500)
         }
     }
 }
