@@ -2,9 +2,9 @@ import MovieRepository from "../repositories/MovieRepository";
 import ReviewRepository from "../repositories/ReviewRepository";
 import AppError from "../utils/AppError";
 import logger from "../utils/logger";
-import type { CreateReviewDTO, CreateReviewResult, PaginatedReviewsResponse, ReviewResponse, ReviewRow } from '../types/review';
+import type { CreateReviewDTO, CreateReviewResult, PaginatedReviewsResponse, ReviewResponse, ReviewRow, UpdateReviewDTO } from '../types/review';
 import { Review } from "../domain/Review";
-import { UpdateReviewDTO } from "../schemas/reviews";
+// import { UpdateReviewDTO } from "../schemas/reviews";
 
 
 class ReviewService {
@@ -82,6 +82,11 @@ class ReviewService {
 
     async updateMyReview(userId: string, movieId: number, dto: UpdateReviewDTO): Promise<ReviewResponse> {
         try {
+            
+            const movie = await this.movieRepository.findById(movieId)
+            if(!movie) throw new AppError('Pelicula no existe', 400);
+
+            const review = await this.reviewRepository.update(userId, movieId, dto)
             
         } catch (error) {
             if (error instanceof AppError) throw error
