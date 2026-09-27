@@ -83,10 +83,17 @@ class ReviewService {
     async updateMyReview(userId: string, movieId: number, dto: UpdateReviewDTO): Promise<ReviewResponse> {
         try {
             
-            const movie = await this.movieRepository.findById(movieId)
-            if(!movie) throw new AppError('Pelicula no existe', 400);
+            if(Object.keys(dto).length === 0){
+                throw new AppError('No hay campos para actualizar', 400);
+            }
 
-            const review = await this.reviewRepository.update(userId, movieId, dto)
+            const updatedReview = await this.reviewRepository.update(userId, movieId, dto)
+
+            if(updatedReview === null) {
+                throw new AppError('Reseña no encontrada', 404);
+            }
+
+            return Review.fromRow(updatedReview).toResponse();
             
         } catch (error) {
             if (error instanceof AppError) throw error
