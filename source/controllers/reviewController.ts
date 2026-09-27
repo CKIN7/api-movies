@@ -45,7 +45,16 @@ class ReviewController {
     }
 
     updateMyReview = async (req: Request, resp: Response) => {
-        
+        const { id: movieId } = reviewParamsSchema.parse(req.params);
+        const parsed = reviewSchema.partial().parse(req.body); // rating/comment opcionales
+        const userId = req.user!.id;
+
+        const review = await this.reviewService.updateMyReview(userId, movieId, parsed);
+
+        resp.json({
+            message: 'Reseña actualizada con éxito',
+            data: review
+        });
     }
 }
 
