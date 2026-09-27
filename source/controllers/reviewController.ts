@@ -43,6 +43,10 @@ class ReviewController {
         resp.json({ data: review })
 
     }
+
+    updateMyReview = async (req: Request, resp: Response) => {
+        
+    }
 }
 
 export default ReviewController
