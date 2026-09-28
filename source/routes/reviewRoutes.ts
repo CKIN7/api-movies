@@ -10,5 +10,6 @@ export function createReviewRoutes(controller: ReviewController) {
     router.get('/:id/reviews', controller.getReviews)
     router.get('/:id/review/me', requireAuth, controller.getMyReview)
     router.patch('/:id/review/me', requireAuth, controller.updateMyReview)
+    router.delete('/:id/review/me', requireAuth, controller.deleteMyReview)
     return router
 }
