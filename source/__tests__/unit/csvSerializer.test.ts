@@ -32,6 +32,8 @@ describe('CsvSerializer', () => {
                 poster: '...',
                 cast: [{ actor: 'Leonardo DiCaprio', character: 'Dom Cobb' }],
                 ageRating: 'PG-13',
+                averageRating: 4.5,
+                reviewsCount: 10,
             },
         ]
 
@@ -62,6 +64,8 @@ describe('CsvSerializer', () => {
                 poster: '...',
                 cast: [{ actor: 'John "The Man" Doe', character: 'Hero' }],
                 ageRating: 'PG',
+                averageRating: 4.0,
+                reviewsCount: 5,
             },
         ]
 
@@ -85,6 +89,8 @@ describe('CsvSerializer', () => {
                 poster: '...',
                 cast: [],
                 ageRating: 'G',
+                averageRating: null,
+                reviewsCount: 0,
             },
         ]
 
