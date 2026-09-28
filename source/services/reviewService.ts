@@ -89,15 +89,10 @@ class ReviewService {
 
             const updatedReview = await this.reviewRepository.update(userId, movieId, dto)
 
-            if (!updatedReview) {
-            // Re-leer para confirmar si existe o no
-            const existing = await this.reviewRepository.findByUserAndMovie(userId, movieId);
-            if (!existing) {
-                throw new AppError('Reseña no encontrada', 404);
-            }
-            // Existe pero sin cambios → devolver 200 con review actual
-            return Review.fromRow(existing).toResponse();
-            }
+            if (!updatedReview) throw new AppError('Reseña no encontrada', 404);
+            
+            return Review.fromRow(updatedReview).toResponse();
+            
             
         } catch (error) {
             if (error instanceof AppError) throw error

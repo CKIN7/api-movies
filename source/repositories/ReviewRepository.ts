@@ -107,7 +107,6 @@ class ReviewRepository {
             WHERE user_id = ? AND movie_id = ?`
         , values)
         
-        if (rows.affectedRows === 0) return null
         
         return this.findByUserAndMovie(userId, movieId);
 
