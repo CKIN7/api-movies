@@ -13,6 +13,8 @@ export interface MovieResponse {
     genres: string[]
     cast: CastMember[]
     ageRating: string
+    averageRating: number | null
+    reviewsCount: number
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -36,6 +38,8 @@ export class Movie {
         public poster: string,
         public cast: CastMember[],
         public ageRating: string,
+        public averageRating: number | null,
+        public reviewsCount: number,
     ) {}
 
     static fromRow(row: MovieRow): Movie {
@@ -58,6 +62,8 @@ export class Movie {
             row.poster,
             parsedCast,
             row.age_rating,
+            row.average_rating !== null ? Number(row.average_rating) : null,
+            Number(row.reviews_count) || 0,
         )
     }
 
@@ -74,6 +80,8 @@ export class Movie {
             genres: this.genres,
             cast: this.cast,
             ageRating: this.ageRating,
+            averageRating: this.averageRating,
+            reviewsCount: this.reviewsCount,
         }
     }
 }
