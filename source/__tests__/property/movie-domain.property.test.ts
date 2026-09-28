@@ -42,6 +42,8 @@ describe('Movie.fromRow -> toResponse', () => {
                 genres: genreNames.join(', '),
                 cast: cast.map((m) => `${m.actor}||${m.character}`).join('|||'),
                 age_rating: ageRating,
+                average_rating: null,
+                reviews_count: 0,
             }
 
             const response = Movie.fromRow(row).toResponse()
@@ -88,6 +90,8 @@ describe('Movie.fromRow -> toResponse', () => {
                 genres: genreNames.join(', '),
                 cast: cast.map((m) => `${m.actor}||${m.character}`).join('|||'),
                 age_rating: ageRating,
+                average_rating: null,
+                reviews_count: 0,
             }
 
             const json = JSON.stringify(Movie.fromRow(row).toResponse())
@@ -111,6 +115,8 @@ test('limitación conocida: los separadores || en nombres rompen el round-trip',
         genres: 'Drama',
         cast: 'Cobb||A||B',
         age_rating: 'PG-13',
+        average_rating: null,
+        reviews_count: 0,
     }
     const response = Movie.fromRow(row).toResponse()
     expect(response.cast[0]).toEqual({ actor: 'Cobb', character: 'A' })

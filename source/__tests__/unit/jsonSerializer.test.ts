@@ -26,6 +26,8 @@ describe('JsonSerializer', () => {
                 poster: '...',
                 cast: [{ actor: 'Leonardo DiCaprio', character: 'Dom Cobb' }],
                 ageRating: 'PG-13',
+                averageRating: 4.5,
+                reviewsCount: 10,
             },
         ]
 
@@ -58,6 +60,8 @@ describe('JsonSerializer', () => {
                 poster: '...',
                 cast: [],
                 ageRating: 'PG',
+                averageRating: 3.5,
+                reviewsCount: 2,
             },
         ]
 

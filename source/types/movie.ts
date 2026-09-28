@@ -22,6 +22,8 @@ export interface MovieRow {
     genres: string
     cast: string
     age_rating: string
+    average_rating: number | null
+    reviews_count: number
 }
 
 export interface SimilarMovieRow {

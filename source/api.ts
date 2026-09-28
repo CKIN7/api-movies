@@ -24,6 +24,10 @@ import { createAuthRoutes } from './routes/authRoutes'
 import EmailVerificationRepository from './repositories/EmailVerificationRepository'
 import DevEmailVerificationNotifier from './notifiers/DevEmailVerificationNotifier'
 import DevPasswordResetNotifier from './notifiers/DevPasswordResetNotifier'
+import ReviewRepository from './repositories/ReviewRepository'
+import ReviewService from './services/reviewService'
+import ReviewController from './controllers/reviewController'
+import { createReviewRoutes } from './routes/reviewRoutes'
 
 // ═══════════════════════════════════════════════════════════════
 //  Patrones: Dependency Injection + Factory + Chain of Resp.
@@ -70,8 +74,14 @@ export function createApp(movieService?: MovieService) {
     const authController = new AuthController(authService)
     const authRouter = createAuthRoutes(authController)
 
+    const reviewRepository = new ReviewRepository(conn)
+    const reviewService = new ReviewService(reviewRepository, movieRepo)
+    const reviewController = new ReviewController(reviewService)
+    const reviewRouter = createReviewRoutes(reviewController)
+    
     app.use('/movies', exportRouter)
     app.use('/movies', router)
+    app.use('/movies', reviewRouter)
     app.use('/auth', authRouter)
 
     app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
