@@ -56,6 +56,15 @@ class ReviewController {
             data: review
         });
     }
+
+    deleteMyReview = async (req: Request, resp: Response) => {
+        const { id: movieId } = reviewParamsSchema.parse(req.params);
+        const userId = req.user!.id;
+
+        await this.reviewService.deleteMyReview(userId, movieId);
+
+        resp.json({ message: 'Reseña eliminada con éxito' });
+    }
 }
 
 export default ReviewController
