@@ -27,13 +27,20 @@ class MovieRepository {
         let sql = `
             SELECT m.id, m.title, m.year, d.director_name as director, m.rating, m.duration, m.plot, m.poster, m.age_rating,
             GROUP_CONCAT(DISTINCT genre_name ORDER BY genre_name SEPARATOR ', ') AS genres,
-            GROUP_CONCAT(DISTINCT CONCAT(a.actor_name, '||', ma.character_name) ORDER BY a.actor_name SEPARATOR '|||') AS \`cast\`
+            GROUP_CONCAT(DISTINCT CONCAT(a.actor_name, '||', ma.character_name) ORDER BY a.actor_name SEPARATOR '|||') AS \`cast\`,
+            COALESCE(rv.avg_rating, NULL) as average_rating,
+            COALESCE(rv.reviews_count, 0) as reviews_count
             FROM movies m
             JOIN directors d ON m.id_director = d.director_id
             JOIN movie_genres mg ON m.id = mg.movie_id
             JOIN genres g ON mg.genre_id = g.id_genre
             LEFT JOIN movie_actors ma ON m.id = ma.movie_id
             LEFT JOIN actors a ON ma.actor_id = a.actor_id
+            LEFT JOIN (
+                SELECT movie_id, AVG(rating) as avg_rating, COUNT(*) as reviews_count
+                FROM reviews
+                GROUP BY movie_id
+            ) rv ON rv.movie_id = m.id
         `
 
         const {conditions, params} = new MovieQueryBuilder(query).build()
@@ -68,17 +75,24 @@ class MovieRepository {
 
     async findById(id: number): Promise<MovieRow | null> {
         const [rows] = await this.query(
-            `SELECT id, title, year, director_name as director, rating, duration, plot, poster, age_rating,
+            `SELECT m.id, m.title, m.year, d.director_name as director, m.rating, m.duration, m.plot, m.poster, m.age_rating,
             GROUP_CONCAT(DISTINCT genre_name ORDER BY genre_name SEPARATOR ', ') AS genres,
-            GROUP_CONCAT(DISTINCT CONCAT(a.actor_name, '||', ma.character_name) ORDER BY a.actor_name SEPARATOR '|||') AS \`cast\`
-            FROM movies
-            JOIN directors AS d ON movies.id_director = d.director_id
-            JOIN movie_genres ON movies.id = movie_genres.movie_id
+            GROUP_CONCAT(DISTINCT CONCAT(a.actor_name, '||', ma.character_name) ORDER BY a.actor_name SEPARATOR '|||') AS \`cast\`,
+            COALESCE(rv.avg_rating, NULL) as average_rating,
+            COALESCE(rv.reviews_count, 0) as reviews_count
+            FROM movies m
+            JOIN directors AS d ON m.id_director = d.director_id
+            JOIN movie_genres ON m.id = movie_genres.movie_id
             JOIN genres g ON movie_genres.genre_id = g.id_genre
-            LEFT JOIN movie_actors ma ON movies.id = ma.movie_id
+            LEFT JOIN movie_actors ma ON m.id = ma.movie_id
             LEFT JOIN actors a ON ma.actor_id = a.actor_id
-            WHERE movies.id = ?
-            GROUP BY movies.id`,
+            LEFT JOIN (
+                SELECT movie_id, AVG(rating) as avg_rating, COUNT(*) as reviews_count
+                FROM reviews
+                GROUP BY movie_id
+            ) rv ON rv.movie_id = m.id
+            WHERE m.id = ?
+            GROUP BY m.id`,
             [id]
         )
         return (rows as MovieRow[])[0] || null
@@ -159,13 +173,20 @@ class MovieRepository {
                    m.rating, m.duration, m.plot, m.poster, m.age_rating,
                    GROUP_CONCAT(DISTINCT g.genre_name ORDER BY g.genre_name SEPARATOR ', ') AS genres,
                    GROUP_CONCAT(DISTINCT CONCAT(a.actor_name, '||', ma.character_name)
-                       ORDER BY a.actor_name SEPARATOR '|||') AS \`cast\`
+                       ORDER BY a.actor_name SEPARATOR '|||') AS \`cast\`,
+                   COALESCE(rv.avg_rating, NULL) as average_rating,
+                   COALESCE(rv.reviews_count, 0) as reviews_count
             FROM movies m
             JOIN directors d ON m.id_director = d.director_id
             JOIN movie_genres mg ON m.id = mg.movie_id
             JOIN genres g ON mg.genre_id = g.id_genre
             LEFT JOIN movie_actors ma ON m.id = ma.movie_id
             LEFT JOIN actors a ON ma.actor_id = a.actor_id
+            LEFT JOIN (
+                SELECT movie_id, AVG(rating) as avg_rating, COUNT(*) as reviews_count
+                FROM reviews
+                GROUP BY movie_id
+            ) rv ON rv.movie_id = m.id
             WHERE m.id IN (${placeholders})
             GROUP BY m.id
             ORDER BY FIELD(m.id, ${placeholders})
