@@ -132,6 +132,11 @@ describe('Reviews API (integración real con DB)', () => {
 
     describe('GET /movies/:id/reviews', () => {
         test('devuelve reviews paginadas con summary', async () => {
+            await request(createApp())
+                .post('/movies/1/reviews')
+                .set(authHeader())
+                .send({ rating: 4.5, comment: 'Para el test' })
+
             const res = await request(createApp())
                 .get('/movies/1/reviews')
                 .query({ page: 1, limit: 10 })
