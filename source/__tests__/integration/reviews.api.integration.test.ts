@@ -34,9 +34,9 @@ describe('Reviews API (integración real con DB)', () => {
 
             expect(res.status).toBe(201)
             expect(res.body.isNew).toBe(true)
-            expect(res.body.review.rating).toBe(4.5)
-            expect(res.body.review.comment).toBe('Excelente')
-            expect(res.body.review.email).toBe('admin@example.com')
+            expect(res.body.data.rating).toBe(4.5)
+            expect(res.body.data.comment).toBe('Excelente')
+            expect(res.body.data.email).toBe('admin@example.com')
         })
 
         test('hace upsert y devuelve 200 si review ya existe', async () => {
@@ -52,8 +52,8 @@ describe('Reviews API (integración real con DB)', () => {
 
             expect(res.status).toBe(200)
             expect(res.body.isNew).toBe(false)
-            expect(res.body.review.rating).toBe(5)
-            expect(res.body.review.comment).toBe('Actualizada')
+            expect(res.body.data.rating).toBe(5)
+            expect(res.body.data.comment).toBe('Actualizada')
         })
 
         test('401 sin token', async () => {
@@ -125,8 +125,8 @@ describe('Reviews API (integración real con DB)', () => {
                 .send({ rating: 4 })
 
             expect(res.status).toBe(201)
-            expect(res.body.review.rating).toBe(4)
-            expect(res.body.review.comment).toBeNull()
+            expect(res.body.data.rating).toBe(4)
+            expect(res.body.data.comment).toBeNull()
         })
     })
 
