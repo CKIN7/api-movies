@@ -16,7 +16,7 @@ class ReviewService {
     async getReviews(movieId: number, page: number, limit: number): Promise<PaginatedReviewsResponse>{
         try {
             const movie = await this.movieRepository.findById(movieId)
-            if(!movie) throw new AppError('Pelicula no existe', 400);
+            if(!movie) throw new AppError('Película no encontrada', 404);
             
             const offset = (page - 1) * limit
 
@@ -48,7 +48,7 @@ class ReviewService {
         try {
 
             const movie = await this.movieRepository.findById(movieId)
-            if(!movie) throw new AppError('Pelicula no existe', 400);
+            if(!movie) throw new AppError('Película no encontrada', 404);
             
             const {review, isNew} = await this.reviewRepository.upsert(userId, movieId, dto)
 
@@ -66,9 +66,8 @@ class ReviewService {
     
     async getMyReview(userId: string, movieId: number): Promise<ReviewRow | null> {
         try {
-
             const movie = await this.movieRepository.findById(movieId)
-            if(!movie) throw new AppError('Pelicula no existe', 400);
+            if(!movie) throw new AppError('Película no encontrada', 404);
 
             const review = await this.reviewRepository.findByUserAndMovie(userId, movieId)
             return review;
