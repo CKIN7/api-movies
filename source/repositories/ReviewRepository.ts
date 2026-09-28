@@ -111,6 +111,15 @@ class ReviewRepository {
         return this.findByUserAndMovie(userId, movieId);
 
     }
+
+    async delete(userId: string, movieId: number): Promise<boolean> {
+        const [result] = await this.query(
+            `DELETE FROM reviews WHERE movie_id = ? AND user_id = ?`,
+            [movieId, userId]
+        );
+
+        return (result as any).affectedRows > 0;
+    }
 }
 
 export default ReviewRepository
