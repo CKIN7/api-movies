@@ -8,8 +8,8 @@ export function createReviewRoutes(controller: ReviewController) {
 
     router.post('/:id/reviews', requireAuth,controller.createReview)
     router.get('/:id/reviews', controller.getReviews)
-    router.get('/:id/review/me', requireAuth, controller.getMyReview)
-    router.patch('/:id/review/me', requireAuth, controller.updateMyReview)
-    router.delete('/:id/review/me', requireAuth, controller.deleteMyReview)
+    router.get('/:id/reviews/me', requireAuth, controller.getMyReview)
+    router.patch('/:id/reviews/me', requireAuth, controller.updateMyReview)
+    router.delete('/:id/reviews/me', requireAuth, controller.deleteMyReview)
     return router
 }

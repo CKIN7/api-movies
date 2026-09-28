@@ -393,10 +393,7 @@ export async function seedTestData(conn: Connection): Promise<void> {
     
     await conn.query(`INSERT INTO users (id, email, password_hash, role, email_verified) VALUES ('cfd74902-7d20-4653-bdf6-759bb4947956', 'admin@example.com', '$2b$10$oPAr9ogyknbTezqgxYTIKeMXQzbviHFT5Ea9Hc.vk3g2Qpfo2ddre', 'admin', 1)`)
 
-    // Seed reviews for testing
-    await conn.execute(`INSERT INTO reviews (movie_id, user_id, rating, comment, created_at, updated_at) VALUES (1, 'cfd74902-7d20-4653-bdf6-759bb4947956', 4.5, 'Excelente película', NOW(), NOW())`)
-    await conn.execute(`INSERT INTO reviews (movie_id, user_id, rating, comment, created_at, updated_at) VALUES (2, 'cfd74902-7d20-4653-bdf6-759bb4947956', 5, 'Obra maestra', NOW(), NOW())`)
-    await conn.execute(`INSERT INTO reviews (movie_id, user_id, rating, comment, created_at, updated_at) VALUES (3, 'cfd74902-7d20-4653-bdf6-759bb4947956', 4, 'Muy buena', NOW(), NOW())`)
+    
 
     await conn.execute('SET FOREIGN_KEY_CHECKS = 1')
 }

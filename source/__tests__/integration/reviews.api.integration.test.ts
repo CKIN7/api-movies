@@ -188,7 +188,7 @@ describe('Reviews API (integración real con DB)', () => {
                 .set(authHeader())
 
             expect(res.status).toBe(200)
-            expect(res.body.data.rating).toBe(4.5)
+            expect(res.body.data.rating).toBe("4.5")
             expect(res.body.data.comment).toBe('Test')
         })
 

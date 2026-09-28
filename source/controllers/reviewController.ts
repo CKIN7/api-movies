@@ -27,6 +27,7 @@ class ReviewController {
         const result = await this.reviewService.createReview(userId, movieId, parsed)
 
         resp.status(result.isNew ? 201 : 200).json({
+            isNew: result.isNew,
             message: result.isNew ? 'Reseña creada con éxito' : 'Reseña actualizada con éxito',
             data: result.review
         })
