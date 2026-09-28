@@ -100,6 +100,21 @@ class ReviewService {
             throw new AppError('Error al intentar actualizar review', 500)
         }
     }
+
+    async deleteMyReview(userId: string, movieId: number): Promise<void> {
+        try {
+            const deleted = await this.reviewRepository.delete(userId, movieId);
+
+            if (!deleted) {
+                throw new AppError('Reseña no encontrada', 404);
+            }
+
+        } catch (error) {
+            if (error instanceof AppError) throw error;
+            logger.error(`Error en deleteMyReview: ${(error as Error).message}`);
+            throw new AppError('Error al eliminar la reseña', 500);
+        }
+    }
 }
 
 export default ReviewService
