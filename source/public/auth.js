@@ -334,12 +334,4 @@ export class Auth {
   notifyChange() {
     this.listeners.forEach(cb => cb(this.user));
   }
-
-  isAuthenticated() {
-    return !!this.accessToken;
-  }
-
-  getUser() {
-    return this.user;
-  }
 }
