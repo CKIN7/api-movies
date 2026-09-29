@@ -115,12 +115,23 @@ export class Auth {
   }
 
   clearErrors() {
-    this.els.loginError.textContent = '';
-    this.els.registerError.textContent = '';
+    this.els.loginError.innerHTML = '';
+    this.els.registerError.innerHTML = '';
   }
 
-  setError(element, message) {
-    element.textContent = message;
+  setError(element, message, email = null) {
+    if (email && message.includes('Verifica tu email')) {
+      element.innerHTML = `
+        <span>${message}</span>
+        <button type="button" class="btn-resend" data-email="${email}" style="margin-left: 8px; padding: 2px 8px; font-size: 0.75rem;">Reenviar verificación</button>
+      `;
+      element.querySelector('.btn-resend')?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.handleResendVerification(e.target.dataset.email, element);
+      });
+    } else {
+      element.textContent = message;
+    }
   }
 
   async handleLogin(e) {
@@ -141,7 +152,8 @@ export class Auth {
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data.message || `Error ${res.status}`);
+        // Backend usa "error" o "message"
+        throw new Error(data.message || data.error || `Error ${res.status}`);
       }
 
       this.setAuth(data.accessToken, data.refreshToken, data.user);
@@ -149,7 +161,7 @@ export class Auth {
       this.els.formLogin.reset();
       this.notifyChange();
     } catch (err) {
-      this.setError(this.els.loginError, err.message);
+      this.setError(this.els.loginError, err.message, email);
     }
   }
 
@@ -171,15 +183,46 @@ export class Auth {
       const data = await res.json();
 
       if (!res.ok) {
+        throw new Error(data.message || data.error || `Error ${res.status}`);
+      }
+
+      // Registro exitoso: mostrar mensaje, no hay login automático (requiere verificación)
+      this.els.registerError.innerHTML = `<span style="color: #8ab4f8;">${data.message || data.error}</span>`;
+      this.els.formRegister.reset();
+      setTimeout(() => this.closeModals(), 2000);
+    } catch (err) {
+      this.setError(this.els.registerError, err.message, email);
+    }
+  }
+
+  async handleResendVerification(email, errorElement) {
+    const btn = errorElement.querySelector('.btn-resend');
+    const originalText = btn?.textContent;
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = 'Enviando...';
+    }
+
+    try {
+      const res = await fetch(`${this.API_BASE}/auth/resend`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
         throw new Error(data.message || `Error ${res.status}`);
       }
 
-      this.setAuth(data.accessToken, data.refreshToken, data.user);
-      this.closeModals();
-      this.els.formRegister.reset();
-      this.notifyChange();
+      errorElement.innerHTML = `<span style="color: #8ab4f8;">${data.message}</span>`;
     } catch (err) {
-      this.setError(this.els.registerError, err.message);
+      errorElement.innerHTML = `<span>${err.message}</span>`;
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = originalText;
+      }
     }
   }
 
