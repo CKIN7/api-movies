@@ -46,7 +46,8 @@ class AuthService {
                 user: {
                     id: user.id,
                     email: user.email, 
-                    role: user.role
+                    role: user.role,
+                    isVerified: user.emailVerified
                 }
             }
         } catch (error) {
@@ -131,7 +132,8 @@ class AuthService {
                 user: {
                     id: user?.id,
                     email: user?.email, 
-                    role: user?.role
+                    role: user?.role,
+                    isVerified: user?.emailVerified ?? false
                 }
             }
             

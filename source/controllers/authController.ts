@@ -19,7 +19,7 @@ class AuthController {
         const parsed = registerSchema.parse(req.body)
         
         const user = await this.authService.register(parsed.email, parsed.password)
-        resp.status(201).json(user);
+        resp.status(201).json({ message: 'Usuario creado. Revisa tu email para verificar tu cuenta.', user });
     }
 
     refresh = async (req: Request, resp: Response) => {
