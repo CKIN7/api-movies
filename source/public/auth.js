@@ -55,7 +55,8 @@ export class Auth {
       authButtons: document.getElementById('auth-buttons'),
       modalLogin: document.getElementById('modal-login'),
       modalRegister: document.getElementById('modal-register'),
-      modalOverlay: document.getElementById('modal-overlay'),
+      modalOverlayLogin: document.getElementById('modal-overlay'),
+      modalOverlayRegister: document.getElementById('modal-overlay-register'),
       formLogin: document.getElementById('form-login'),
       formRegister: document.getElementById('form-register'),
       switchToRegister: document.getElementById('switch-to-register'),
@@ -75,7 +76,8 @@ export class Auth {
     els.switchToRegister?.addEventListener('click', () => this.switchModal('register'));
     els.switchToLogin?.addEventListener('click', () => this.switchModal('login'));
 
-    els.modalOverlay?.addEventListener('click', () => this.closeModals());
+    els.modalOverlayLogin?.addEventListener('click', () => this.closeModals());
+    els.modalOverlayRegister?.addEventListener('click', () => this.closeModals());
 
     els.formLogin?.addEventListener('submit', (e) => this.handleLogin(e));
     els.formRegister?.addEventListener('submit', (e) => this.handleRegister(e));
@@ -90,10 +92,11 @@ export class Auth {
     this.clearErrors();
     if (type === 'login') {
       this.els.modalLogin?.classList.add('open');
+      this.els.modalOverlayLogin?.classList.add('open');
     } else {
       this.els.modalRegister?.classList.add('open');
+      this.els.modalOverlayRegister?.classList.add('open');
     }
-    this.els.modalOverlay?.classList.add('open');
     setTimeout(() => {
       const input = type === 'login'
         ? this.els.formLogin?.querySelector('input')
@@ -110,7 +113,8 @@ export class Auth {
   closeModals() {
     this.els.modalLogin?.classList.remove('open');
     this.els.modalRegister?.classList.remove('open');
-    this.els.modalOverlay?.classList.remove('open');
+    this.els.modalOverlayLogin?.classList.remove('open');
+    this.els.modalOverlayRegister?.classList.remove('open');
     this.clearErrors();
   }
 
