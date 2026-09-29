@@ -136,9 +136,81 @@
   .movie-card .genres { color: #888; }
   .movie-card .genres span { background: #2a2a2a; padding: 1px 6px; border-radius: 4px; margin-right: 4px; }
   .results-status { text-align: center; color: #888; font-size: 0.85rem; padding: 30px 0; }
+
+  /* ── Auth Header ── */
+  .auth-header { position: fixed; top: 16px; right: 16px; z-index: 100; display: flex; gap: 8px; align-items: center; }
+  .auth-buttons { display: flex; gap: 8px; }
+  .auth-buttons.hidden { display: none; }
+  .user-menu { display: flex; align-items: center; gap: 12px; background: #1a1a1a; border: 1px solid #333; padding: 8px 16px; border-radius: 6px; }
+  .user-menu.hidden { display: none; }
+  .verification-badge { font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; background: #444; color: #aaa; }
+  .verification-badge.verified { background: #0d2b4e; color: #8ab4f8; }
+
+  /* ── Modales ── */
+  .modal { position: fixed; inset: 0; z-index: 200; display: none; }
+  .modal.open { display: flex; align-items: center; justify-content: center; }
+  .modal-overlay { position: absolute; inset: 0; background: rgba(0,0,0,.7); }
+  .modal-overlay.open { display: block; }
+  .modal-content { position: relative; background: #1a1a1a; border: 1px solid #333; border-radius: 10px; padding: 24px; width: 360px; max-width: 90%; }
+  .modal-content h2 { margin-bottom: 16px; text-align: center; }
+  .modal-content form { display: flex; flex-direction: column; gap: 12px; }
+  .modal-content label { display: flex; flex-direction: column; gap: 4px; font-size: 0.85rem; color: #ccc; }
+  .modal-content input { background: #111; border: 1px solid #444; border-radius: 6px; padding: 10px 12px; color: #eee; font-size: 0.9rem; }
+  .modal-content input:focus { outline: none; border-color: #0066cc; }
+  .modal-content small { color: #888; font-size: 0.75rem; }
+  .modal-content .btn { margin-top: 8px; }
+  .modal-content p { text-align: center; color: #888; font-size: 0.85rem; margin-top: 12px; }
+  .modal-content p button { background: none; border: none; color: #0066cc; cursor: pointer; text-decoration: underline; }
+  .error-msg { color: #ef5350; font-size: 0.85rem; text-align: center; min-height: 20px; }
+  .hidden { display: none !important; }
 </style>
 </head>
 <body>
+
+<!-- Auth Header -->
+<header class="auth-header">
+  <div class="auth-buttons" id="auth-buttons">
+    <button class="btn" id="btn-login">Login</button>
+    <button class="btn" id="btn-register">Register</button>
+  </div>
+  <div class="user-menu hidden" id="user-menu">
+    <span id="user-email"></span>
+    <span class="verification-badge" id="verification-badge">Sin verificar</span>
+    <button class="btn btn-outline" id="btn-logout">Logout</button>
+  </div>
+</header>
+
+<!-- Modal Login -->
+<div class="modal" id="modal-login">
+  <div class="modal-overlay" id="modal-overlay"></div>
+  <div class="modal-content">
+    <h2>Iniciar Sesión</h2>
+    <form id="form-login">
+      <label>Email<input type="email" name="email" required autocomplete="email"></label>
+      <label>Contraseña<input type="password" name="password" required autocomplete="current-password"></label>
+      <button type="submit" class="btn">Entrar</button>
+    </form>
+    <p>¿No tienes cuenta? <button type="button" id="switch-to-register">Regístrate</button></p>
+    <div class="error-msg" id="login-error"></div>
+  </div>
+</div>
+
+<!-- Modal Register -->
+<div class="modal" id="modal-register">
+  <div class="modal-overlay" id="modal-overlay"></div>
+  <div class="modal-content">
+    <h2>Registrarse</h2>
+    <form id="form-register">
+      <label>Email<input type="email" name="email" required autocomplete="email"></label>
+      <label>Contraseña<input type="password" name="password" required minlength="8" autocomplete="new-password"></label>
+      <small>Mín 8 chars, mayúscula, minúscula, número, símbolo</small>
+      <button type="submit" class="btn">Crear cuenta</button>
+    </form>
+    <p>¿Ya tienes cuenta? <button type="button" id="switch-to-login">Inicia sesión</button></p>
+    <div class="error-msg" id="register-error"></div>
+  </div>
+</div>
+
 <div class="container">
 
   <h1>Movies API — Landing</h1>
@@ -203,326 +275,6 @@
 
 </div>
 
-<script>
-const API_BASE = 'http://localhost:8089'
-
-// ── Carousel ──
-const sliderViewport = document.getElementById('slider-viewport')
-const sliderStatus = document.getElementById('slider-status')
-const slideCurrent = document.getElementById('slide-current')
-const slideTotal = document.getElementById('slide-total')
-const dotsEl = document.getElementById('dots')
-const btnPrev = document.getElementById('btn-prev')
-const btnNext = document.getElementById('btn-next')
-const btnRefresh = document.getElementById('btn-refresh')
-const filterGenre = document.getElementById('filter-genre')
-const filterMinYear = document.getElementById('filter-minYear')
-const filterMaxYear = document.getElementById('filter-maxYear')
-const filterMinRating = document.getElementById('filter-minRating')
-const filterCount = document.getElementById('filter-count')
-
-let movies = []
-let currentIndex = 0
-
-// Cargar lista de géneros para el dropdown
-fetch(`${API_BASE}/movies/genres`)
-  .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json() })
-  .then(genres => {
-    genres.forEach(g => {
-      const opt = document.createElement('option')
-      opt.value = g
-      opt.textContent = g.charAt(0).toUpperCase() + g.slice(1)
-      filterGenre.appendChild(opt)
-    })
-  })
-  .catch(() => {})
-
-function getFilters() {
-  const params = {}
-  const genre = filterGenre.value
-  const minYear = filterMinYear.value
-  const maxYear = filterMaxYear.value
-  const minRating = filterMinRating.value
-  const count = filterCount.value
-  if (genre) params.genre = genre
-  if (minYear) params.minYear = Number(minYear)
-  if (maxYear) params.maxYear = Number(maxYear)
-  if (minRating) params.minRating = Number(minRating)
-  if (count) params.count = Number(count)
-  return params
-}
-
-function fetchCarousel() {
-  const params = new URLSearchParams()
-  const filters = getFilters()
-  if (filters.genre) params.set('genre', filters.genre)
-  if (filters.minYear) params.set('minYear', String(filters.minYear))
-  if (filters.maxYear) params.set('maxYear', String(filters.maxYear))
-  if (filters.minRating) params.set('minRating', String(filters.minRating))
-  if (filters.count) params.set('count', String(filters.count))
-
-  sliderStatus.textContent = 'Cargando...'
-  sliderStatus.className = 'status-msg'
-
-  fetch(`${API_BASE}/movies/random?${params}`)
-    .then(r => {
-      if (!r.ok) {
-        if (r.status === 404) return { data: [] }
-        throw new Error(`HTTP ${r.status}`)
-      }
-      return r.json()
-    })
-    .then(result => {
-      movies = result.data || []
-      currentIndex = 0
-      renderCarousel()
-    })
-    .catch(err => {
-      sliderStatus.textContent = `Error: ${err.message}`
-      sliderStatus.className = 'status-msg error'
-      slideCurrent.textContent = '0'
-      slideTotal.textContent = '0'
-      dotsEl.innerHTML = ''
-    })
-}
-
-function renderCarousel() {
-  if (movies.length === 0) {
-    sliderStatus.textContent = 'Sin películas con esos filtros'
-    sliderStatus.className = 'status-msg'
-    slideCurrent.textContent = '0'
-    slideTotal.textContent = '0'
-    dotsEl.innerHTML = ''
-    return
-  }
-
-  slideTotal.textContent = String(movies.length)
-  renderSlide(currentIndex)
-  renderDots()
-}
-
-function renderSlide(index) {
-  const movie = movies[index]
-  slideCurrent.textContent = String(index + 1)
-
-  const posterHtml = movie.poster
-    ? `<img src="${escapeHtml(movie.poster)}" alt="${escapeHtml(movie.title)}">`
-    : '🎬'
-
-  sliderViewport.innerHTML = `
-    <div class="slide">
-      <div class="poster">${posterHtml}</div>
-      <div class="title">${escapeHtml(movie.title)}</div>
-      <div class="year">${movie.year}</div>
-      <div class="director">${escapeHtml(movie.director)}</div>
-      <div class="rating">★ ${movie.rating}</div>
-      <div class="genres">${movie.genres.map(g => `<span>${escapeHtml(g)}</span>`).join('')}</div>
-    </div>
-  `
-}
-
-function renderDots() {
-  dotsEl.innerHTML = movies.map((_, i) =>
-    `<span class="dot${i === currentIndex ? ' active' : ''}" data-index="${i}"></span>`
-  ).join('')
-  dotsEl.querySelectorAll('.dot').forEach(el => {
-    el.addEventListener('click', () => {
-      currentIndex = Number(el.dataset.index)
-      renderSlide(currentIndex)
-      renderDots()
-    })
-  })
-}
-
-btnPrev.addEventListener('click', () => {
-  if (movies.length === 0) return
-  currentIndex = (currentIndex - 1 + movies.length) % movies.length
-  renderSlide(currentIndex)
-  renderDots()
-})
-
-btnNext.addEventListener('click', () => {
-  if (movies.length === 0) return
-  currentIndex = (currentIndex + 1) % movies.length
-  renderSlide(currentIndex)
-  renderDots()
-})
-
-btnRefresh.addEventListener('click', fetchCarousel)
-
-fetchCarousel()
-
-// ── Suggest ──
-const suggestInput = document.getElementById('suggest-input')
-const suggestDropdown = document.getElementById('suggest-dropdown')
-const suggestResults = document.getElementById('suggest-results')
-const suggestTabs = document.querySelectorAll('#tabs .tab')
-
-let currentField = 'title'
-let timer = null
-
-const placeholders = {
-  title: 'Escribe un título…',
-  director: 'Escribe un director…',
-  genre: 'Escribe un género…',
-}
-
-const queryKeys = {
-  title: 'title',
-  director: 'director',
-  genre: 'genre',
-}
-
-const fieldLabels = {
-  title: 'Título',
-  director: 'Director',
-  genre: 'Género',
-}
-
-suggestTabs.forEach(tab => {
-  tab.addEventListener('click', () => {
-    suggestTabs.forEach(t => t.classList.remove('active'))
-    tab.classList.add('active')
-    currentField = tab.dataset.field
-    suggestInput.placeholder = placeholders[currentField]
-    suggestInput.value = ''
-    closeSuggestDropdown()
-  })
-})
-
-suggestInput.addEventListener('input', () => {
-  clearTimeout(timer)
-  const q = suggestInput.value.trim()
-  if (q.length < 3) {
-    closeSuggestDropdown()
-    return
-  }
-  timer = setTimeout(() => fetchSuggestions(q), 300)
-})
-
-suggestInput.addEventListener('keydown', e => {
-  if (e.key === 'Escape') { closeSuggestDropdown(); return }
-  if (e.key === 'Enter') {
-    const q = suggestInput.value.trim()
-    if (q.length >= 3) {
-      closeSuggestDropdown()
-      fetchSuggestMovies(q)
-    }
-  }
-})
-
-document.addEventListener('click', e => {
-  if (!e.target.closest('.autocomplete')) closeSuggestDropdown()
-})
-
-function fetchSuggestions(q) {
-  const url = `${API_BASE}/movies/suggest?q=${encodeURIComponent(q)}&field=${currentField}`
-  showSuggestLoading()
-  fetch(url)
-    .then(res => {
-      if (!res.ok) throw new Error(`HTTP ${res.status}`)
-      return res.json()
-    })
-    .then(data => renderSuggestResults(data, q))
-    .catch(err => showSuggestError(err.message))
-}
-
-function renderSuggestResults(items, q) {
-  if (items.length === 0) {
-    suggestDropdown.innerHTML = `<div class="status">Sin sugerencias para "<strong>${escapeHtml(q)}</strong>"</div>`
-    suggestDropdown.classList.add('open')
-    return
-  }
-
-  suggestDropdown.innerHTML = items.map(item =>
-    `<div class="item" data-value="${escapeHtml(item)}">${escapeHtml(item)}</div>`
-  ).join('')
-  suggestDropdown.classList.add('open')
-
-  suggestDropdown.querySelectorAll('.item').forEach(el => {
-    el.addEventListener('click', () => {
-      suggestInput.value = el.dataset.value
-      closeSuggestDropdown()
-      fetchSuggestMovies(el.dataset.value)
-    })
-  })
-}
-
-function showSuggestLoading() {
-  suggestDropdown.innerHTML = '<div class="status">Buscando…</div>'
-  suggestDropdown.classList.add('open')
-}
-
-function showSuggestError(msg) {
-  suggestDropdown.innerHTML = `<div class="status error">Error: ${escapeHtml(msg)}</div>`
-  suggestDropdown.classList.add('open')
-}
-
-function closeSuggestDropdown() {
-  suggestDropdown.classList.remove('open')
-  suggestDropdown.innerHTML = ''
-}
-
-function fetchSuggestMovies(value) {
-  const key = queryKeys[currentField]
-  const url = `${API_BASE}/movies?${key}=${encodeURIComponent(value)}`
-  showSuggestResultsLoading()
-  fetch(url)
-    .then(res => {
-      if (!res.ok) throw new Error(`HTTP ${res.status}`)
-      return res.json()
-    })
-    .then(data => renderSuggestMovies(data, value))
-    .catch(err => showSuggestResultsError(err.message))
-}
-
-function renderSuggestMovies(data, value) {
-  if (data.data.length === 0) {
-    showSuggestResultsEmpty(value)
-    return
-  }
-
-  const label = fieldLabels[currentField]
-  const header = `<div class="results-header">${data.meta.total} película(s) encontradas para ${label}: "${escapeHtml(value)}"</div>`
-  const cards = data.data.map(m => `
-    <div class="movie-card">
-      <div class="row1">
-        <span class="title">${escapeHtml(m.title)}</span>
-        <span class="year">(${m.year})</span>
-      </div>
-      <div class="row2">
-        <span class="rating">★ ${m.rating}</span>
-        <span class="director">${escapeHtml(m.director)}</span>
-        <span class="genres">${m.genres.map(g => `<span>${escapeHtml(g)}</span>`).join('')}</span>
-      </div>
-    </div>
-  `).join('')
-
-  suggestResults.innerHTML = header + cards
-  suggestResults.classList.add('open')
-}
-
-function showSuggestResultsLoading() {
-  suggestResults.innerHTML = '<div class="results-status">Buscando películas…</div>'
-  suggestResults.classList.add('open')
-}
-
-function showSuggestResultsEmpty(value) {
-  const label = fieldLabels[currentField]
-  suggestResults.innerHTML = `<div class="results-status">Sin películas para ${label}: "${escapeHtml(value)}"</div>`
-  suggestResults.classList.add('open')
-}
-
-function showSuggestResultsError(msg) {
-  suggestResults.innerHTML = `<div class="results-status" style="color:#ef5350;">Error: ${escapeHtml(msg)}</div>`
-  suggestResults.classList.add('open')
-}
-
-function escapeHtml(str) {
-  const div = document.createElement('div')
-  div.textContent = str
-  return div.innerHTML
-}
-</script>
+<script type="module" src="./main.js"></script>
 </body>
 </html>
