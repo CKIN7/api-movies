@@ -41,6 +41,9 @@ export async function clearTestData(conn: Connection): Promise<void> {
     await conn.execute('ALTER TABLE audit_log AUTO_INCREMENT = 1')
     await conn.execute('ALTER TABLE actors AUTO_INCREMENT = 1')
     await conn.execute('ALTER TABLE user_watchlists AUTO_INCREMENT = 1')
+    await conn.execute('ALTER TABLE refresh_tokens AUTO_INCREMENT = 1')
+    await conn.execute('ALTER TABLE email_verifications AUTO_INCREMENT = 1')
+    await conn.execute('ALTER TABLE reviews AUTO_INCREMENT = 1')
     await conn.execute('SET FOREIGN_KEY_CHECKS = 1')
 }
 
