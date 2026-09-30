@@ -168,10 +168,21 @@
 
   /* ── Main Tabs Navigation ── */
   .main-tabs { display: flex; gap: 4px; margin-bottom: 24px; border-bottom: 1px solid #333; padding-bottom: 8px; }
-  .main-tabs .tab { flex: 1; max-width: 160px; padding: 10px 0; border: 1px solid #444; background: #222; cursor: pointer; font-size: 0.9rem; border-radius: 6px 6px 0 0; transition: all .15s; text-align: center; color: #aaa; margin-bottom: -1px; }
-  .main-tabs .tab:hover { background: #333; }
+  .main-tabs .tab { flex: 0 0 auto; padding: 8px 16px; border: 1px solid #444; background: #222; cursor: pointer; font-size: 0.85rem; border-radius: 6px 6px 0 0; transition: all .15s; color: #aaa; white-space: nowrap; margin-bottom: -1px; }
+  .main-tabs .tab:hover { background: #333; color: #eee; }
   .main-tabs .tab.active { background: #0066cc; color: #fff; border-color: #0066cc; border-bottom-color: #111; }
   .main-tabs .tab.hidden { display: none; }
+
+  /* Mobile: hamburger menu */
+  .main-tabs-toggle { display: none; padding: 8px 12px; background: #222; border: 1px solid #444; border-radius: 6px; color: #eee; cursor: pointer; font-size: 1rem; }
+  @media (max-width: 600px) {
+    .main-tabs { position: relative; }
+    .main-tabs-toggle { display: flex; align-items: center; gap: 6px; }
+    .main-tabs-list { display: none; position: absolute; top: 100%; left: 0; right: 0; flex-direction: column; gap: 4px; background: #1a1a1a; border: 1px solid #444; border-top: none; border-radius: 0 0 8px 8px; padding: 8px; z-index: 50; }
+    .main-tabs-list.open { display: flex; }
+    .main-tabs-list .tab { width: 100%; text-align: left; border-radius: 4px; margin-bottom: 0; padding: 10px 12px; }
+    .main-tabs-list .tab.hidden { display: none; }
+  }
 
   /* ── Sections ── */
   .section { display: none; }
@@ -235,8 +246,14 @@
 
 <!-- Main Navigation Tabs -->
 <nav class="main-tabs" id="main-tabs" role="tablist" aria-label="Navegación principal">
-  <button class="tab active" role="tab" aria-selected="true" data-section="explore" id="tab-explore">Explorar</button>
-  <button class="tab hidden" role="tab" aria-selected="false" data-section="watchlist" id="tab-watchlist">Mi Watchlist</button>
+  <button class="main-tabs-toggle" id="main-tabs-toggle" aria-expanded="false" aria-controls="main-tabs-list" aria-label="Menú de navegación">
+    <span class="hamburger" style="display:inline-block;width:20px;height:2px;background:currentColor;position:relative;">&nbsp;<span style="position:absolute;left:0;top:-6px;width:100%;height:2px;background:currentColor;">&nbsp;</span><span style="position:absolute;left:0;top:6px;width:100%;height:2px;background:currentColor;">&nbsp;</span></span>
+    <span class="toggle-text">Menú</span>
+  </button>
+  <div class="main-tabs-list" id="main-tabs-list" role="presentation">
+    <button class="tab active" role="tab" aria-selected="true" data-section="explore" id="tab-explore">Explorar</button>
+    <button class="tab hidden" role="tab" aria-selected="false" data-section="watchlist" id="tab-watchlist">Mi Watchlist</button>
+  </div>
 </nav>
 
 <!-- Modal Login -->
