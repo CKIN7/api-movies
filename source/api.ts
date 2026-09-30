@@ -28,6 +28,10 @@ import ReviewRepository from './repositories/ReviewRepository'
 import ReviewService from './services/reviewService'
 import ReviewController from './controllers/reviewController'
 import { createReviewRoutes } from './routes/reviewRoutes'
+import WatchlistRepository from './repositories/WatchlistRepository'
+import WatchlistService from './services/WatchlistService'
+import WatchlistController from './controllers/WatchlistController'
+import { createWatchlistRoutes } from './routes/watchlistRoutes'
 
 // ═══════════════════════════════════════════════════════════════
 //  Patrones: Dependency Injection + Factory + Chain of Resp.
@@ -78,10 +82,16 @@ export function createApp(movieService?: MovieService) {
     const reviewService = new ReviewService(reviewRepository, movieRepo)
     const reviewController = new ReviewController(reviewService)
     const reviewRouter = createReviewRoutes(reviewController)
-    
+
+    const watchlistRepository = new WatchlistRepository(conn)
+    const watchlistService = new WatchlistService(watchlistRepository, movieRepo)
+    const watchlistController = new WatchlistController(watchlistService)
+    const watchlistRouter = createWatchlistRoutes(watchlistController)
+
     app.use('/movies', exportRouter)
     app.use('/movies', router)
     app.use('/movies', reviewRouter)
+    app.use('/users', watchlistRouter)
     app.use('/auth', authRouter)
 
     app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
