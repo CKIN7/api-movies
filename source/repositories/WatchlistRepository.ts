@@ -50,7 +50,7 @@ class WatchlistRepository {
         }
 
         let countSql = `
-            SELECT COUNT(*) as total
+            SELECT COUNT(DISTINCT wl.id) as total
             FROM user_watchlists wl
             JOIN movies m ON wl.movie_id = m.id
             JOIN movie_genres mg ON m.id = mg.movie_id
