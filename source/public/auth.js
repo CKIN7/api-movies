@@ -319,6 +319,10 @@ export class Auth {
     els.authButtons?.classList.toggle('hidden', isLoggedIn);
     els.userMenu?.classList.toggle('hidden', !isLoggedIn);
 
+    // Show/hide watchlist tab
+    const watchlistTab = document.getElementById('tab-watchlist');
+    watchlistTab?.classList.toggle('hidden', !isLoggedIn);
+
     if (isLoggedIn && this.user) {
       els.userEmail.textContent = this.user.email;
       els.verificationBadge.textContent = this.user.isVerified ? 'Verificado' : 'Sin verificar';
