@@ -86,6 +86,10 @@ class WatchlistRepository {
         const [rows] = await this.query(sql, params)
 
         return { rows: rows as WatchlistRow[], total }
+
+        // Filtro simple inline (genre LIKE). 
+        // Si se añaden más filtros (year range, rating range, title search, director search, ageRating, full-text),
+        // extraer WatchlistQueryBuilder o reutilizar MovieQueryBuilder adaptado (ver MovieRepository.ts:46).
     }
 
     async findByUserAndMovie(userId: string, movieId: number): Promise<WatchlistRow | null> {
