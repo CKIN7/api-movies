@@ -80,3 +80,29 @@ suggest.renderSuggestMovies = function(data, value) {
     }
   });
 };
+
+// === Mobile Menu Toggle ===
+const tabsToggle = document.getElementById('main-tabs-toggle');
+const tabsList = document.getElementById('main-tabs-list');
+if (tabsToggle && tabsList) {
+  tabsToggle.addEventListener('click', () => {
+    const isOpen = tabsList.classList.toggle('open');
+    tabsToggle.setAttribute('aria-expanded', String(isOpen));
+  });
+
+  // Close menu when clicking a tab
+  tabsList.querySelectorAll('.tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      tabsList.classList.remove('open');
+      tabsToggle.setAttribute('aria-expanded', 'false');
+    });
+  });
+
+  // Close menu on outside click
+  document.addEventListener('click', (e) => {
+    if (!tabsToggle.contains(e.target) && !tabsList.contains(e.target)) {
+      tabsList.classList.remove('open');
+      tabsToggle.setAttribute('aria-expanded', 'false');
+    }
+  });
+}
