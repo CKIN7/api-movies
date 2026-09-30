@@ -26,6 +26,7 @@ export async function clearTestData(conn: Connection): Promise<void> {
     await conn.execute('DELETE FROM refresh_tokens')
     await conn.execute('DELETE FROM email_verifications')
     await conn.execute('DELETE FROM reviews')
+    await conn.execute('DELETE FROM user_watchlists')
     await conn.execute('DELETE FROM users')
     await conn.execute('DELETE FROM movie_actors')
     await conn.execute('DELETE FROM movie_genres')
@@ -39,6 +40,7 @@ export async function clearTestData(conn: Connection): Promise<void> {
     await conn.execute('ALTER TABLE movies AUTO_INCREMENT = 1')
     await conn.execute('ALTER TABLE audit_log AUTO_INCREMENT = 1')
     await conn.execute('ALTER TABLE actors AUTO_INCREMENT = 1')
+    await conn.execute('ALTER TABLE user_watchlists AUTO_INCREMENT = 1')
     await conn.execute('SET FOREIGN_KEY_CHECKS = 1')
 }
 
