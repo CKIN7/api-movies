@@ -161,8 +161,72 @@
   .modal-content .btn { margin-top: 8px; }
   .modal-content p { text-align: center; color: #888; font-size: 0.85rem; margin-top: 12px; }
   .modal-content p button { background: none; border: none; color: #0066cc; cursor: pointer; text-decoration: underline; }
-  .error-msg { color: #ef5350; font-size: 0.85rem; text-align: center; min-height: 20px; }
-  .hidden { display: none !important; }
+  /* ── Toast ── */
+  #toast-container { pointer-events: none; }
+  @keyframes slideIn { from { opacity: 0; transform: translateX(100%); } to { opacity: 1; transform: translateX(0); } }
+  @keyframes slideOut { from { opacity: 1; transform: translateX(0); } to { opacity: 0; transform: translateX(100%); } }
+
+  /* ── Main Tabs Navigation ── */
+  .main-tabs { display: flex; gap: 4px; margin-bottom: 24px; border-bottom: 1px solid #333; padding-bottom: 8px; }
+  .main-tabs .tab { flex: 0 0 auto; padding: 8px 16px; border: 1px solid #444; background: #222; cursor: pointer; font-size: 0.85rem; border-radius: 6px 6px 0 0; transition: all .15s; color: #aaa; white-space: nowrap; margin-bottom: -1px; }
+  .main-tabs .tab:hover { background: #333; color: #eee; }
+  .main-tabs .tab.active { background: #0066cc; color: #fff; border-color: #0066cc; border-bottom-color: #111; }
+  .main-tabs .tab.hidden { display: none; }
+
+  /* Mobile: hamburger menu */
+  .main-tabs-toggle { display: none; padding: 8px 12px; background: #222; border: 1px solid #444; border-radius: 6px; color: #eee; cursor: pointer; font-size: 1rem; }
+  @media (max-width: 600px) {
+    .main-tabs { position: relative; }
+    .main-tabs-toggle { display: flex; align-items: center; gap: 6px; }
+    .main-tabs-list { display: none; position: absolute; top: 100%; left: 0; right: 0; flex-direction: column; gap: 4px; background: #1a1a1a; border: 1px solid #444; border-top: none; border-radius: 0 0 8px 8px; padding: 8px; z-index: 50; }
+    .main-tabs-list.open { display: flex; }
+    .main-tabs-list .tab { width: 100%; text-align: left; border-radius: 4px; margin-bottom: 0; padding: 10px 12px; }
+    .main-tabs-list .tab.hidden { display: none; }
+  }
+
+  /* ── Sections ── */
+  .section { display: none; }
+  .section.open { display: block; animation: fadeIn .2s ease; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* ── Watchlist ── */
+  .wl-filters { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; align-items: end; }
+  .wl-grid { display: grid; grid-template-columns: 1fr; gap: 16px; }
+  @media (min-width: 600px) { .wl-grid { grid-template-columns: repeat(2, 1fr); } }
+  @media (min-width: 900px) { .wl-grid { grid-template-columns: repeat(4, 1fr); } }
+
+  .wl-card { background: #1a1a1a; border: 1px solid #333; border-radius: 10px; padding: 16px; display: flex; flex-direction: column; gap: 10px; position: relative; transition: border-color .15s, transform .15s; }
+  .wl-card:hover { border-color: #555; transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,.3); }
+  .wl-poster { width: 100%; aspect-ratio: 2/3; background: #2a2a2a; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 2rem; color: #555; overflow: hidden; }
+  .wl-poster img { width: 100%; height: 100%; object-fit: cover; border-radius: 6px; }
+  .wl-info { display: flex; flex-direction: column; gap: 6px; flex: 1; }
+  .wl-title { font-size: 0.95rem; font-weight: 600; color: #eee; line-height: 1.3; }
+  .wl-meta { display: flex; gap: 12px; font-size: 0.8rem; color: #aaa; }
+  .wl-year { color: #888; }
+  .wl-rating { color: #fdd835; }
+  .wl-priority { font-size: 1rem; line-height: 1; color: #fdd835; letter-spacing: 1px; }
+  .wl-notes { font-size: 0.75rem; color: #aaa; background: #222; padding: 6px 8px; border-radius: 4px; max-height: 40px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .wl-genres { display: flex; gap: 4px; flex-wrap: wrap; margin-top: auto; }
+  .wl-genres span { background: #2a2a2a; padding: 2px 8px; border-radius: 4px; font-size: 0.7rem; color: #aaa; }
+  .wl-btn-delete { position: absolute; top: 8px; right: 8px; width: 28px; height: 28px; border-radius: 50%; background: transparent; border: 1px solid #444; color: #888; font-size: 1rem; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all .15s; opacity: 0; }
+  .wl-card:hover .wl-btn-delete { opacity: 1; }
+  .wl-btn-delete:hover { background: #c62828; border-color: #c62828; color: #fff; }
+
+  .wl-pagination { display: flex; justify-content: center; align-items: center; gap: 16px; margin-top: 24px; padding-top: 16px; border-top: 1px solid #333; color: #888; font-size: 0.85rem; }
+  .wl-pagination .btn { padding: 6px 16px; font-size: 0.8rem; }
+  .wl-pagination .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .wl-empty { text-align: center; padding: 60px 20px; color: #888; }
+  .wl-empty .icon { font-size: 3rem; margin-bottom: 16px; opacity: 0.5; }
+  .wl-empty h3 { margin-bottom: 8px; color: #ccc; }
+  .wl-empty p { margin-bottom: 20px; font-size: 0.9rem; }
+  .wl-empty .btn { padding: 10px 24px; font-size: 0.9rem; }
+
+  /* ── Modal Add Watchlist ── */
+  .wl-modal-content { width: 420px; max-width: 95%; }
+  .wl-modal-content .priority-stars { font-size: 1.5rem; color: #fdd835; letter-spacing: 2px; text-align: center; margin-bottom: 4px; }
+  .wl-modal-content .notes-count { text-align: right; font-size: 0.7rem; color: #888; margin-top: -8px; margin-bottom: 8px; }
+  .wl-modal-content textarea { min-height: 80px; resize: vertical; font-family: inherit; }
 </style>
 </head>
 <body>
@@ -179,6 +243,18 @@
     <button class="btn btn-outline" id="btn-logout">Logout</button>
   </div>
 </header>
+
+<!-- Main Navigation Tabs -->
+<nav class="main-tabs" id="main-tabs" role="tablist" aria-label="Navegación principal">
+  <button class="main-tabs-toggle" id="main-tabs-toggle" aria-expanded="false" aria-controls="main-tabs-list" aria-label="Menú de navegación">
+    <span class="hamburger" style="display:inline-block;width:20px;height:2px;background:currentColor;position:relative;">&nbsp;<span style="position:absolute;left:0;top:-6px;width:100%;height:2px;background:currentColor;">&nbsp;</span><span style="position:absolute;left:0;top:6px;width:100%;height:2px;background:currentColor;">&nbsp;</span></span>
+    <span class="toggle-text">Menú</span>
+  </button>
+  <div class="main-tabs-list" id="main-tabs-list" role="presentation">
+    <button class="tab active" role="tab" aria-selected="true" data-section="explore" id="tab-explore">Explorar</button>
+    <button class="tab hidden" role="tab" aria-selected="false" data-section="watchlist" id="tab-watchlist">Mi Watchlist</button>
+  </div>
+</nav>
 
 <!-- Modal Login -->
 <div class="modal" id="modal-login">
@@ -273,6 +349,78 @@
     <div class="results" id="suggest-results"></div>
   </section>
 
+  <!-- ═══════════ Watchlist ═══════════ -->
+  <section id="section-watchlist" class="section" role="tabpanel" aria-labelledby="tab-watchlist">
+    <div class="section-title">Mi Watchlist</div>
+
+    <div class="filters wl-filters">
+      <label>Género
+        <select id="filter-wl-genre">
+          <option value="">Todos</option>
+        </select>
+      </label>
+      <label>Ordenar por
+        <select id="filter-wl-sortBy">
+          <option value="addedAt">Fecha agregado</option>
+          <option value="title">Título</option>
+          <option value="year">Año</option>
+          <option value="rating">Rating</option>
+          <option value="priority">Prioridad</option>
+        </select>
+      </label>
+      <label>Orden
+        <select id="filter-wl-sortOrder">
+          <option value="desc">Descendente</option>
+          <option value="asc">Ascendente</option>
+        </select>
+      </label>
+    </div>
+
+    <div class="status-msg" id="watchlist-status"></div>
+
+    <div class="wl-grid" id="watchlist-grid"></div>
+
+    <div class="wl-pagination">
+      <button class="btn" id="wl-btn-prev" disabled>&#9664; Anterior</button>
+      <span id="wl-page-info">Página 1 de 1</span>
+      <button class="btn" id="wl-btn-next" disabled>Siguiente &#9654;</button>
+    </div>
+
+    <div class="wl-empty hidden" id="watchlist-empty">
+      <div class="icon">📋</div>
+      <h3>Tu watchlist está vacía</h3>
+      <p>Empieza a agregar películas que quieras ver después</p>
+      <button class="btn" id="watchlist-empty-cta">Explorar películas</button>
+    </div>
+  </section>
+
+</div>
+
+<!-- Modal Add to Watchlist -->
+<div class="modal" id="modal-add-watchlist" role="dialog" aria-labelledby="wl-modal-title" aria-modal="true">
+  <div class="modal-overlay" id="modal-overlay-watchlist"></div>
+  <div class="modal-content wl-modal-content">
+    <h2 id="wl-modal-title">Agregar a watchlist</h2>
+    <form id="form-add-watchlist">
+      <input type="hidden" id="wl-modal-movieId" name="movieId">
+      <label>Notas (opcional)
+        <textarea id="wl-modal-notes" name="notes" maxlength="2000" placeholder="Tus notas personales..."></textarea>
+        <span class="notes-count" id="wl-modal-notes-count">0/2000</span>
+      </label>
+      <label>Prioridad
+        <select id="wl-modal-priority" name="priority">
+          <option value="1">1 - Baja</option>
+          <option value="2">2</option>
+          <option value="3" selected>3 - Normal</option>
+          <option value="4">4</option>
+          <option value="5">5 - Alta</option>
+        </select>
+        <div class="priority-stars" id="wl-modal-priority-stars">★★★☆☆</div>
+      </label>
+      <button type="submit" class="btn">Agregar a watchlist</button>
+    </form>
+    <button type="button" class="btn btn-outline" id="wl-btn-cancel">Cancelar</button>
+  </div>
 </div>
 
 <script type="module" src="./main.js"></script>
