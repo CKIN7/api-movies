@@ -298,7 +298,6 @@ export class Auth {
       ...options.headers,
       ...this.getAuthHeader(),
     };
-    console.log('[Auth] fetchWithAuth:', url, 'headers:', headers);
 
     let res = await fetch(url, { ...options, headers });
 

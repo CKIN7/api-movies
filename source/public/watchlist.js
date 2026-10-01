@@ -184,10 +184,8 @@ export class Watchlist {
   // ===== API =====
   async fetch(url, options = {}) {
     if (this.auth) {
-      console.log('[Watchlist] Using auth.fetchWithAuth, token:', this.auth.accessToken ? 'present' : 'MISSING');
       return this.auth.fetchWithAuth(url, options);
     }
-    console.log('[Watchlist] No auth, using plain fetch');
     return fetch(url, options);
   }
 
@@ -212,17 +210,14 @@ export class Watchlist {
       const res = await this.fetch(`${this.API_BASE}/users/me/watchlist?${params}`, {
         headers: { 'Cache-Control': 'no-cache' }
       });
-      console.log('[Watchlist] Response status:', res.status);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
-      console.log('[Watchlist] Response data:', data);
 
       this.movies = data.data || [];
       this.totalPages = data.meta?.totalPages || 1;
       this.totalItems = data.meta?.total || 0;
       this.currentPage = data.meta?.page || 1;
 
-      console.log('[Watchlist] Movies set to:', this.movies);
       this.render();
     } catch (err) {
       console.error('[Watchlist] Error:', err);
@@ -235,10 +230,8 @@ export class Watchlist {
   // ===== Render =====
   render() {
     const { els } = this;
-    console.log('[Watchlist] Render called, movies:', this.movies);
 
     if (this.movies.length === 0) {
-      console.log('[Watchlist] Empty state triggered');
       els.grid.innerHTML = '';
       els.status.textContent = this.auth?.accessToken
         ? 'Tu watchlist está vacía'
@@ -256,7 +249,6 @@ export class Watchlist {
       return;
     }
 
-    console.log('[Watchlist] Rendering', this.movies.length, 'movies');
     els.status.textContent = '';
     els.grid.classList.remove('hidden');
     // Force hide empty state
