@@ -21,6 +21,9 @@ console.log('Carousel:', carousel);
 console.log('Suggest:', suggest);
 console.log('Watchlist:', watchlist);
 
+// Expose for debugging
+window.watchlist = watchlist;
+
 // === Section Switching ===
 window.switchSection = function(sectionName) {
   document.querySelectorAll('.section').forEach(s => s.classList.remove('open'));
