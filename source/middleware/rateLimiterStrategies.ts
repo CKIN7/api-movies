@@ -148,7 +148,7 @@ const strategies: RateLimitStrategy[] = [
   createUserStrategy(),
 ]
 
-export function qgetApplicableStrategies(req: RateLimitRequest): RateLimitStrategy[] {
+export function getApplicableStrategies(req: RateLimitRequest): RateLimitStrategy[] {
   return strategies.filter(s => s.shouldApply(req))
 }
 
