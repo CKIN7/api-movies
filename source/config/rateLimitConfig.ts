@@ -19,7 +19,12 @@ export const rateLimitConfig = {
     windowMs: Number(process.env.RATE_LIMIT_USER_WINDOW_MS ?? 60_000),
   },
   penalty: {
-    multiplier: Number(process.env.RATE_LIMIT_PENALTY_MULTIPLIER ?? 3),
+    thresholds: {
+      global: Number(process.env.RATE_LIMIT_PENALTY_THRESHOLD_GLOBAL ?? 50),
+      auth: Number(process.env.RATE_LIMIT_PENALTY_THRESHOLD_AUTH ?? 20),
+      write: Number(process.env.RATE_LIMIT_PENALTY_THRESHOLD_WRITE ?? 30),
+      user: Number(process.env.RATE_LIMIT_PENALTY_THRESHOLD_USER ?? 100),
+    },
     windowMs: Number(process.env.RATE_LIMIT_PENALTY_WINDOW_MS ?? 300_000),
     durationMs: Number(process.env.RATE_LIMIT_PENALTY_DURATION_MS ?? 900_000),
   },
