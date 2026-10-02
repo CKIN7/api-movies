@@ -1,18 +1,24 @@
 import { rateLimitConfig } from '../config/rateLimitConfig'
 
-export function extractIp(req: { ip?: string; headers?: Record<string, string | undefined> }): string {
+function getHeaderAsString(headers: Record<string, string | string[] | undefined> | undefined, name: string): string | undefined {
+  const value = headers?.[name.toLowerCase()]
+  if (Array.isArray(value)) return value[0]
+  return value
+}
+
+export function extractIp(req: { ip?: string; headers?: Record<string, string | string[] | undefined> }): string {
   if (rateLimitConfig.trustProxy) {
-    const forwardedFor = req.headers?.['x-forwarded-for']
+    const forwardedFor = getHeaderAsString(req.headers, 'x-forwarded-for')
     if (forwardedFor) {
       const firstIp = forwardedFor.split(',')[0].trim()
       if (isValidIp(firstIp)) return firstIp
     }
 
-    const realIp = req.headers?.['x-real-ip']
+    const realIp = getHeaderAsString(req.headers, 'x-real-ip')
     if (realIp && isValidIp(realIp.trim())) return realIp.trim()
   }
 
-  const directIp = req.ip ?? req.headers?.['x-forwarded-for']?.split(',')[0]?.trim() ?? '127.0.0.1'
+  const directIp = req.ip ?? getHeaderAsString(req.headers, 'x-forwarded-for')?.split(',')[0]?.trim() ?? '127.0.0.1'
   return isValidIp(directIp) ? directIp : '127.0.0.1'
 }
 
