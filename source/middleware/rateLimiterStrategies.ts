@@ -1,18 +1,24 @@
-import { Request, Response, NextFunction } from 'express'
 import { getRedisClient, loadLuaScripts, rateLimitConfig } from '../utils/redisClient'
 import { extractIp, normalizeIp } from '../utils/ipExtractor'
-import { checkPenalty, registerPenaltyRejection, shouldActivatePenalty, activatePenalty } from './penaltyBox'
 
 type Scope = 'global' | 'auth' | 'write' | 'user'
+
+interface RateLimitRequest {
+  ip?: string
+  path: string
+  method: string
+  headers: Record<string, string | string[] | undefined>
+  user?: { id: string }
+}
 
 interface RateLimitStrategy {
   name: string
   scope: Scope
   limit: number
   windowMs: number
-  getIdentifier: (req: Request) => string
-  shouldApply: (req: Request) => boolean
-  getHeaders: (result: { allowed: boolean; count: number; limit: number; resetAt: number }, req: Request) => Record<string, string>
+  getIdentifier: (req: RateLimitRequest) => string
+  shouldApply: (req: RateLimitRequest) => boolean
+  getHeaders: (result: { allowed: boolean; count: number; limit: number; resetAt: number }, req: RateLimitRequest) => Record<string, string>
 }
 
 interface LuaResult {
@@ -142,51 +148,8 @@ const strategies: RateLimitStrategy[] = [
   createUserStrategy(),
 ]
 
-export function getApplicableStrategies(req: Request): RateLimitStrategy[] {
+export function qgetApplicableStrategies(req: RateLimitRequest): RateLimitStrategy[] {
   return strategies.filter(s => s.shouldApply(req))
 }
 
-export async function rateLimiterMiddleware(
-  req: Request,
-  res: Response,
-  next: NextFunction
-): Promise<void> {
-  const applicable = getApplicableStrategies(req)
-
-  for (const strategy of applicable) {
-    const identifier = strategy.getIdentifier(req)
-    if (!identifier) continue
-
-    const penalty = await checkPenalty(identifier)
-    if (penalty.blocked) {
-      res.set({
-        'Retry-After': (penalty.retryAfter ?? 900).toString(),
-        'X-RateLimit-Penalty': 'true',
-      })
-      res.status(403).json({ error: 'Too many requests, penalty active', retryAfter: penalty.retryAfter })
-      return
-    }
-
-    const key = getWindowStartKey(strategy.scope, identifier)
-    const result = await executeSlidingWindow(key, strategy.limit, strategy.windowMs)
-
-    const headers = strategy.getHeaders(result, req)
-    Object.entries(headers).forEach(([k, v]) => res.setHeader(k, v))
-
-    if (!result.allowed) {
-      await registerPenaltyRejection(strategy.scope, identifier)
-      if (await shouldActivatePenalty(identifier)) {
-        await activatePenalty(identifier)
-      }
-
-      const retryAfter = Math.ceil(strategy.windowMs / 1000)
-      res.set('Retry-After', retryAfter.toString())
-      res.status(429).json({ error: 'Rate limit exceeded', retryAfter })
-      return
-    }
-  }
-
-  next()
-}
-
-export { strategies, RateLimitStrategy }
+export { strategies, RateLimitStrategy, executeSlidingWindow, getWindowStartKey }
