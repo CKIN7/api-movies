@@ -34,6 +34,7 @@ import WatchlistRepository from './repositories/WatchlistRepository'
 import WatchlistService from './services/WatchlistService'
 import WatchlistController from './controllers/WatchlistController'
 import { createWatchlistRoutes } from './routes/watchlistRoutes'
+import { metricsRouter } from './routes/metricsRoutes'
 
 // ═══════════════════════════════════════════════════════════════
 //  Patrones: Dependency Injection + Factory + Chain of Resp.
@@ -96,6 +97,7 @@ export function createApp(movieService?: MovieService) {
     app.use('/movies', reviewRouter)
     app.use('/users', watchlistRouter)
     app.use('/auth', authRouter)
+    app.use('/metrics', metricsRouter)
 
     app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
         const statusCode = err instanceof AppError ? err.statusCode : err instanceof ZodError ? 400 : 500
