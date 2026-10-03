@@ -30,7 +30,17 @@ export async function rateLimiter(req: Request, res: Response, next: NextFunctio
     const key = getWindowStartKey(strategy.scope, identifier)
     const result = await executeSlidingWindow(key, strategy.limit, strategy.windowMs)
 
-    Object.entries(strategy.getHeaders(result, req as unknown as RateLimitRequest)).forEach(([k, v]) => res.setHeader(k, v))
+    // 1. Pedir el objeto de headers a la estrategia
+    const headers = strategy.getHeaders(result, req as RateLimitRequest)
+
+    // 2. Convertir a array de pares
+    const entries = Object.entries(headers)
+
+    for (const entry of entries) {
+      const k = entry[0]
+      const v = entry[1]
+      res.setHeader(k, v)
+    }
 
     if (!result.allowed) {
       await registerPenaltyRejection(strategy.scope, identifier)
