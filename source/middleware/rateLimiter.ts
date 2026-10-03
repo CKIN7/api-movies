@@ -1,6 +1,8 @@
 import type { Request, Response, NextFunction } from 'express'
 import { getApplicableStrategies, executeSlidingWindow, getWindowStartKey } from './rateLimiterStrategies'
 import { checkPenalty, registerPenaltyRejection, shouldActivatePenalty, activatePenalty } from './penaltyBox'
+import { recordHit, recordRejection, recordRedisError, recordRedisSlow } from '../services/rateLimitMetrics'
+import { rateLimitConfig } from '../config/rateLimitConfig'
 
 interface RateLimitRequest {
   ip?: string
@@ -28,12 +30,21 @@ export async function rateLimiter(req: Request, res: Response, next: NextFunctio
     }
 
     const key = getWindowStartKey(strategy.scope, identifier)
-    const result = await executeSlidingWindow(key, strategy.limit, strategy.windowMs)
+    const start = Date.now()
+    let result
+    try {
+      result = await executeSlidingWindow(key, strategy.limit, strategy.windowMs)
+    } catch (err) {
+      await recordRedisError()
+      if (rateLimitConfig.failOpen) return next()
+      throw err
+    }
+    const latency = Date.now() - start
+    if (latency > 100) {
+      await recordRedisSlow()
+    }
 
-    // 1. Pedir el objeto de headers a la estrategia
-    const headers = strategy.getHeaders(result, req as RateLimitRequest)
-
-    // 2. Convertir a array de pares
+    const headers = strategy.getHeaders(result, req as unknown as RateLimitRequest)
     const entries = Object.entries(headers)
 
     for (const entry of entries) {
@@ -43,6 +54,7 @@ export async function rateLimiter(req: Request, res: Response, next: NextFunctio
     }
 
     if (!result.allowed) {
+      await recordRejection()
       await registerPenaltyRejection(strategy.scope, identifier)
       if (await shouldActivatePenalty(identifier)) {
         await activatePenalty(identifier)
@@ -52,6 +64,8 @@ export async function rateLimiter(req: Request, res: Response, next: NextFunctio
       res.status(429).json({ error: 'Rate limit exceeded', retryAfter })
       return
     }
+
+    await recordHit()
   }
 
   next()
