@@ -30,6 +30,14 @@ interface LuaResult {
 
 let luaSha: string | null = null
 
+function createStandardHeaders(suffix: string = '') {
+  return (result: LuaResult) => ({
+    [`X-RateLimit-Limit${suffix}`]: result.limit.toString(),
+    [`X-RateLimit-Remaining${suffix}`]: Math.max(0, result.limit - result.count).toString(),
+    [`X-RateLimit-Reset${suffix}`]: Math.ceil(result.resetAt / 1000).toString(),
+  })
+}
+
 async function ensureLuaLoaded(): Promise<string> {
   if (luaSha) return luaSha
   const redis = getRedisClient()
@@ -79,11 +87,7 @@ function createGlobalStrategy(): RateLimitStrategy {
     windowMs,
     getIdentifier: (req) => normalizeIp(extractIp(req)),
     shouldApply: () => true,
-    getHeaders: (result) => ({
-      'X-RateLimit-Limit': result.limit.toString(),
-      'X-RateLimit-Remaining': Math.max(0, result.limit - result.count).toString(),
-      'X-RateLimit-Reset': Math.ceil(result.resetAt / 1000).toString(),
-    }),
+    getHeaders: createStandardHeaders(),
   }
 }
 
@@ -96,11 +100,7 @@ function createAuthStrategy(): RateLimitStrategy {
     windowMs,
     getIdentifier: (req) => normalizeIp(extractIp(req)),
     shouldApply: (req) => req.path.startsWith('/auth/'),
-    getHeaders: (result) => ({
-      'X-RateLimit-Limit': result.limit.toString(),
-      'X-RateLimit-Remaining': Math.max(0, result.limit - result.count).toString(),
-      'X-RateLimit-Reset': Math.ceil(result.resetAt / 1000).toString(),
-    }),
+    getHeaders: createStandardHeaders(),
   }
 }
 
@@ -116,11 +116,7 @@ function createWriteStrategy(): RateLimitStrategy {
       if (!['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) return false
       return req.path.startsWith('/movies')
     },
-    getHeaders: (result) => ({
-      'X-RateLimit-Limit': result.limit.toString(),
-      'X-RateLimit-Remaining': Math.max(0, result.limit - result.count).toString(),
-      'X-RateLimit-Reset': Math.ceil(result.resetAt / 1000).toString(),
-    }),
+    getHeaders: createStandardHeaders(),
   }
 }
 
@@ -133,11 +129,7 @@ function createUserStrategy(): RateLimitStrategy {
     windowMs,
     getIdentifier: (req) => req.user?.id ?? '',
     shouldApply: (req) => !!req.user,
-    getHeaders: (result) => ({
-      'X-RateLimit-Limit-User': result.limit.toString(),
-      'X-RateLimit-Remaining-User': Math.max(0, result.limit - result.count).toString(),
-      'X-RateLimit-Reset-User': Math.ceil(result.resetAt / 1000).toString(),
-    }),
+    getHeaders: createStandardHeaders('User'),
   }
 }
 
