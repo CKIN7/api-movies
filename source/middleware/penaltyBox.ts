@@ -43,23 +43,31 @@ export async function getPenaltyStats(): Promise<{ blockedCount: number; activat
   const redis = getRedisClient()
   const blockedIps = await redis.smembers(BLOCKED_IPS_KEY)
   
-  // Filtrar solo los que TODAVÍA tienen penalty activo
-  const stillBlocked = []
+  // Solo lectura: filtrar sin limpiar
+  let blockedCount = 0
   for (const ip of blockedIps) {
     const ttl = await redis.ttl(`${PENALTY_PREFIX}${ip}`)
-    if (ttl > 0) {
-      stillBlocked.push(ip)
-    } else {
-      await redis.srem(BLOCKED_IPS_KEY, ip)  // limpieza diferida
-    }
+    if (ttl > 0) blockedCount++
   }
   
   const activations = await redis.get(PENALTY_ACTIVATIONS_KEY).then(v => Number(v) || 0)
   
-  return { 
-    blockedCount: stillBlocked.length, 
-    activations 
+  return { blockedCount, activations }
+}
+
+export async function cleanupExpiredPenalties(): Promise<number> {
+  const redis = getRedisClient()
+  const blockedIps = await redis.smembers(BLOCKED_IPS_KEY)
+  let cleaned = 0
+  
+  for (const ip of blockedIps) {
+    const ttl = await redis.ttl(`${PENALTY_PREFIX}${ip}`)
+    if (ttl <= 0) {
+      await redis.srem(BLOCKED_IPS_KEY, ip)
+      cleaned++
+    }
   }
+  return cleaned
 }
 
 // ---------- Contador de rechazos (429) ----------

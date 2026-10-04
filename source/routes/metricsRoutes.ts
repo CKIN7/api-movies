@@ -1,6 +1,7 @@
 import { Router, Response } from 'express'
 import { requireAuth } from '../middleware/requireAuth'
 import { getRateLimitMetrics, clearMetrics } from '../services/rateLimitMetrics'
+import { clearPenalty, cleanupExpiredPenalties } from '../middleware/penaltyBox'
 
 // ═══════════════════════════════════════════════════════════════
 //  Decisión de Diseño: Controller Omission by Simplicity
@@ -45,10 +46,14 @@ router.delete('/rate-limit', requireAuth, async (_req, res: Response) => {
 })
 
 router.delete('/rate-limit/penalty/:identifier', requireAuth, async (req, res: Response) => {
-  const { clearPenalty } = await import('../middleware/penaltyBox')
   const identifier = Array.isArray(req.params.identifier) ? req.params.identifier[0] : req.params.identifier
   await clearPenalty(identifier)
   res.json({ message: `Penalty cleared for ${identifier}` })
+})
+
+router.delete('/rate-limit/penalty', requireAuth, async (_req, res: Response) => {
+  const cleaned = await cleanupExpiredPenalties()
+  res.json({ message: `Cleaned ${cleaned} expired penalties` })
 })
 
 export { router as metricsRouter }
