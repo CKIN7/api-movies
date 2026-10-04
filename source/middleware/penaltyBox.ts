@@ -4,6 +4,7 @@ import { rateLimitConfig } from '../config/rateLimitConfig'
 const PENALTY_PREFIX = 'ratelimit:penalty:'
 const BLOCKED_IPS_KEY = 'ratelimit:metrics:blockedIps'
 const PENALTY_ACTIVATIONS_KEY = 'ratelimit:metrics:penaltyActivations'
+const PENALIZED_IPS_KEY = 'ratelimit:metrics:everPenalized'
 const REJECTION_PREFIX = 'ratelimit:penaltyrejections:'
 
 type Scope = 'global' | 'auth' | 'write' | 'user'
@@ -26,6 +27,7 @@ export async function activatePenalty(identifier: string): Promise<void> {
     .multi()
     .setex(`${PENALTY_PREFIX}${identifier}`, Math.ceil(durationMs / 1000), '1')
     .sadd(BLOCKED_IPS_KEY, identifier)
+    .sadd(PENALIZED_IPS_KEY, identifier)
     .incr(PENALTY_ACTIVATIONS_KEY)
     .exec()
 }
@@ -57,13 +59,15 @@ export async function getPenaltyStats(): Promise<{ blockedCount: number; activat
 
 export async function cleanupExpiredPenalties(): Promise<number> {
   const redis = getRedisClient()
-  const blockedIps = await redis.smembers(BLOCKED_IPS_KEY)
+  // Use penalized IPs set to find IPs that were ever penalized
+  const penalizedIps = await redis.smembers(PENALIZED_IPS_KEY)
   let cleaned = 0
   
-  for (const ip of blockedIps) {
+  for (const ip of penalizedIps) {
     const ttl = await redis.ttl(`${PENALTY_PREFIX}${ip}`)
     if (ttl <= 0) {
       await redis.srem(BLOCKED_IPS_KEY, ip)
+      // Keep in PENALIZED_IPS_KEY for historical tracking
       cleaned++
     }
   }
