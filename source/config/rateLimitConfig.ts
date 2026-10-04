@@ -21,7 +21,7 @@ export const rateLimitConfig = {
   penalty: {
     thresholds: {
       global: Number(process.env.RATE_LIMIT_PENALTY_THRESHOLD_GLOBAL ?? 50),
-      auth: Number(process.env.RATE_LIMIT_PENALTY_THRESHOLD_AUTH ?? 20),
+      auth: Number(process.env.RATE_LIMIT_PENALTY_THRESHOLD_AUTH ?? 10),
       write: Number(process.env.RATE_LIMIT_PENALTY_THRESHOLD_WRITE ?? 30),
       user: Number(process.env.RATE_LIMIT_PENALTY_THRESHOLD_USER ?? 100),
     },
