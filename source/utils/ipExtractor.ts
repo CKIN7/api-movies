@@ -22,15 +22,21 @@ export function extractIp(req: { ip?: string; headers?: Record<string, string | 
   return isValidIp(directIp) ? directIp : '127.0.0.1'
 }
 
-function isValidIp(ip: string): boolean {
+export function isValidIp(ip: string): boolean {
   if (!ip || ip === 'unknown') return false
 
   const ipv4Regex = /^(\d{1,3}\.){3}\d{1,3}$/
   const ipv6Regex = /^([0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}$/
-  const ipv6CompressedRegex = /^(([0-9a-fA-F]{1,4}:){1,7}:|::([0-9a-fA-F]{1,4}:){0,6}[0-9a-fA-F]{1,4})$/
+  const ipv6CompressedRegex = /^(([0-9a-fA-F]{1,4}:){0,6}[0-9a-fA-F]{1,4})?::(([0-9a-fA-F]{1,4}:){0,6}[0-9a-fA-F]{1,4})?$/
+  const ipv4MappedRegex = /^::ffff:(\d{1,3}\.){3}\d{1,3}$/
 
   if (ipv4Regex.test(ip)) {
     return ip.split('.').every(octet => parseInt(octet, 10) <= 255)
+  }
+
+  if (ipv4MappedRegex.test(ip)) {
+    const ipv4Part = ip.slice(7)
+    return ipv4Part.split('.').every(octet => parseInt(octet, 10) <= 255)
   }
 
   return ipv6Regex.test(ip) || ipv6CompressedRegex.test(ip)
