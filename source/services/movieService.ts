@@ -13,6 +13,9 @@ import { SimilarMovie } from '../domain/SimilarMovie'
 import AppError from '../utils/AppError'
 import logger from '../utils/logger'
 import { SuggestQueryDTO } from '../schemas/suggestQuerySchema'
+import { getCached, setCached, invalidatePattern, CACHE_KEYS } from '../utils/cache'
+import { getRedisClient } from '../utils/redisClient'
+import type Redis from 'ioredis'
 
 // ═══════════════════════════════════════════════════════════════
 //  Patrones: Facade + Dependency Injection
@@ -25,6 +28,10 @@ import { SuggestQueryDTO } from '../schemas/suggestQuerySchema'
 //  DI: Recibe los 5 repos por constructor injection.
 // ═══════════════════════════════════════════════════════════════
 
+const CACHE_ENABLED = process.env.CACHE_ENABLED !== 'false'
+const CACHE_TTL_MOVIES = Number(process.env.CACHE_TTL_MOVIES ?? 60)
+const CACHE_TTL_GENRES = Number(process.env.CACHE_TTL_GENRES ?? 300)
+
 class MovieService {
     constructor(
         private movieRepo: MovieRepository,
@@ -32,12 +39,19 @@ class MovieService {
         private genreRepo: GenreRepository,
         private auditRepo: AuditLogRepository,
         private castRepo: CastRepository,
+        private cache: Redis = getRedisClient(),
     ) {}
 
     async getMovies(params: MovieQueryDTO): Promise<PaginatedResponse<MovieResponse[]>> {
         try {
             if (params.sort && !params.order) {
                 params.order = 'asc'
+            }
+
+            if (this.isCacheEnabled()) {
+                const key = CACHE_KEYS.movieList({ ...params, page: params.page, limit: params.limit })
+                const cached = await getCached<PaginatedResponse<MovieResponse[]>>(this.cache, key)
+                if (cached) return cached
             }
 
             const offset = (params.page - 1) * params.limit
@@ -47,10 +61,17 @@ class MovieService {
             const totalPages = Math.ceil(result.total / params.limit)
             const movies = result.rows.map(Movie.fromRow).map(m => m.toResponse())
 
-            return {
+            const response: PaginatedResponse<MovieResponse[]> = {
                 data: movies,
                 meta: { total: result.total, page: params.page, limit: params.limit, totalPages }
             }
+
+            if (this.isCacheEnabled()) {
+                const key = CACHE_KEYS.movieList({ ...params, page: params.page, limit: params.limit })
+                await setCached(this.cache, key, response, CACHE_TTL_MOVIES)
+            }
+
+            return response
         } catch (error) {
             if (error instanceof AppError) throw error
             logger.error(`Error en getMovies: ${(error as Error).message}`)
@@ -58,14 +79,48 @@ class MovieService {
         }
     }
 
+    private isCacheEnabled(): boolean {
+        return CACHE_ENABLED && this.cache.status === 'ready'
+    }
+
+    private async invalidateMovieCaches(id: number): Promise<void> {
+        if (!this.isCacheEnabled()) return
+        try {
+            await this.cache.del(CACHE_KEYS.movie(id))
+            await invalidatePattern(this.cache, `movie:${id}:similar:*`)
+            await invalidatePattern(this.cache, 'movies:list:*')
+            await this.cache.del(CACHE_KEYS.genres())
+        } catch (err) {
+            logger.warn(`Error invalidating caches for movie ${id}: ${(err as Error).message}`)
+        }
+    }
+
     async getMovieById(id: number): Promise<MovieResponse> {
+        if (this.isCacheEnabled()) {
+            const cached = await getCached<MovieResponse>(this.cache, CACHE_KEYS.movie(id))
+            if (cached) return cached
+        }
+
         const row = await this.movieRepo.findById(id)
         if (!row) throw new AppError('Película no encontrada', 404)
-        return Movie.fromRow(row).toResponse()
+
+        const movie = Movie.fromRow(row).toResponse()
+
+        if (this.isCacheEnabled()) {
+            await setCached(this.cache, CACHE_KEYS.movie(id), movie, CACHE_TTL_MOVIES)
+        }
+
+        return movie
     }
 
     async getSimilarMovies(id: number, page: number, limit: number): Promise<PaginatedResponse<SimilarMovieResponse[]>> {
         try {
+            if (this.isCacheEnabled()) {
+                const key = CACHE_KEYS.movieSimilar(id, page, limit)
+                const cached = await getCached<PaginatedResponse<SimilarMovieResponse[]>>(this.cache, key)
+                if (cached) return cached
+            }
+
             const movie = await this.movieRepo.findById(id)
             if (!movie) throw new AppError('Película no encontrada', 404)
 
@@ -76,10 +131,17 @@ class MovieService {
 
             const totalPages = Math.ceil(result.total / limit)
 
-            return {
+            const response: PaginatedResponse<SimilarMovieResponse[]> = {
                 data,
                 meta: { total: result.total, page, limit, totalPages }
             }
+
+            if (this.isCacheEnabled()) {
+                const key = CACHE_KEYS.movieSimilar(id, page, limit)
+                await setCached(this.cache, key, response, CACHE_TTL_MOVIES)
+            }
+
+            return response
         } catch (error) {
             if (error instanceof AppError) throw error
             logger.error(`Error en getSimilarMovies: ${(error as Error).message}`)
@@ -128,7 +190,18 @@ class MovieService {
     }
 
     async getAllGenres(): Promise<string[]> {
-        return this.genreRepo.findAll()
+        if (this.isCacheEnabled()) {
+            const cached = await getCached<string[]>(this.cache, CACHE_KEYS.genres())
+            if (cached) return cached
+        }
+
+        const genres = await this.genreRepo.findAll()
+
+        if (this.isCacheEnabled()) {
+            await setCached(this.cache, CACHE_KEYS.genres(), genres, CACHE_TTL_GENRES)
+        }
+
+        return genres
     }
 
     async suggest(dto: SuggestQueryDTO){
@@ -180,6 +253,15 @@ class MovieService {
                 const movieResponse = Movie.fromRow(row!).toResponse()
 
                 await this.auditRepo.record({movieId: movieId, action: 'CREATE', oldSnapshot:null, newSnapshot: movieResponse})
+
+                if (this.isCacheEnabled()) {
+                    try {
+                        await invalidatePattern(this.cache, 'movies:list:*')
+                        await this.cache.del(CACHE_KEYS.genres())
+                    } catch (err) {
+                        logger.warn(`Error invalidating list caches after create: ${(err as Error).message}`)
+                    }
+                }
 
                 return movieResponse
             })
@@ -242,7 +324,9 @@ class MovieService {
                 if(JSON.stringify(oldSnapshot) !== JSON.stringify(newSnapshot)){
                     await this.auditRepo.record({movieId: id, action: 'UPDATE', oldSnapshot: oldSnapshot, newSnapshot: newSnapshot})
                 }
-                
+
+                await this.invalidateMovieCaches(id)
+
                 return newSnapshot
             })
         } catch (error) {
@@ -259,13 +343,15 @@ class MovieService {
             
             const oldSnapshot = Movie.fromRow(existing).toResponse()
             
-            await this.movieRepo.transaction(async () => {
-                await this.auditRepo.record({movieId: id, action: 'DELETE', oldSnapshot: oldSnapshot, newSnapshot: null})
+                await this.movieRepo.transaction(async () => {
+                    await this.auditRepo.record({movieId: id, action: 'DELETE', oldSnapshot: oldSnapshot, newSnapshot: null})
 
-                await this.genreRepo.deleteByMovieId(id)
-                await this.castRepo.deleteByMovieId(id)
-                await this.movieRepo.delete(id)
-            })
+                    await this.genreRepo.deleteByMovieId(id)
+                    await this.castRepo.deleteByMovieId(id)
+                    await this.movieRepo.delete(id)
+                })
+
+                await this.invalidateMovieCaches(id)
         } catch (error) {
             if (error instanceof AppError) throw error
             logger.error(`Error en deleteMovie: ${(error as Error).message}`)
