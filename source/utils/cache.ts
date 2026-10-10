@@ -18,30 +18,39 @@ export async function getCached<T>(client: Redis, key: string): Promise<T | null
     }
 }
 
-export function setCached<T>(client: Redis, key: string, value: T, ttlSeconds: number): Promise<void> {
-    return client.set(key, JSON.stringify(value), 'EX', ttlSeconds).then(() => undefined)
+export async function setCached<T>(client: Redis, key: string, value: T, ttlSeconds: number): Promise<void> {
+    const serialized = JSON.stringify(value)
+
+    await client.set(key, serialized, 'EX', ttlSeconds)
 }
 
 export async function invalidatePattern(client: Redis, pattern: string): Promise<void> {
+    const SCAN_BATCH_SIZE = 100
     let cursor = '0'
+
     do {
-        const [nextCursor, keys] = await client.scan(cursor, 'MATCH', pattern, 'COUNT', 100)
+        const [nextCursor, matchedKeys] = await client.scan(cursor, 'MATCH', pattern, 'COUNT', SCAN_BATCH_SIZE)
         cursor = nextCursor
-        if (keys.length > 0) {
-            await client.del(...keys)
+
+        if (matchedKeys.length > 0) {
+            await client.del(...matchedKeys)
         }
     } while (cursor !== '0')
 }
 
 export function buildListKey(prefix: string, params: Record<string, unknown>): string {
-    const sorted = Object.keys(params)
-        .sort()
-        .reduce((acc, key) => {
-            acc[key] = params[key]
-            return acc
-        }, {} as Record<string, unknown>)
-    const hash = crypto.createHash('md5').update(JSON.stringify(sorted)).digest('hex')
-    return `${prefix}:${hash}`
+    const sortedKeys = Object.keys(params).sort()
+
+    const sortedParams: Record<string, unknown> = {}
+    for (const key of sortedKeys) {
+        sortedParams[key] = params[key]
+    }
+
+    const serialized = JSON.stringify(sortedParams)
+    const hash = crypto.createHash('md5').update(serialized).digest('hex')
+    const cacheKey = `${prefix}:${hash}`
+
+    return cacheKey
 }
 
 export const CACHE_KEYS = {
