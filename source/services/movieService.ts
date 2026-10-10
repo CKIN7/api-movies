@@ -49,9 +49,17 @@ class MovieService {
             }
 
             if (this.isCacheEnabled()) {
-                const key = CACHE_KEYS.movieList({ ...params, page: params.page, limit: params.limit })
-                const cached = await this.safeGetCached<PaginatedResponse<MovieResponse[]>>(key)
-                if (cached) return cached
+                const cacheKey = CACHE_KEYS.movieList({
+                    ...params,
+                    page: params.page,
+                    limit: params.limit
+                })
+
+                const cachedResult = await this.safeGetCached<PaginatedResponse<MovieResponse[]>>(cacheKey)
+
+                if (cachedResult !== null) {
+                    return cachedResult
+                }
             }
 
             const offset = (params.page - 1) * params.limit
@@ -67,8 +75,13 @@ class MovieService {
             }
 
             if (this.isCacheEnabled()) {
-                const key = CACHE_KEYS.movieList({ ...params, page: params.page, limit: params.limit })
-                await this.safeSetCached(key, response, CACHE_TTL_MOVIES)
+                const cacheKey = CACHE_KEYS.movieList({
+                    ...params,
+                    page: params.page,
+                    limit: params.limit
+                })
+
+                await this.safeSetCached(cacheKey, response, CACHE_TTL_MOVIES)
             }
 
             return response
@@ -80,14 +93,19 @@ class MovieService {
     }
 
     private isCacheEnabled(): boolean {
-        return CACHE_ENABLED && this.cache != null
+        const cacheIsEnabledByConfig = CACHE_ENABLED
+        const cacheClientIsAvailable = this.cache !== null
+
+        return cacheIsEnabledByConfig && cacheClientIsAvailable
     }
 
     private async safeGetCached<T>(key: string): Promise<T | null> {
         try {
-            return await getCached<T>(this.cache, key)
-        } catch (err) {
-            logger.warn(`Cache GET failed for ${key}: ${(err as Error).message}`)
+            const cachedValue = await getCached<T>(this.cache, key)
+            return cachedValue
+        } catch (error) {
+            const errorMessage = (error as Error).message
+            logger.warn(`[Cache] GET failed for key "${key}": ${errorMessage}`)
             return null
         }
     }
@@ -95,35 +113,50 @@ class MovieService {
     private async safeSetCached<T>(key: string, value: T, ttl: number): Promise<void> {
         try {
             await setCached(this.cache, key, value, ttl)
-        } catch (err) {
-            logger.warn(`Cache SET failed for ${key}: ${(err as Error).message}`)
+        } catch (error) {
+            const errorMessage = (error as Error).message
+            logger.warn(`[Cache] SET failed for key "${key}": ${errorMessage}`)
         }
     }
 
     private async safeInvalidate(pattern: string): Promise<void> {
         try {
             await invalidatePattern(this.cache, pattern)
-        } catch (err) {
-            logger.warn(`Cache invalidate failed for ${pattern}: ${(err as Error).message}`)
+        } catch (error) {
+            const errorMessage = (error as Error).message
+            logger.warn(`[Cache] Invalidate failed for pattern "${pattern}": ${errorMessage}`)
         }
     }
 
-    private async invalidateMovieCaches(id: number): Promise<void> {
-        if (!this.isCacheEnabled()) return
+    private async invalidateMovieCaches(movieId: number): Promise<void> {
+        if (!this.isCacheEnabled()) {
+            return
+        }
+
         try {
-            await this.cache.del(CACHE_KEYS.movie(id))
-            await this.safeInvalidate(`movie:${id}:similar:*`)
-            await this.safeInvalidate('movies:list:*')
-            await this.cache.del(CACHE_KEYS.genres())
-        } catch (err) {
-            logger.warn(`Error invalidating caches for movie ${id}: ${(err as Error).message}`)
+            const movieCacheKey = CACHE_KEYS.movie(movieId)
+            const similarMoviesPattern = `movie:${movieId}:similar:*`
+            const movieListPattern = 'movies:list:*'
+            const genresCacheKey = CACHE_KEYS.genres()
+
+            await this.cache.del(movieCacheKey)
+            await this.safeInvalidate(similarMoviesPattern)
+            await this.safeInvalidate(movieListPattern)
+            await this.cache.del(genresCacheKey)
+        } catch (error) {
+            const errorMessage = (error as Error).message
+            logger.warn(`[Cache] Failed to invalidate caches for movie ${movieId}: ${errorMessage}`)
         }
     }
 
     async getMovieById(id: number): Promise<MovieResponse> {
         if (this.isCacheEnabled()) {
-            const cached = await this.safeGetCached<MovieResponse>(CACHE_KEYS.movie(id))
-            if (cached) return cached
+            const cacheKey = CACHE_KEYS.movie(id)
+            const cachedMovie = await this.safeGetCached<MovieResponse>(cacheKey)
+
+            if (cachedMovie !== null) {
+                return cachedMovie
+            }
         }
 
         const row = await this.movieRepo.findById(id)
@@ -132,7 +165,8 @@ class MovieService {
         const movie = Movie.fromRow(row).toResponse()
 
         if (this.isCacheEnabled()) {
-            await this.safeSetCached(CACHE_KEYS.movie(id), movie, CACHE_TTL_MOVIES)
+            const cacheKey = CACHE_KEYS.movie(id)
+            await this.safeSetCached(cacheKey, movie, CACHE_TTL_MOVIES)
         }
 
         return movie
@@ -141,9 +175,12 @@ class MovieService {
     async getSimilarMovies(id: number, page: number, limit: number): Promise<PaginatedResponse<SimilarMovieResponse[]>> {
         try {
             if (this.isCacheEnabled()) {
-                const key = CACHE_KEYS.movieSimilar(id, page, limit)
-                const cached = await this.safeGetCached<PaginatedResponse<SimilarMovieResponse[]>>(key)
-                if (cached) return cached
+                const cacheKey = CACHE_KEYS.movieSimilar(id, page, limit)
+                const cachedResult = await this.safeGetCached<PaginatedResponse<SimilarMovieResponse[]>>(cacheKey)
+
+                if (cachedResult !== null) {
+                    return cachedResult
+                }
             }
 
             const movie = await this.movieRepo.findById(id)
@@ -162,8 +199,8 @@ class MovieService {
             }
 
             if (this.isCacheEnabled()) {
-                const key = CACHE_KEYS.movieSimilar(id, page, limit)
-                await this.safeSetCached(key, response, CACHE_TTL_MOVIES)
+                const cacheKey = CACHE_KEYS.movieSimilar(id, page, limit)
+                await this.safeSetCached(cacheKey, response, CACHE_TTL_MOVIES)
             }
 
             return response
@@ -216,14 +253,19 @@ class MovieService {
 
     async getAllGenres(): Promise<string[]> {
         if (this.isCacheEnabled()) {
-            const cached = await this.safeGetCached<string[]>(CACHE_KEYS.genres())
-            if (cached) return cached
+            const cacheKey = CACHE_KEYS.genres()
+            const cachedGenres = await this.safeGetCached<string[]>(cacheKey)
+
+            if (cachedGenres !== null) {
+                return cachedGenres
+            }
         }
 
         const genres = await this.genreRepo.findAll()
 
         if (this.isCacheEnabled()) {
-            await this.safeSetCached(CACHE_KEYS.genres(), genres, CACHE_TTL_GENRES)
+            const cacheKey = CACHE_KEYS.genres()
+            await this.safeSetCached(cacheKey, genres, CACHE_TTL_GENRES)
         }
 
         return genres
@@ -281,10 +323,14 @@ class MovieService {
 
                 if (this.isCacheEnabled()) {
                     try {
-                        await this.safeInvalidate('movies:list:*')
-                        await this.cache.del(CACHE_KEYS.genres())
-                    } catch (err) {
-                        logger.warn(`Error invalidating list caches after create: ${(err as Error).message}`)
+                        const movieListPattern = 'movies:list:*'
+                        const genresCacheKey = CACHE_KEYS.genres()
+
+                        await this.safeInvalidate(movieListPattern)
+                        await this.cache.del(genresCacheKey)
+                    } catch (error) {
+                        const errorMessage = (error as Error).message
+                        logger.warn(`[Cache] Failed to invalidate list caches after create: ${errorMessage}`)
                     }
                 }
 
