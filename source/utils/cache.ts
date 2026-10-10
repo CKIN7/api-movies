@@ -1,15 +1,21 @@
 import crypto from 'crypto'
 import type Redis from 'ioredis'
+import logger from './logger'
 
-export function getCached<T>(client: Redis, key: string): Promise<T | null> {
-    return client.get(key).then((raw) => {
-        if (raw === null) return null
-        try {
-            return JSON.parse(raw) as T
-        } catch {
-            return null
-        }
-    })
+export async function getCached<T>(client: Redis, key: string): Promise<T | null> {
+    const raw = await client.get(key)
+
+    if (raw === null) {
+        return null
+    }
+
+    try {
+        const parsed = JSON.parse(raw) as T
+        return parsed
+    } catch (error) {
+        logger.warn(`Failed to parse cached value for key "${key}": ${(error as Error).message}`)
+        return null
+    }
 }
 
 export function setCached<T>(client: Redis, key: string, value: T, ttlSeconds: number): Promise<void> {
