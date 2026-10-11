@@ -3,6 +3,7 @@ import type { SearchQueryDTO } from '../schemas/searchQuery'
 import type { PaginatedResponse } from '../types/movie'
 import type MovieRepository from '../repositories/MovieRepository'
 import { Movie, type MovieResponse } from '../domain/Movie'
+import { isMeilisearchEnabled } from '../utils/meilisearchClient'
 import logger from '../utils/logger'
 
 export interface SearchResult {
@@ -20,12 +21,21 @@ export interface SearchResult {
 
 class SearchService {
     constructor(
-        private movieIndex: Index,
+        private movieIndex: Index | null,
         private movieRepo: MovieRepository,
     ) {}
 
+    private canUseMeilisearch(): boolean {
+        return isMeilisearchEnabled() && this.movieIndex !== null
+    }
+
     async search(params: SearchQueryDTO): Promise<SearchResult> {
         const startTime = Date.now()
+
+        if (!this.canUseMeilisearch()) {
+            logger.info('[Search] Meilisearch disabled, searching in MySQL')
+            return this.searchWithMysql(params, startTime)
+        }
 
         try {
             const result = await this.searchWithMeilisearch(params)
@@ -52,7 +62,7 @@ class SearchService {
     private async searchWithMeilisearch(params: SearchQueryDTO): Promise<{ hits: MovieResponse[]; estimatedTotalHits: number | undefined }> {
         const filters = this.buildMeilisearchFilters(params)
 
-        const result = await this.movieIndex.search(params.q, {
+        const result = await this.movieIndex!.search(params.q, {
             filter: filters.length > 0 ? filters : undefined,
             page: params.page,
             limit: params.limit,
@@ -126,24 +136,27 @@ class SearchService {
     }
 
     async indexMovie(movie: MovieResponse): Promise<void> {
+        if (!this.canUseMeilisearch()) return
         try {
-            await this.movieIndex.addDocuments([movie])
+            await this.movieIndex!.addDocuments([movie])
         } catch (error) {
             logger.warn(`[Search] Failed to index movie ${movie.id}: ${(error as Error).message}`)
         }
     }
 
     async updateMovie(movie: MovieResponse): Promise<void> {
+        if (!this.canUseMeilisearch()) return
         try {
-            await this.movieIndex.updateDocuments([movie])
+            await this.movieIndex!.updateDocuments([movie])
         } catch (error) {
             logger.warn(`[Search] Failed to update movie ${movie.id}: ${(error as Error).message}`)
         }
     }
 
     async removeMovie(movieId: number): Promise<void> {
+        if (!this.canUseMeilisearch()) return
         try {
-            await this.movieIndex.deleteDocument(movieId)
+            await this.movieIndex!.deleteDocument(movieId)
         } catch (error) {
             logger.warn(`[Search] Failed to remove movie ${movieId}: ${(error as Error).message}`)
         }
