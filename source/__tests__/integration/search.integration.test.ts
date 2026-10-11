@@ -2,13 +2,17 @@ import request from 'supertest'
 import { createApp } from '../../api'
 import SearchService from '../../services/searchService'
 import { setupTestDb, teardownTestDb, clearTestData, seedTestData } from '../helpers/db'
+import { disconnectRedis } from '../../utils/redisClient'
 import type { Connection } from 'mysql2/promise'
 
 let db: Connection
 
-beforeAll(async () => { db = await setupTestDb() })
-afterAll(async () => { await teardownTestDb(db) })
-beforeEach(async () => { await clearTestData(db); await seedTestData(db) })
+beforeAll(async () => { db = await setupTestDb() }, 30000)
+afterAll(async () => {
+    await teardownTestDb(db)
+    await disconnectRedis().catch(() => {})
+}, 30000)
+beforeEach(async () => { await clearTestData(db); await seedTestData(db) }, 30000)
 
 const mockSearchResult = {
     data: [
