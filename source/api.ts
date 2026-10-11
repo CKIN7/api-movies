@@ -11,6 +11,8 @@ import AppError from './utils/AppError'
 import { ZodError } from 'zod'
 import logger from './utils/logger'
 import { requestLogger } from './middleware/requestLogger'
+import { rateLimiter } from './middleware/rateLimiter'
+import { connectRedis, disconnectRedis } from './utils/redisClient'
 import type { Request, Response, NextFunction } from 'express'
 import connection from './db/connection'
 import ExportService from './services/exportService'
@@ -32,6 +34,7 @@ import WatchlistRepository from './repositories/WatchlistRepository'
 import WatchlistService from './services/WatchlistService'
 import WatchlistController from './controllers/WatchlistController'
 import { createWatchlistRoutes } from './routes/watchlistRoutes'
+import { metricsRouter } from './routes/metricsRoutes'
 
 // ═══════════════════════════════════════════════════════════════
 //  Patrones: Dependency Injection + Factory + Chain of Resp.
@@ -49,6 +52,7 @@ export function createApp(movieService?: MovieService) {
 
     app.disable('x-powered-by')
     app.use(express.json())
+    app.use(rateLimiter)
     app.use(requestLogger)
     app.use(express.static('public'))
 
@@ -93,6 +97,7 @@ export function createApp(movieService?: MovieService) {
     app.use('/movies', reviewRouter)
     app.use('/users', watchlistRouter)
     app.use('/auth', authRouter)
+    app.use('/metrics', metricsRouter)
 
     app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
         const statusCode = err instanceof AppError ? err.statusCode : err instanceof ZodError ? 400 : 500
@@ -109,8 +114,28 @@ export function createApp(movieService?: MovieService) {
 
 if (require.main === module) {
     const app = createApp()
-    const PORT = 8089
-    app.listen(PORT, () => {
-        logger.info(`Servidor escuchando en http://localhost:${PORT}`)
+
+    connectRedis()
+        .then(() => {
+            const PORT = 8089
+            app.listen(PORT, () => {
+                logger.info(`Servidor escuchando en http://localhost:${PORT}`)
+            })
+        })
+        .catch((err) => {
+            logger.error('Failed to connect to Redis', { error: err.message })
+            process.exit(1)
+        })
+
+    process.on('SIGTERM', async () => {
+        logger.info('SIGTERM received, shutting down gracefully')
+        await disconnectRedis()
+        process.exit(0)
+    })
+
+    process.on('SIGINT', async () => {
+        logger.info('SIGINT received, shutting down gracefully')
+        await disconnectRedis()
+        process.exit(0)
     })
 }

@@ -396,7 +396,7 @@ export async function seedTestData(conn: Connection): Promise<void> {
     ]
     await conn.query('INSERT INTO movie_actors (movie_id, actor_id, character_name) VALUES ?', [newMovieActors])
     
-    await conn.query(`INSERT INTO users (id, email, password_hash, role, email_verified) VALUES ('cfd74902-7d20-4653-bdf6-759bb4947956', 'admin@example.com', '$2b$10$oPAr9ogyknbTezqgxYTIKeMXQzbviHFT5Ea9Hc.vk3g2Qpfo2ddre', 'admin', 1)`)
+    await conn.query(`INSERT INTO users (id, email, password_hash, role, email_verified) VALUES ('cfd74902-7d20-4653-bdf6-759bb4947956', 'admin@example.com', '\$2b\$10\$FJf.i/9zmq.cwTCuEFTbQe2LA3lAhEYGdSwkOhdmMRh3whFNvEen2', 'admin', 1)`)
 
     
 
