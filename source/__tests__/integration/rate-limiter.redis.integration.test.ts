@@ -2,11 +2,9 @@ import request from 'supertest'
 import { createApp } from '../../api'
 import { rateLimitConfig } from '../../config/rateLimitConfig'
 import { connectRedis, disconnectRedis } from '../../utils/redisClient'
-import { setupTestDb, teardownTestDb, clearTestData } from '../helpers/db'
 
 // Configure Redis for testing
 let redis: any
-let db: any
 
 beforeAll(async () => {
     redis = connectRedis()
@@ -15,6 +13,14 @@ beforeAll(async () => {
 })
 
 afterAll(async () => {
+    // Este suite dispenza activamente el penalty box; se limpia para no
+    // dejar penalizada a 127.0.0.1 al resto de suites (15 min de TTL).
+    try {
+      const keys = await redis.keys('ratelimit:*')
+      if (keys.length > 0) await redis.del(...keys)
+    } catch (e) {
+      // Redis no disponible: ignorar
+    }
     await disconnectRedis()
 })
 
@@ -38,20 +44,11 @@ beforeEach(async () => {
     } catch (e) {
       // Ignore errors - Redis may not support all commands
     }
-    await clearTestData(db as any)
     // Small delay to ensure Redis state is reset
     await new Promise(resolve => setTimeout(resolve, 50))
 })
 
 describe('Rate Limiter Integration (Real Redis)', () => {
-  beforeAll(async () => {
-    db = await setupTestDb()
-  })
-
-  afterAll(async () => {
-    await teardownTestDb(db)
-  })
-
   describe('Rate Limit Configuration', () => {
     test('global rate limit config is 100 requests per minute', () => {
       expect(rateLimitConfig.global.limit).toBe(100)
@@ -79,17 +76,15 @@ describe('Rate Limiter Integration (Real Redis)', () => {
       const app = createApp()
       const agent = request(app)
 
-      // Auth limit: 10 requests per minute
-      // Penalty threshold: 20 rejections in 5 minute window
-      // Make many auth requests to trigger penalty
-      // Auth limit: 10 requests/min, penalty threshold: 20 rejections in 5 min window
-      // Using 35 iterations from fresh Redis to ensure we hit 20 rejects
+      // Auth limit: 10/min (RATE_LIMIT_AUTH) y umbral de penalty: 10 rechazos
+      // (RATE_LIMIT_PENALTY_THRESHOLD_AUTH). Hacen falta 20 peticiones para
+      // llegar a 10 rechazos, por eso se lanzan 25.
       let authRejections = 0
-      for (let i = 0; i < 15; i++) {
+      for (let i = 0; i < 25; i++) {
         const res = await agent.get('/auth/login')
         if (res.status === 429) {
           authRejections++
-          if (authRejections >= 20) break
+          if (authRejections >= 10) break
         }
       }
 

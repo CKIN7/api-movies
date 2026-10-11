@@ -8,7 +8,9 @@
     "start": "node dist/api.js",
     "test": "jest",
     "migrate": "tsx db/migrate.ts",
-    "migrate:status": "tsx db/migrate.ts status"
+    "migrate:status": "tsx db/migrate.ts status",
+    "seed": "tsx db/seed.ts",
+    "seed:append": "tsx db/seed.ts --keep-data"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",
