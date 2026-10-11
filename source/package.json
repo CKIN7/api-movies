@@ -10,7 +10,8 @@
     "migrate": "tsx db/migrate.ts",
     "migrate:status": "tsx db/migrate.ts status",
     "seed": "tsx db/seed.ts",
-    "seed:append": "tsx db/seed.ts --keep-data"
+    "seed:append": "tsx db/seed.ts --keep-data",
+    "reindex": "tsx scripts/reindex.ts"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",
