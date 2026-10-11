@@ -35,6 +35,10 @@ import WatchlistService from './services/WatchlistService'
 import WatchlistController from './controllers/WatchlistController'
 import { createWatchlistRoutes } from './routes/watchlistRoutes'
 import { metricsRouter } from './routes/metricsRoutes'
+import SearchService from './services/searchService'
+import SearchController from './controllers/searchController'
+import { createSearchRoutes } from './routes/searchRoutes'
+import { getMovieIndex } from './utils/meilisearchClient'
 
 // ═══════════════════════════════════════════════════════════════
 //  Patrones: Dependency Injection + Factory + Chain of Resp.
@@ -66,9 +70,14 @@ export function createApp(movieService?: MovieService) {
     const userRepository = new UserRepository(conn)
     const refreshTokenRepository = new RefreshTokenRepository(conn)
     const emailVerificationRepository = new EmailVerificationRepository(conn)
-    const _service = movieService || new MovieService(movieRepo, directorRepo, genreRepo, auditRepo, castRepo)
+
+    const searchService = new SearchService(getMovieIndex(), movieRepo)
+    const _service = movieService || new MovieService(movieRepo, directorRepo, genreRepo, auditRepo, castRepo, undefined, searchService)
     const controller = new MovieController(_service)
     const router = createMovieRoutes(controller)
+
+    const searchController = new SearchController(searchService)
+    const searchRouter = createSearchRoutes(searchController)
 
     const notifier = new DevEmailVerificationNotifier()
     const resetNotifier = new DevPasswordResetNotifier()
@@ -92,6 +101,7 @@ export function createApp(movieService?: MovieService) {
     const watchlistController = new WatchlistController(watchlistService)
     const watchlistRouter = createWatchlistRoutes(watchlistController)
 
+    app.use('/movies/search', searchRouter)
     app.use('/movies', exportRouter)
     app.use('/movies', router)
     app.use('/movies', reviewRouter)
