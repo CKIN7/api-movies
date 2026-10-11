@@ -38,7 +38,7 @@ import { metricsRouter } from './routes/metricsRoutes'
 import SearchService from './services/searchService'
 import SearchController from './controllers/searchController'
 import { createSearchRoutes } from './routes/searchRoutes'
-import { getMovieIndex } from './utils/meilisearchClient'
+import { getMovieIndex, isMeilisearchEnabled } from './utils/meilisearchClient'
 
 // ═══════════════════════════════════════════════════════════════
 //  Patrones: Dependency Injection + Factory + Chain of Resp.
@@ -71,7 +71,7 @@ export function createApp(movieService?: MovieService, searchService?: SearchSer
     const refreshTokenRepository = new RefreshTokenRepository(conn)
     const emailVerificationRepository = new EmailVerificationRepository(conn)
 
-    const searchServiceInstance = searchService ?? new SearchService(getMovieIndex(), movieRepo)
+    const searchServiceInstance = searchService ?? new SearchService(isMeilisearchEnabled() ? getMovieIndex() : null, movieRepo)
     const _service = movieService || new MovieService(movieRepo, directorRepo, genreRepo, auditRepo, castRepo, undefined, searchServiceInstance)
     const controller = new MovieController(_service)
     const router = createMovieRoutes(controller)
