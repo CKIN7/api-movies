@@ -51,7 +51,7 @@ import { getMovieIndex } from './utils/meilisearchClient'
 //  json → requestLogger → router de movies → error handler → 404.
 // ═══════════════════════════════════════════════════════════════
 
-export function createApp(movieService?: MovieService) {
+export function createApp(movieService?: MovieService, searchService?: SearchService) {
     const app = express()
 
     app.disable('x-powered-by')
@@ -71,12 +71,12 @@ export function createApp(movieService?: MovieService) {
     const refreshTokenRepository = new RefreshTokenRepository(conn)
     const emailVerificationRepository = new EmailVerificationRepository(conn)
 
-    const searchService = new SearchService(getMovieIndex(), movieRepo)
-    const _service = movieService || new MovieService(movieRepo, directorRepo, genreRepo, auditRepo, castRepo, undefined, searchService)
+    const searchServiceInstance = searchService ?? new SearchService(getMovieIndex(), movieRepo)
+    const _service = movieService || new MovieService(movieRepo, directorRepo, genreRepo, auditRepo, castRepo, undefined, searchServiceInstance)
     const controller = new MovieController(_service)
     const router = createMovieRoutes(controller)
 
-    const searchController = new SearchController(searchService)
+    const searchController = new SearchController(searchServiceInstance)
     const searchRouter = createSearchRoutes(searchController)
 
     const notifier = new DevEmailVerificationNotifier()

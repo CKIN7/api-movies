@@ -14,10 +14,6 @@ export function getMeiliClient(): MeiliSearch {
 
     meiliClient = new MeiliSearch({ host, apiKey })
 
-    meiliClient.on('error', (err) => {
-        logger.error(`[Meilisearch] Client error: ${err.message}`)
-    })
-
     logger.info(`[Meilisearch] Connected to ${host}`)
     return meiliClient
 }

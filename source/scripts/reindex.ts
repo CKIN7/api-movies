@@ -21,7 +21,12 @@ async function reindex(): Promise<void> {
 
     logger.info('[Reindex] Creating index with configuration...')
     await client.createIndex('movies', { primaryKey: 'id' })
-    await index.updateSettings(MOVIE_INDEX_CONFIG)
+    await index.updateSettings({
+        searchableAttributes: [...MOVIE_INDEX_CONFIG.searchableAttributes],
+        filterableAttributes: [...MOVIE_INDEX_CONFIG.filterableAttributes],
+        sortableAttributes: [...MOVIE_INDEX_CONFIG.sortableAttributes],
+        rankingRules: [...MOVIE_INDEX_CONFIG.rankingRules],
+    })
 
     const [countResult] = await conn.query('SELECT COUNT(*) as total FROM movies') as any
     const totalMovies = countResult[0].total

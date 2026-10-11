@@ -1,8 +1,8 @@
 import type { Index, SearchResponse } from 'meilisearch'
 import type { SearchQueryDTO } from '../schemas/searchQuery'
-import type { PaginatedResponse, MovieResponse } from '../types/movie'
+import type { PaginatedResponse } from '../types/movie'
 import type MovieRepository from '../repositories/MovieRepository'
-import { Movie } from '../domain/Movie'
+import { Movie, type MovieResponse } from '../domain/Movie'
 import logger from '../utils/logger'
 
 export interface SearchResult {
@@ -49,16 +49,23 @@ class SearchService {
         }
     }
 
-    private async searchWithMeilisearch(params: SearchQueryDTO): Promise<SearchResponse> {
+    private async searchWithMeilisearch(params: SearchQueryDTO): Promise<{ hits: MovieResponse[]; estimatedTotalHits: number | undefined }> {
         const filters = this.buildMeilisearchFilters(params)
 
-        return await this.movieIndex.search(params.q, {
+        const result = await this.movieIndex.search(params.q, {
             filter: filters.length > 0 ? filters : undefined,
             page: params.page,
             limit: params.limit,
             attributesToRetrieve: ['id', 'title', 'year', 'director', 'rating', 'genres', 'plot', 'poster', 'ageRating'],
             showRankingScore: true,
         })
+
+        const totalHits = (result as any).estimatedTotalHits ?? result.hits.length
+
+        return {
+            hits: result.hits as unknown as MovieResponse[],
+            estimatedTotalHits: totalHits,
+        }
     }
 
     private buildMeilisearchFilters(params: SearchQueryDTO): string[] {
