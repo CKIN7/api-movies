@@ -1,6 +1,8 @@
 -- Esquema base de moviesdb (volcado con SHOW CREATE TABLE).
 -- Lo aplica db/seed.ts y el helper de tests al crear la BD.
 -- NO editar a mano: regenerar si cambia el esquema real.
+-- Relacion con migraciones: las tablas base estan versionadas en
+-- db/migrations/0000_schema_base.sql; si cambia el esquema, actualizar ambos.
 
 SET FOREIGN_KEY_CHECKS = 0;
 DROP TABLE IF EXISTS `actors`;
