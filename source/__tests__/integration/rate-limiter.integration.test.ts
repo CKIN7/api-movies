@@ -1,9 +1,6 @@
 import request from 'supertest'
 import { createApp } from '../../api'
 import { rateLimitConfig } from '../../config/rateLimitConfig'
-import MovieService from '../../services/movieService'
-import MovieRepository from '../../repositories/MovieRepository'
-import { setupTestDb, teardownTestDb, clearTestData, seedTestData } from '../helpers/db'
 import { authHeader } from '../helpers/auth'
 
 jest.mock('../../utils/redisClient', () => {
@@ -20,20 +17,6 @@ jest.mock('../../utils/redisClient', () => {
 })
 
 const AUTH = authHeader()
-
-let db: any
-
-beforeAll(async () => {
-    db = await setupTestDb()
-})
-
-afterAll(async () => {
-    await teardownTestDb(db)
-})
-
-beforeEach(async () => {
-    await clearTestData(db)
-})
 
 describe('Rate Limiter Integration', () => {
   describe('Global Rate Limiter', () => {
