@@ -1,0 +1,170 @@
+import request from 'supertest'
+import { createApp } from '../../api'
+import SearchService from '../../services/searchService'
+import { setupTestDb, teardownTestDb, clearTestData, seedTestData } from '../helpers/db'
+import type { Connection } from 'mysql2/promise'
+
+let db: Connection
+
+beforeAll(async () => { db = await setupTestDb() })
+afterAll(async () => { await teardownTestDb(db) })
+beforeEach(async () => { await clearTestData(db); await seedTestData(db) })
+
+const mockSearchResult = {
+    data: [
+        {
+            id: 1,
+            title: 'Inception',
+            year: 2010,
+            director: 'Christopher Nolan',
+            rating: 8.8,
+            duration: 148,
+            plot: 'A thief who steals corporate secrets...',
+            poster: 'https://example.com/inception.jpg',
+            ageRating: 'PG-13',
+            genres: ['Action', 'Sci-Fi'],
+            cast: [],
+            averageRating: 8.5,
+            reviewsCount: 100,
+        },
+    ],
+    meta: {
+        total: 1,
+        page: 1,
+        limit: 10,
+        totalPages: 1,
+        query: 'inception',
+        processingTimeMs: 5,
+        source: 'meilisearch' as const,
+    },
+}
+
+describe('Search API Integration', () => {
+    let mockSearchService: { search: jest.Mock }
+
+    beforeEach(() => {
+        mockSearchService = {
+            search: jest.fn().mockResolvedValue(mockSearchResult),
+        }
+    })
+
+    describe('GET /movies/search', () => {
+        it('returns search results with valid query', async () => {
+            const app = createApp(undefined, mockSearchService as unknown as SearchService)
+
+            const res = await request(app)
+                .get('/movies/search')
+                .query({ q: 'inception' })
+
+            expect(res.status).toBe(200)
+            expect(res.body.data).toHaveLength(1)
+            expect(res.body.data[0].title).toBe('Inception')
+            expect(res.body.meta.query).toBe('inception')
+            expect(res.body.meta.source).toBe('meilisearch')
+        })
+
+        it('returns 400 when q is missing', async () => {
+            const app = createApp(undefined, mockSearchService as unknown as SearchService)
+
+            const res = await request(app)
+                .get('/movies/search')
+                .query({})
+
+            expect(res.status).toBe(400)
+        })
+
+        it('returns 400 when q is too short', async () => {
+            const app = createApp(undefined, mockSearchService as unknown as SearchService)
+
+            const res = await request(app)
+                .get('/movies/search')
+                .query({ q: 'ab' })
+
+            expect(res.status).toBe(400)
+        })
+
+        it('returns 400 when q exceeds max length', async () => {
+            const app = createApp(undefined, mockSearchService as unknown as SearchService)
+
+            const res = await request(app)
+                .get('/movies/search')
+                .query({ q: 'a'.repeat(201) })
+
+            expect(res.status).toBe(400)
+        })
+
+        it('passes pagination params to service', async () => {
+            const app = createApp(undefined, mockSearchService as unknown as SearchService)
+
+            await request(app)
+                .get('/movies/search')
+                .query({ q: 'action', page: 2, limit: 5 })
+
+            expect(mockSearchService.search).toHaveBeenCalledWith(
+                expect.objectContaining({ q: 'action', page: 2, limit: 5 })
+            )
+        })
+
+        it('passes filters to service', async () => {
+            const app = createApp(undefined, mockSearchService as unknown as SearchService)
+
+            await request(app)
+                .get('/movies/search')
+                .query({ q: 'action', genre: 'sci-fi', minYear: 2010, maxYear: 2020 })
+
+            expect(mockSearchService.search).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    q: 'action',
+                    genre: 'sci-fi',
+                    minYear: 2010,
+                    maxYear: 2020,
+                })
+            )
+        })
+
+        it('returns empty results when no matches', async () => {
+            mockSearchService.search.mockResolvedValue({
+                data: [],
+                meta: {
+                    total: 0,
+                    page: 1,
+                    limit: 10,
+                    totalPages: 0,
+                    query: 'zzzz',
+                    processingTimeMs: 2,
+                    source: 'meilisearch' as const,
+                },
+            })
+
+            const app = createApp(undefined, mockSearchService as unknown as SearchService)
+
+            const res = await request(app)
+                .get('/movies/search')
+                .query({ q: 'zzzz' })
+
+            expect(res.status).toBe(200)
+            expect(res.body.data).toEqual([])
+            expect(res.body.meta.total).toBe(0)
+        })
+
+        it('returns 400 when minYear > maxYear', async () => {
+            const app = createApp(undefined, mockSearchService as unknown as SearchService)
+
+            const res = await request(app)
+                .get('/movies/search')
+                .query({ q: 'action', minYear: 2020, maxYear: 2010 })
+
+            expect(res.status).toBe(400)
+        })
+
+        it('returns 400 when minRating > maxRating', async () => {
+            const app = createApp(undefined, mockSearchService as unknown as SearchService)
+
+            const res = await request(app)
+                .get('/movies/search')
+                .query({ q: 'action', minRating: 9, maxRating: 5 })
+
+            expect(res.status).toBe(400)
+        })
+    })
+})
