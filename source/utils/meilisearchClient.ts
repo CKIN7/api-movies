@@ -2,8 +2,6 @@ import { MeiliSearch } from 'meilisearch'
 import type { Index } from 'meilisearch'
 import logger from './logger'
 
-const MEILISEARCH_ENABLED = process.env.MEILISEARCH_ENABLED !== 'false'
-
 let meiliClient: MeiliSearch | null = null
 
 export function getMeiliClient(): MeiliSearch {
@@ -24,7 +22,7 @@ export function getMovieIndex(): Index {
 }
 
 export function isMeilisearchEnabled(): boolean {
-    return MEILISEARCH_ENABLED
+    return process.env.MEILISEARCH_ENABLED !== 'false'
 }
 
 export function isMeilisearchHealthy(): Promise<boolean> {
