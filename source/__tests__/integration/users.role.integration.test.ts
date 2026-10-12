@@ -16,7 +16,7 @@ const asAdmin = () => authHeader(TEST_USER_ID, 'access', 'admin')
 
 beforeAll(async () => {
     db = await setupTestDb()
-})
+}, 15000)
 
 afterAll(async () => {
     await teardownTestDb(db)
