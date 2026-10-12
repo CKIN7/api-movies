@@ -1,7 +1,11 @@
 export class Suggest {
-  constructor(apiBase = 'http://localhost:8089', auth = null) {
+  constructor(apiBase = 'http://localhost:8089', auth = null, options = {}) {
     this.API_BASE = apiBase;
     this.auth = auth;
+    this.endpoint = options.endpoint || '/movies/suggest';
+    this.idPrefix = options.idPrefix || 'suggest';
+    this.tabsSelector = options.tabsSelector || '#tabs .tab';
+    this.resultsMode = options.resultsMode || 'filter';
     this.currentField = 'title';
     this.timer = null;
     this.els = {};
@@ -32,10 +36,10 @@ export class Suggest {
 
   bindElements() {
     this.els = {
-      suggestInput: document.getElementById('suggest-input'),
-      suggestDropdown: document.getElementById('suggest-dropdown'),
-      suggestResults: document.getElementById('suggest-results'),
-      suggestTabs: document.querySelectorAll('#tabs .tab'),
+      suggestInput: document.getElementById(`${this.idPrefix}-input`),
+      suggestDropdown: document.getElementById(`${this.idPrefix}-dropdown`),
+      suggestResults: document.getElementById(`${this.idPrefix}-results`),
+      suggestTabs: document.querySelectorAll(this.tabsSelector),
     };
   }
 
@@ -50,7 +54,8 @@ export class Suggest {
     els.suggestInput?.addEventListener('keydown', (e) => this.onKeydown(e));
 
     document.addEventListener('click', (e) => {
-      if (!e.target.closest('.autocomplete')) this.closeSuggestDropdown();
+      const wrapper = els.suggestInput?.closest('.autocomplete');
+      if (!wrapper || !wrapper.contains(e.target)) this.closeSuggestDropdown();
     });
 
     if (this.auth) {
@@ -104,7 +109,7 @@ export class Suggest {
 
   async fetchSuggestions(q) {
     const { els } = this;
-    const url = `${this.API_BASE}/movies/suggest?q=${encodeURIComponent(q)}&field=${this.currentField}`;
+    const url = `${this.API_BASE}${this.endpoint}?q=${encodeURIComponent(q)}&field=${this.currentField}`;
     this.showSuggestLoading();
 
     try {
@@ -164,10 +169,17 @@ export class Suggest {
     els.suggestDropdown.innerHTML = '';
   }
 
+  buildResultsUrl(value) {
+    if (this.resultsMode === 'search') {
+      return `${this.API_BASE}/movies/search?q=${encodeURIComponent(value)}`;
+    }
+    const key = this.queryKeys[this.currentField];
+    return `${this.API_BASE}/movies?${key}=${encodeURIComponent(value)}`;
+  }
+
   async fetchSuggestMovies(value) {
     const { els } = this;
-    const key = this.queryKeys[this.currentField];
-    const url = `${this.API_BASE}/movies?${key}=${encodeURIComponent(value)}`;
+    const url = this.buildResultsUrl(value);
     this.showSuggestResultsLoading();
 
     try {
@@ -187,8 +199,13 @@ export class Suggest {
       return;
     }
 
-    const label = this.fieldLabels[this.currentField];
-    const header = `<div class="results-header">${data.meta.total} película(s) encontradas para ${label}: "${this.escapeHtml(value)}"</div>`;
+    const label = this.resultsMode === 'search'
+      ? 'Búsqueda'
+      : this.fieldLabels[this.currentField];
+    const engine = data.meta.source
+      ? ` · ${data.meta.source} · ${data.meta.processingTimeMs} ms`
+      : '';
+    const header = `<div class="results-header">${data.meta.total} película(s) encontradas para ${label}: "${this.escapeHtml(value)}"${engine}</div>`;
     const cards = data.data.map(m => `
       <div class="movie-card">
         <div class="row1">
@@ -215,7 +232,7 @@ export class Suggest {
 
   showSuggestResultsEmpty(value) {
     const { els } = this;
-    const label = this.fieldLabels[this.currentField];
+    const label = this.resultsMode === 'search' ? 'Búsqueda' : this.fieldLabels[this.currentField];
     els.suggestResults.innerHTML = `<div class="results-status">Sin películas para ${label}: "${this.escapeHtml(value)}"</div>`;
     els.suggestResults.classList.add('open');
   }
