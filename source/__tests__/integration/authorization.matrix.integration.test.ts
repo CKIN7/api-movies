@@ -23,7 +23,7 @@ const validMovie = {
 
 beforeAll(async () => {
     db = await setupTestDb()
-})
+}, 15000)
 
 afterAll(async () => {
     await teardownTestDb(db)
