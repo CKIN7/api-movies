@@ -1,0 +1,1244 @@
+{
+  "info": {
+    "name": "API Movies",
+    "description": "Colección completa de la API Movies (Express, puerto 8089).\n\n## Requisitos\n- API corriendo en `http://localhost:8089` (MySQL + Redis activos, y opcionalmente Meilisearch).\n- Importa también el environment `api-movies.postman_environment.json` y selecciónalo.\n\n## Autenticación\n- JWT Bearer. Ejecuta primero **Auth → Login (admin seed)** para obtener `accessToken` (15 min) y `refreshToken` (7 días).\n- El pre-request de la colección renueva el access token vía `/auth/refresh` automáticamente cuando está por expirar. Si ambos tokens faltan, puedes habilitar `autoLogin=true` en el environment (¡ojo con el rate limit de /auth!).\n- Roles: `user` < `premium` < `admin`. Export requiere premium+; CRUD de películas, audit-log, users y metrics requieren admin.\n\n## Rate limits\n- `/auth/*`: 10 req/min por IP. Ejecuta login pocas veces.\n- Escrituras en `/movies*` (POST/PATCH/DELETE): 30 req/min por IP.\n- Global: 100 req/min por IP. Headers `X-RateLimit-*`, `Retry-After` en 429.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      { "key": "token", "value": "{{accessToken}}", "type": "string" }
+    ]
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "const c = pm.collectionVariables;",
+          "const baseUrl = c.get('baseUrl') || 'http://localhost:8089';",
+          "const path = pm.request.url.getPath();",
+          "",
+          "if (path.indexOf('auth/') === 0) {",
+          "    // No auto-refrescar al ejecutar endpoints de auth (evita bucles con login/refresh).",
+          "} else {",
+          "    const access = c.get('accessToken');",
+          "    const refresh = c.get('refreshToken');",
+          "    const autoLogin = c.get('autoLogin');",
+          "    const failedAt = Number(c.get('authFailedAt') || 0);",
+          "    const recentlyFailed = Date.now() - failedAt < 60000;",
+          "",
+          "    function parseJwt(token) {",
+          "        try {",
+          "            const payload = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');",
+          "            return JSON.parse(atob(payload));",
+          "        } catch (e) {",
+          "            return null;",
+          "        }",
+          "    }",
+          "",
+          "    const decoded = access ? parseJwt(access) : null;",
+          "    const expSoon = decoded && decoded.exp ? (decoded.exp * 1000 - Date.now() < 30000) : false;",
+          "    const needsRefresh = !access || expSoon;",
+          "",
+          "    if (!needsRefresh || recentlyFailed) {",
+          "        // nada que hacer",
+          "    } else if (refresh) {",
+          "        pm.sendRequest({",
+          "            url: baseUrl + '/auth/refresh',",
+          "            method: 'POST',",
+          "            header: { 'Content-Type': 'application/json' },",
+          "            body: { mode: 'raw', raw: JSON.stringify({ refreshToken: refresh }) }",
+          "        }, function (err, res) {",
+          "            if (err || res.code !== 200) {",
+          "                c.set('authFailedAt', String(Date.now()));",
+          "                console.warn('[auth] refresh falló: vuelve a ejecutar POST /auth/login');",
+          "                return;",
+          "            }",
+          "            const json = res.json();",
+          "            c.set('accessToken', json.accessToken);",
+          "            c.set('refreshToken', json.refreshToken);",
+          "            c.unset('authFailedAt');",
+          "        });",
+          "    } else if (String(autoLogin) === 'true') {",
+          "        pm.sendRequest({",
+          "            url: baseUrl + '/auth/login',",
+          "            method: 'POST',",
+          "            header: { 'Content-Type': 'application/json' },",
+          "            body: { mode: 'raw', raw: JSON.stringify({ email: c.get('adminEmail'), password: c.get('adminPassword') }) }",
+          "        }, function (err, res) {",
+          "            if (err || res.code !== 200) {",
+          "                c.set('authFailedAt', String(Date.now()));",
+          "                console.warn('[auth] login automático falló');",
+          "                return;",
+          "            }",
+          "            const json = res.json();",
+          "            c.set('accessToken', json.accessToken);",
+          "            c.set('refreshToken', json.refreshToken);",
+          "            if (json.user && json.user.id) { c.set('userId', json.user.id); }",
+          "            c.unset('authFailedAt');",
+          "        });",
+          "    }",
+          "}"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "description": "Endpoints públicos de autenticación.\n\n- **Login requiere email verificado** (403 si no lo está). En dev, el token de verificación/reset se imprime en la consola del servidor.\n- El refresh token rota en cada uso; reutilizarlo revoca toda la sesión del usuario.\n- Rate limit propio: **10 req/min por IP** en `/auth/*`.",
+      "item": [
+        {
+          "name": "Login (admin seed)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{adminEmail}}\",\n  \"password\": \"{{adminPassword}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/auth/login", "host": ["{{baseUrl}}"], "path": ["auth", "login"] },
+            "description": "Login con el usuario admin del seed (`admin@example.com` / `password123`, verificado y con rol admin). Guarda `accessToken`, `refreshToken` y `userId` en las variables de la colección."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+                  "const json = pm.response.json();",
+                  "pm.test('Respuesta con tokens y usuario', function () {",
+                  "    pm.expect(json).to.have.property('accessToken');",
+                  "    pm.expect(json).to.have.property('refreshToken');",
+                  "    pm.expect(json.user).to.have.property('id');",
+                  "    pm.expect(json.user.role).to.eql('admin');",
+                  "});",
+                  "if (json.accessToken) { pm.collectionVariables.set('accessToken', json.accessToken); }",
+                  "if (json.refreshToken) { pm.collectionVariables.set('refreshToken', json.refreshToken); }",
+                  "if (json.user && json.user.id) { pm.collectionVariables.set('userId', json.user.id); }",
+                  "pm.collectionVariables.unset('authFailedAt');"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Register",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{newUserEmail}}\",\n  \"password\": \"Password123!\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/auth/register", "host": ["{{baseUrl}}"], "path": ["auth", "register"] },
+            "description": "Registra un usuario nuevo (rol `user`). El email se genera automáticamente en el pre-request. La contraseña debe tener 8-72 chars con mayúscula, minúscula, dígito y símbolo.\n\nEl usuario queda **sin verificar**: en dev el token llega por consola del servidor. Guárdalo en `verifyToken` y ejecuta **Verify** antes de poder hacer login."
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const email = 'demo.' + Date.now() + '@example.com';",
+                  "pm.collectionVariables.set('newUserEmail', email);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 201', function () { pm.response.to.have.status(201); });",
+                  "const json = pm.response.json();",
+                  "pm.test('Mensaje y usuario sin passwordHash', function () {",
+                  "    pm.expect(json).to.have.property('message');",
+                  "    pm.expect(json.user).to.have.property('id');",
+                  "    pm.expect(json.user.passwordHash).to.be.undefined;",
+                  "    pm.expect(json.user.isVerified).to.not.eql(true);",
+                  "});",
+                  "if (json.user && json.user.id) { pm.collectionVariables.set('newUserId', json.user.id); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Refresh",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/auth/refresh", "host": ["{{baseUrl}}"], "path": ["auth", "refresh"] },
+            "description": "Renueva los tokens. **Rota el refresh token**: la respuesta trae uno nuevo que reemplaza al anterior. Reutilizar un refresh token revoca todos los tokens del usuario (protección contra reuso)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+                  "const json = pm.response.json();",
+                  "pm.test('Nuevos tokens', function () {",
+                  "    pm.expect(json).to.have.property('accessToken');",
+                  "    pm.expect(json).to.have.property('refreshToken');",
+                  "});",
+                  "if (json.accessToken) { pm.collectionVariables.set('accessToken', json.accessToken); }",
+                  "if (json.refreshToken) { pm.collectionVariables.set('refreshToken', json.refreshToken); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/auth/logout", "host": ["{{baseUrl}}"], "path": ["auth", "logout"] },
+            "description": "Revoca el refresh token en el servidor. Limpia los tokens de la colección en el test script."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+                  "pm.collectionVariables.unset('accessToken');",
+                  "pm.collectionVariables.unset('refreshToken');"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Verify email",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"{{verifyToken}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/auth/verify", "host": ["{{baseUrl}}"], "path": ["auth", "verify"] },
+            "description": "Verifica el email del usuario. El token es de un solo uso y se obtiene en la consola del servidor (en dev) con el formato `{APP_URL}/auth/verify/{token}` — usar solo la parte del token. Sin verificar, el login devuelve 403."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Mensaje de confirmación', function () {",
+                  "    pm.expect(pm.response.json()).to.have.property('message');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Resend verification",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{newUserEmail}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/auth/resend", "host": ["{{baseUrl}}"], "path": ["auth", "resend"] },
+            "description": "Reenvía el email de verificación. La respuesta es genérica por seguridad (no revela si el email existe o ya está verificado)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Mensaje genérico', function () {",
+                  "    pm.expect(pm.response.json()).to.have.property('message');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Forgot password",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{adminEmail}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/auth/forgot", "host": ["{{baseUrl}}"], "path": ["auth", "forgot"] },
+            "description": "Solicita un token de reset de contraseña. Respuesta genérica. En dev el token ({APP_URL}/auth/reset/{token}) aparece en la consola del servidor: guárdalo en `resetToken` y ejecuta **Reset password**."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Mensaje genérico', function () {",
+                  "    pm.expect(pm.response.json()).to.have.property('message');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Reset password",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"{{resetToken}}\",\n  \"newPassword\": \"NuevaPass123!\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/auth/reset", "host": ["{{baseUrl}}"], "path": ["auth", "reset"] },
+            "description": "Cambia la contraseña usando el token de **Forgot password** (un solo uso). La nueva contraseña aplica la política: 8-72 chars con mayúscula, minúscula, dígito y símbolo. Fuerza re-login."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Mensaje de confirmación', function () {",
+                  "    pm.expect(pm.response.json()).to.have.property('message');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Movies",
+      "description": "Catálogo de películas. Lectura pública; **escritura y audit-log requieren rol admin**.\n\nRespuestas de lista con paginación: `{ data, meta: { total, page, limit, totalPages } }`. El campo `movieId` (numérico) se actualiza automáticamente desde GET/POST/PATCH para encadenar el resto de requests.",
+      "item": [
+        {
+          "name": "Listar películas",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/movies?page=1&limit=10&genre=&genreMode=and&title=&director=&q=&ageRating=&minYear=&maxYear=&minRating=&maxRating=&minDuration=&maxDuration=&sort=rating&order=desc",
+              "host": ["{{baseUrl}}"],
+              "path": ["movies"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" },
+                { "key": "genre", "value": "", "description": "Repetible (array), 1-10, se normaliza a minúsculas. Ej: genre=drama&genre=ciencia ficción" },
+                { "key": "genreMode", "value": "and", "description": "and | or" },
+                { "key": "title", "value": "", "disabled": true },
+                { "key": "director", "value": "", "disabled": true },
+                { "key": "q", "value": "", "disabled": true, "description": "Búsqueda de texto libre en el catálogo MySQL" },
+                { "key": "ageRating", "value": "", "disabled": true, "description": "Repetible: G | PG | PG-13 | R | NC-17" },
+                { "key": "minYear", "value": "", "disabled": true },
+                { "key": "maxYear", "value": "", "disabled": true },
+                { "key": "minRating", "value": "", "disabled": true },
+                { "key": "maxRating", "value": "", "disabled": true },
+                { "key": "minDuration", "value": "", "disabled": true },
+                { "key": "maxDuration", "value": "", "disabled": true },
+                { "key": "sort", "value": "rating", "description": "year | rating | title" },
+                { "key": "order", "value": "desc", "description": "asc | desc (si hay sort sin order, order=asc)" }
+              ]
+            },
+            "description": "Listado paginado con filtros y orden. `limit` máximo 100. Los mínimos no pueden superar los máximos (year/rating/duration) → 400."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+                  "const json = pm.response.json();",
+                  "pm.test('Envelope data + meta', function () {",
+                  "    pm.expect(json).to.have.property('data');",
+                  "    pm.expect(json.meta).to.have.property('total');",
+                  "    pm.expect(json.meta).to.have.property('totalPages');",
+                  "});",
+                  "if (json.data && json.data.length > 0 && json.data[0].id) {",
+                  "    pm.collectionVariables.set('movieId', String(json.data[0].id));",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Película aleatoria",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/movies/random?genre=&minYear=&maxYear=&minRating=&count=",
+              "host": ["{{baseUrl}}"],
+              "path": ["movies", "random"],
+              "query": [
+                { "key": "genre", "value": "", "disabled": true, "description": "Array, 1-10, minúsculas" },
+                { "key": "minYear", "value": "", "disabled": true },
+                { "key": "maxYear", "value": "", "disabled": true },
+                { "key": "minRating", "value": "", "disabled": true },
+                { "key": "count", "value": "", "disabled": true, "description": "1-50. Si se envía, devuelve un lote { data: Movie[] }; si no, una sola película" }
+              ]
+            },
+            "description": "Devuelve una película aleatoria (o un lote con `count`). Con `count` la respuesta es `{ data: [...] }`."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+                  "const json = pm.response.json();",
+                  "const movie = json.data ? json.data[0] : json;",
+                  "pm.test('Tiene id y título', function () {",
+                  "    pm.expect(movie).to.have.property('id');",
+                  "    pm.expect(movie).to.have.property('title');",
+                  "});",
+                  "if (movie && movie.id) { pm.collectionVariables.set('movieId', String(movie.id)); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Listar géneros",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/movies/genres", "host": ["{{baseUrl}}"], "path": ["movies", "genres"] },
+            "description": "Devuelve el listado de géneros distintos del catálogo (respuesta caché hasta 5 min con `CACHE_ENABLED`)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Es un array', function () {",
+                  "    pm.expect(pm.response.json()).to.be.an('array');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Suggest (movies)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/movies/suggest?q=inter&field=title&limit=8",
+              "host": ["{{baseUrl}}"],
+              "path": ["movies", "suggest"],
+              "query": [
+                { "key": "q", "value": "inter", "description": "3-100 chars, se pasa a minúsculas" },
+                { "key": "field", "value": "title", "description": "title | director | genre (obligatorio)" },
+                { "key": "limit", "value": "8", "description": "1-20, default 8" }
+              ]
+            },
+            "description": "Autocompletado sobre el catálogo. Devuelve un array plano de strings. El mismo esquema se usa en `/movies/search/suggest`."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Array de strings', function () {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json).to.be.an('array');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Obtener película por id",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/movies/{{movieId}}", "host": ["{{baseUrl}}"], "path": ["movies", "{{movieId}}"] },
+            "description": "Detalle de una película. Incluye `averageRating` y `reviewsCount` (agregados de reseñas). Un id inexistente o no numérico → 400/404."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+                  "const json = pm.response.json();",
+                  "pm.test('Campos del MovieResponse', function () {",
+                  "    pm.expect(json).to.have.property('title');",
+                  "    pm.expect(json).to.have.property('genres');",
+                  "    pm.expect(json).to.have.property('averageRating');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Películas similares",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/movies/{{movieId}}/similar?page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["movies", "{{movieId}}", "similar"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" }
+              ]
+            },
+            "description": "Películas similares por géneros/director. Paginado (page/limit con defaults 1/10, sin max formal en schema)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Tiene data o listado', function () {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json).to.have.property('data');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Audit log (admin)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/movies/{{movieId}}/audit-log?page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["movies", "{{movieId}}", "audit-log"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10", "description": "1-100" }
+              ]
+            },
+            "description": "Historial de cambios de la película (CREATE/UPDATE/DELETE con snapshots). **Requiere rol admin** → 401 sin token, 403 con rol insuficiente."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Crear película (admin)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Interestelar\",\n  \"year\": 2014,\n  \"genre\": [\"ciencia ficción\", \"drama\"],\n  \"director\": \"Christopher Nolan\",\n  \"rating\": 8.7,\n  \"duration\": 169,\n  \"plot\": \"Un grupo de exploradores viaja a través de un agujero de gusano en el espacio en un intento de asegurar la supervivencia de la humanidad.\",\n  \"poster\": \"https://image.tmdb.org/t/p/w500/gEU2QniE6E77NI6lCU6MxlNBvIx.jpg\",\n  \"available\": true,\n  \"ageRating\": \"PG-13\",\n  \"cast\": [\n    { \"actor\": \"Matthew McConaughey\", \"character\": \"Cooper\" },\n    { \"actor\": \"Anne Hathaway\", \"character\": \"Brand\" }\n  ]\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Crea una película. **Rol admin**. Validaciones Zod: year 1895-2026, rating 0-10 (múltiplo de 0.1, default 5), duration ≤300, ageRating enum (default PG-13), sin HTML en textos, poster URL válida, cast máx 20. Guarda el id creado en `movieId`."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 201', function () { pm.response.to.have.status(201); });",
+                  "const json = pm.response.json();",
+                  "pm.test('Película creada', function () {",
+                  "    pm.expect(json).to.have.property('message');",
+                  "    pm.expect(json.data).to.have.property('id');",
+                  "});",
+                  "if (json.data && json.data.id) { pm.collectionVariables.set('movieId', String(json.data.id)); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Actualizar película (admin)",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"rating\": 9.0,\n  \"available\": false,\n  \"plot\": \"Plot actualizado desde Postman.\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/movies/{{movieId}}", "host": ["{{baseUrl}}"], "path": ["movies", "{{movieId}}"] },
+            "description": "Actualización parcial (todos los campos opcionales, mismas validaciones que create). **Rol admin**. Responde `{ message, movie }`."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+                  "const json = pm.response.json();",
+                  "pm.test('Mensaje y movie', function () {",
+                  "    pm.expect(json).to.have.property('message');",
+                  "    pm.expect(json.movie).to.have.property('id');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Eliminar película (admin)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/movies/{{movieId}}", "host": ["{{baseUrl}}"], "path": ["movies", "{{movieId}}"] },
+            "description": "Elimina la película. **Rol admin**. Deja registro en el audit-log. Ojo: usa una película creada por ti si vas a seguir probando el resto de la colección."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Mensaje de borrado', function () {",
+                  "    pm.expect(pm.response.json()).to.have.property('message');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Search",
+      "description": "Búsqueda full-text. Usa **Meilisearch** si está habilitado (`MEILISEARCH_ENABLED`) y hace fallback a MySQL; el campo `meta.source` indica el motor usado (`meilisearch` | `mysql`).",
+      "item": [
+        {
+          "name": "Buscar películas",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/movies/search?q=nolan&page=1&limit=10&genre=&field=&exact=false&minYear=&maxYear=&minRating=&maxRating=",
+              "host": ["{{baseUrl}}"],
+              "path": ["movies", "search"],
+              "query": [
+                { "key": "q", "value": "nolan", "description": "Obligatorio, 3-200 chars" },
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10", "description": "1-100" },
+                { "key": "genre", "value": "", "disabled": true },
+                { "key": "field", "value": "", "disabled": true, "description": "title | director | genres | plot" },
+                { "key": "exact", "value": "false", "disabled": true, "description": "boolean, default false" },
+                { "key": "minYear", "value": "", "disabled": true },
+                { "key": "maxYear", "value": "", "disabled": true },
+                { "key": "minRating", "value": "", "disabled": true },
+                { "key": "maxRating", "value": "", "disabled": true }
+              ]
+            },
+            "description": "Búsqueda con filtros. La respuesta incluye en `meta`: `query`, `processingTimeMs` y `source`."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+                  "const json = pm.response.json();",
+                  "pm.test('meta con source y processingTimeMs', function () {",
+                  "    pm.expect(json.meta).to.have.property('source');",
+                  "    pm.expect(['meilisearch', 'mysql']).to.include(json.meta.source);",
+                  "    pm.expect(json.meta).to.have.property('processingTimeMs');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Suggest (search)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/movies/search/suggest?q=nolan&field=director&limit=8",
+              "host": ["{{baseUrl}}"],
+              "path": ["movies", "search", "suggest"],
+              "query": [
+                { "key": "q", "value": "nolan", "description": "3-100 chars, minúsculas" },
+                { "key": "field", "value": "director", "description": "title | director | genre (obligatorio)" },
+                { "key": "limit", "value": "8", "description": "1-20" }
+              ]
+            },
+            "description": "Autocompletado vía motor de búsqueda. Array plano de strings."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Array de strings', function () {",
+                  "    pm.expect(pm.response.json()).to.be.an('array');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Reviews",
+      "description": "Reseñas de usuarios sobre una película. Rating 1-5 en pasos de 0.5. Cada usuario tiene **una sola reseña por película** (POST hace upsert: 201 si es nueva, 200 si actualiza).\n\nEl id de la reseña actual se guarda en `reviewId`.",
+      "item": [
+        {
+          "name": "Crear/actualizar mi reseña",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"rating\": 4.5,\n  \"comment\": \"Excelente película, la recomiendo.\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/movies/{{movieId}}/reviews", "host": ["{{baseUrl}}"], "path": ["movies", "{{movieId}}", "reviews"] },
+            "description": "Crea la reseña del usuario autenticado o la actualiza si ya existe (upsert). `comment` opcional/null, máx 2000 chars, sin HTML."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200 o 201 (upsert)', function () {",
+                  "    pm.expect([200, 201]).to.include(pm.response.code);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "pm.test('isNew y data', function () {",
+                  "    pm.expect(json).to.have.property('isNew');",
+                  "    pm.expect(json.data).to.have.property('id');",
+                  "});",
+                  "if (json.data && json.data.id) { pm.collectionVariables.set('reviewId', String(json.data.id)); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Listar reseñas",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/movies/{{movieId}}/reviews?page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["movies", "{{movieId}}", "reviews"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10", "description": "Máx 50" }
+              ]
+            },
+            "description": "Reseñas paginadas (público). Incluye `summary: { average, count }` además del envelope `data`/`meta`."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+                  "const json = pm.response.json();",
+                  "pm.test('data, meta y summary', function () {",
+                  "    pm.expect(json).to.have.property('data');",
+                  "    pm.expect(json.meta).to.have.property('total');",
+                  "    pm.expect(json.summary).to.have.property('average');",
+                  "    pm.expect(json.summary).to.have.property('count');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Obtener mi reseña",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/movies/{{movieId}}/reviews/me", "host": ["{{baseUrl}}"], "path": ["movies", "{{movieId}}", "reviews", "me"] },
+            "description": "Reseña del usuario autenticado para esa película. Responde `{ data }`; 404 si aún no reseñó."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200 o 404 (sin reseña)', function () {",
+                  "    pm.expect([200, 404]).to.include(pm.response.code);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Actualizar mi reseña",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"rating\": 3.0,\n  \"comment\": \"Actualizo mi opinión.\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/movies/{{movieId}}/reviews/me", "host": ["{{baseUrl}}"], "path": ["movies", "{{movieId}}", "reviews", "me"] },
+            "description": "Actualiza la reseña propia. Responde `{ message, data }`. 404 si no existe reseña previa."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+                  "const json = pm.response.json();",
+                  "pm.test('message y data', function () {",
+                  "    pm.expect(json).to.have.property('message');",
+                  "    pm.expect(json.data).to.have.property('rating');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Eliminar mi reseña",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/movies/{{movieId}}/reviews/me", "host": ["{{baseUrl}}"], "path": ["movies", "{{movieId}}", "reviews", "me"] },
+            "description": "Borra la reseña propia. Responde `{ message }`."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Mensaje de borrado', function () {",
+                  "    pm.expect(pm.response.json()).to.have.property('message');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Watchlist",
+      "description": "Lista personal de películas del usuario autenticado. Nota: el `movieId` del body es un **número** (por eso se referencia sin comillas en el JSON).",
+      "item": [
+        {
+          "name": "Agregar a mi watchlist",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"movieId\": {{movieId}},\n  \"notes\": \"Pendiente con el club de lectura\",\n  \"priority\": 2\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/users/me/watchlist", "host": ["{{baseUrl}}"], "path": ["users", "me", "watchlist"] },
+            "description": "Agrega una película a la watchlist. `movieId` entero >0, `notes` opcional (máx 2000), `priority` 1-5 (default 3). Devuelve 201 con la entrada y la película incluida (`movie`)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 201', function () { pm.response.to.have.status(201); });",
+                  "const json = pm.response.json();",
+                  "pm.test('Entrada con película', function () {",
+                  "    pm.expect(json.data).to.have.property('movieId');",
+                  "    pm.expect(json.data).to.have.property('movie');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Obtener mi watchlist",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/users/me/watchlist?page=1&limit=10&genre=&sortBy=addedAt&sortOrder=desc",
+              "host": ["{{baseUrl}}"],
+              "path": ["users", "me", "watchlist"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10", "description": "Máx 50" },
+                { "key": "genre", "value": "", "disabled": true },
+                { "key": "sortBy", "value": "addedAt", "description": "addedAt | title | year | rating | priority" },
+                { "key": "sortOrder", "value": "desc", "description": "asc | desc" }
+              ]
+            },
+            "description": "Watchlist paginada con orden y filtro por género."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+                  "const json = pm.response.json();",
+                  "pm.test('data y meta', function () {",
+                  "    pm.expect(json).to.have.property('data');",
+                  "    pm.expect(json.meta).to.have.property('total');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Eliminar de mi watchlist",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/users/me/watchlist/{{movieId}}", "host": ["{{baseUrl}}"], "path": ["users", "me", "watchlist", "{{movieId}}"] },
+            "description": "Elimina la película de la watchlist. Devuelve **204 No Content** (sin body)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 204', function () { pm.response.to.have.status(204); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Export",
+      "description": "Exportación del catálogo como archivo. **Requiere rol premium o admin** (un user recibe 403). Devuelve `Content-Disposition: attachment; filename=\"catalogo.csv|json\"`.",
+      "item": [
+        {
+          "name": "Exportar catálogo",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/movies/export/{{exportFormat}}?genre=&title=&q=&minYear=&maxYear=&minRating=&maxRating=&sort=&order=",
+              "host": ["{{baseUrl}}"],
+              "path": ["movies", "export", "{{exportFormat}}"],
+              "query": [
+                { "key": "genre", "value": "", "disabled": true },
+                { "key": "title", "value": "", "disabled": true },
+                { "key": "q", "value": "", "disabled": true },
+                { "key": "minYear", "value": "", "disabled": true },
+                { "key": "maxYear", "value": "", "disabled": true },
+                { "key": "minRating", "value": "", "disabled": true },
+                { "key": "maxRating", "value": "", "disabled": true },
+                { "key": "sort", "value": "", "disabled": true },
+                { "key": "order", "value": "", "disabled": true }
+              ]
+            },
+            "description": "`:format` ∈ `csv` | `json` (variable `exportFormat`, default csv). Acepta los mismos filtros de query que `GET /movies`. Para verlo cómodamente en Postman: pestaña *Settings → Download postman response files* o usa *Send and Download*."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Cabecera de descarga', function () {",
+                  "    pm.expect(pm.response.headers.get('Content-Disposition')).to.include('attachment');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Users",
+      "description": "Gestión de usuarios (RBAC). **Solo admin**.",
+      "item": [
+        {
+          "name": "Cambiar rol de usuario (admin)",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"role\": \"premium\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/users/{{targetUserId}}/role", "host": ["{{baseUrl}}"], "path": ["users", "{{targetUserId}}", "role"] },
+            "description": "Cambia el rol a `user` | `premium` | `admin`. El `:id` debe ser un **UUID** de un usuario distunto al propio (cambiar tu propio rol → 400). Usa `targetUserId` (por ejemplo el `newUserId` guardado en Register). Responde `{ message, user }`."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+                  "const json = pm.response.json();",
+                  "pm.test('Rol actualizado', function () {",
+                  "    pm.expect(json).to.have.property('message');",
+                  "    pm.expect(json.user).to.have.property('role');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Metrics (admin)",
+      "description": "Métricas y penalizaciones del rate limiter (Redis). **Solo admin**.",
+      "item": [
+        {
+          "name": "Obtener métricas de rate-limit",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/metrics/rate-limit", "host": ["{{baseUrl}}"], "path": ["metrics", "rate-limit"] },
+            "description": "Métricas actuales: contadores por scope (global/auth/write/user), ventana activa y penalizaciones."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Objeto de métricas', function () {",
+                  "    pm.expect(pm.response.json()).to.be.an('object');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Limpiar métricas",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/metrics/rate-limit", "host": ["{{baseUrl}}"], "path": ["metrics", "rate-limit"] },
+            "description": "Borra todas las métricas de rate-limit. Responde `{ message: 'Metrics cleared' }`."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Mensaje', function () {",
+                  "    pm.expect(pm.response.json()).to.have.property('message');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Limpiar penalización por identifier",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/metrics/rate-limit/penalty/{{penaltyIdentifier}}", "host": ["{{baseUrl}}"], "path": ["metrics", "rate-limit", "penalty", "{{penaltyIdentifier}}"] },
+            "description": "Elimina la penalización (penalty box) de un identifier concreto (IP o user id). Usa `penaltyIdentifier` (default `127.0.0.1`). Responde `{ message: 'Penalty cleared for ...' }`."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Mensaje', function () {",
+                  "    pm.expect(pm.response.json()).to.have.property('message');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Limpiar penalizaciones expiradas",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/metrics/rate-limit/penalty", "host": ["{{baseUrl}}"], "path": ["metrics", "rate-limit", "penalty"] },
+            "description": "Elimina las penalizaciones ya expiradas. Responde `{ message: 'Cleaned N expired penalties' }`."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Mensaje con conteo', function () {",
+                  "    pm.expect(pm.response.json().message).to.include('Cleaned');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Errores comunes",
+      "description": "Casos negativos útiles para verificar que la seguridad funciona.",
+      "item": [
+        {
+          "name": "401 sin token (audit-log)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/movies/{{movieId}}/audit-log", "host": ["{{baseUrl}}"], "path": ["movies", "{{movieId}}", "audit-log"] },
+            "description": "Endpoint admin sin Authorization → esperado 401 `{ error }`."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 401', function () { pm.response.to.have.status(401); });",
+                  "pm.test('Cuerpo con error', function () {",
+                  "    pm.expect(pm.response.json()).to.have.property('error');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "403 rol insuficiente (audit-log)",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{userAccessToken}}", "type": "string" }] },
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/movies/{{movieId}}/audit-log", "host": ["{{baseUrl}}"], "path": ["movies", "{{movieId}}", "audit-log"] },
+            "description": "Con un token de rol `user` (no admin) → esperado 403. Pon tu access token de usuario en la variable `userAccessToken`."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 403', function () { pm.response.to.have.status(403); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "404 película inexistente",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/movies/999999", "host": ["{{baseUrl}}"], "path": ["movies", "999999"] },
+            "description": "Id que no existe en el catálogo → esperado 404 `{ error: 'Película no encontrada' }`."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 404', function () { pm.response.to.have.status(404); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
