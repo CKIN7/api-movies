@@ -1,5 +1,6 @@
 import type { Index, SearchResponse } from 'meilisearch'
 import type { SearchQueryDTO } from '../schemas/searchQuery'
+import type { SuggestQueryDTO } from '../schemas/suggestQuerySchema'
 import type { PaginatedResponse } from '../types/movie'
 import type MovieRepository from '../repositories/MovieRepository'
 import { Movie, type MovieResponse } from '../domain/Movie'
@@ -17,6 +18,12 @@ export interface SearchResult {
         processingTimeMs: number
         source: 'meilisearch' | 'mysql'
     }
+}
+
+const SUGGEST_ATTR: Record<SuggestQueryDTO['field'], string> = {
+    title: 'title',
+    director: 'director',
+    genre: 'genres',
 }
 
 class SearchService {
@@ -61,19 +68,36 @@ class SearchService {
 
     private async searchWithMeilisearch(params: SearchQueryDTO): Promise<{ hits: MovieResponse[]; estimatedTotalHits: number | undefined }> {
         const filters = this.buildMeilisearchFilters(params)
+        const attrMap = {
+            title: 'title',
+            director: 'director',
+            genres: 'genres',
+            plot: 'plot',
+        }
 
-        const result = await this.movieIndex!.search(params.q, {
+        const searchOptions: any = {
             filter: filters.length > 0 ? filters : undefined,
             page: params.page,
             limit: params.limit,
             attributesToRetrieve: ['id', 'title', 'year', 'director', 'rating', 'genres', 'plot', 'poster', 'ageRating'],
             showRankingScore: true,
-        })
+        }
 
-        const totalHits = (result as any).estimatedTotalHits ?? result.hits.length
+        if (params.field && attrMap[params.field]) {
+            searchOptions.attributesToSearchOn = [attrMap[params.field]]
+        }
+
+        if (params.exact) {
+            searchOptions.matchingStrategy = 'all'
+        }
+
+        const result = await this.movieIndex!.search(params.q, searchOptions)
+
+        const hits = result.hits as unknown as MovieResponse[]
+        const totalHits = (result as any).estimatedTotalHits ?? hits.length
 
         return {
-            hits: result.hits as unknown as MovieResponse[],
+            hits,
             estimatedTotalHits: totalHits,
         }
     }
@@ -132,6 +156,31 @@ class SearchService {
                 processingTimeMs,
                 source: 'mysql',
             },
+        }
+    }
+
+    async suggest(query: SuggestQueryDTO): Promise<string[]> {
+        if (!this.canUseMeilisearch()) {
+            return this.movieRepo.suggest(query)
+        }
+
+        try {
+            const attr = SUGGEST_ATTR[query.field]
+            const result = await this.movieIndex!.search(query.q, {
+                attributesToSearchOn: [attr],
+                attributesToRetrieve: [attr],
+                limit: query.limit * 5,
+            })
+
+            const hits = result.hits as Array<Record<string, string | string[]>>
+            const values = query.field === 'genre'
+                ? hits.flatMap(h => (Array.isArray(h[attr]) ? h[attr] : [String(h[attr])]))
+                : hits.map(h => String(h[attr]))
+
+            return [...new Set(values.filter(v => v.length > 0))].slice(0, query.limit)
+        } catch (error) {
+            logger.warn(`[Search] Suggest via Meilisearch failed, falling back to MySQL: ${(error as Error).message}`)
+            return this.movieRepo.suggest(query)
         }
     }
 

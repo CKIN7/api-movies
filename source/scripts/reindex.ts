@@ -26,6 +26,10 @@ async function reindex(): Promise<void> {
         filterableAttributes: [...MOVIE_INDEX_CONFIG.filterableAttributes],
         sortableAttributes: [...MOVIE_INDEX_CONFIG.sortableAttributes],
         rankingRules: [...MOVIE_INDEX_CONFIG.rankingRules],
+        typoTolerance: {
+            enabled: MOVIE_INDEX_CONFIG.typoTolerance.enabled,
+            minWordSizeForTypos: { ...MOVIE_INDEX_CONFIG.typoTolerance.minWordSizeForTypos },
+        },
     })
 
     const [countResult] = await conn.query('SELECT COUNT(*) as total FROM movies') as any

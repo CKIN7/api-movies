@@ -8,17 +8,25 @@ const API_BASE = 'http://localhost:8089';
 const auth = new Auth(API_BASE);
 const carousel = new Carousel(API_BASE, auth);
 const suggest = new Suggest(API_BASE, auth);
+const suggestMeili = new Suggest(API_BASE, auth, {
+  endpoint: '/movies/search/suggest',
+  idPrefix: 'suggest-meili',
+  tabsSelector: '#tabs-meili .tab',
+  resultsMode: 'search',
+});
 const watchlist = new Watchlist(API_BASE, auth);
 
 auth.init();
 carousel.init();
 suggest.init();
+suggestMeili.init();
 watchlist.init();
 
 console.log('Movies API Landing - Inicializado');
 console.log('Auth:', auth);
 console.log('Carousel:', carousel);
 console.log('Suggest:', suggest);
+console.log('Suggest Meilisearch:', suggestMeili);
 console.log('Watchlist:', watchlist);
 
 // Expose for debugging
@@ -63,26 +71,30 @@ carousel.renderSlide = function(index) {
   }
 };
 
-// Hook "Agregar a watchlist" buttons in Suggest results
-const originalRenderSuggestMovies = suggest.renderSuggestMovies.bind(suggest);
-suggest.renderSuggestMovies = function(data, value) {
-  originalRenderSuggestMovies(data, value);
-  const resultsEl = document.getElementById('suggest-results');
-  resultsEl?.querySelectorAll('.movie-card').forEach(card => {
-    if (card.querySelector('.wl-btn-add')) return;
-    const titleEl = card.querySelector('.title');
-    if (!titleEl) return;
-    const movie = data.data.find(m => m.title === titleEl.textContent);
-    if (movie) {
-      const btn = document.createElement('button');
-      btn.className = 'wl-btn-add';
-      btn.textContent = '+ Watchlist';
-      btn.style.cssText = 'margin-top: 8px; padding: 6px 12px; font-size: 0.75rem; background: #0066cc; color: white; border: none; border-radius: 4px; cursor: pointer; width: 100%;';
-      btn.addEventListener('click', () => watchlist.openAddModalForMovie(movie.id, movie.title));
-      card.appendChild(btn);
-    }
-  });
-};
+// Hook "Agregar a watchlist" buttons in Suggest results (ambas cajas)
+function hookSuggestWatchlist(suggestInstance) {
+  const originalRenderSuggestMovies = suggestInstance.renderSuggestMovies.bind(suggestInstance);
+  suggestInstance.renderSuggestMovies = function(data, value) {
+    originalRenderSuggestMovies(data, value);
+    const resultsEl = suggestInstance.els.suggestResults;
+    resultsEl?.querySelectorAll('.movie-card').forEach(card => {
+      if (card.querySelector('.wl-btn-add')) return;
+      const titleEl = card.querySelector('.title');
+      if (!titleEl) return;
+      const movie = data.data.find(m => m.title === titleEl.textContent);
+      if (movie) {
+        const btn = document.createElement('button');
+        btn.className = 'wl-btn-add';
+        btn.textContent = '+ Watchlist';
+        btn.style.cssText = 'margin-top: 8px; padding: 6px 12px; font-size: 0.75rem; background: #0066cc; color: white; border: none; border-radius: 4px; cursor: pointer; width: 100%;';
+        btn.addEventListener('click', () => watchlist.openAddModalForMovie(movie.id, movie.title));
+        card.appendChild(btn);
+      }
+    });
+  };
+}
+hookSuggestWatchlist(suggest);
+hookSuggestWatchlist(suggestMeili);
 
 // === Mobile Menu Toggle ===
 const tabsToggle = document.getElementById('main-tabs-toggle');

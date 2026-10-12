@@ -68,7 +68,7 @@ describe('SearchService', () => {
             }
             ;(mockIndex.search as jest.Mock).mockResolvedValue(mockMeiliResult)
 
-            const result = await service.search({ q: 'inception', page: 1, limit: 10 })
+            const result = await service.search({ q: 'inception', page: 1, limit: 10, exact: false })
 
             expect(result.data).toEqual([mockMovieResponse])
             expect(result.meta.total).toBe(1)
@@ -87,7 +87,7 @@ describe('SearchService', () => {
                 total: 1,
             })
 
-            const result = await service.search({ q: 'inception', page: 1, limit: 10 })
+            const result = await service.search({ q: 'inception', page: 1, limit: 10, exact: false })
 
             expect(result.data).toEqual([mockMovieResponse])
             expect(result.meta.total).toBe(1)
@@ -112,6 +112,7 @@ describe('SearchService', () => {
                 maxYear: 2020,
                 minRating: 7,
                 maxRating: 10,
+                exact: false,
             })
 
             expect(mockIndex.search).toHaveBeenCalledWith('action', expect.objectContaining({
@@ -125,6 +126,50 @@ describe('SearchService', () => {
             }))
         })
 
+        it('exact + field envía matchingStrategy all y attributesToSearchOn a Meilisearch', async () => {
+            ;(mockIndex.search as jest.Mock).mockResolvedValue({
+                hits: [mockMovieResponse],
+                estimatedTotalHits: 1,
+            })
+
+            const result = await service.search({ q: 'batman', page: 1, limit: 10, exact: true, field: 'title' })
+
+            expect(mockIndex.search).toHaveBeenCalledWith('batman', expect.objectContaining({
+                matchingStrategy: 'all',
+                attributesToSearchOn: ['title'],
+                limit: 10,
+            }))
+            expect(result.data).toEqual([mockMovieResponse])
+            expect(result.meta.total).toBe(1)
+        })
+
+        it('exact con genre usa el atributo genres en attributesToSearchOn', async () => {
+            ;(mockIndex.search as jest.Mock).mockResolvedValue({
+                hits: [mockMovieResponse],
+                estimatedTotalHits: 1,
+            })
+
+            await service.search({ q: 'act', page: 1, limit: 10, exact: true, field: 'genres' })
+
+            expect(mockIndex.search).toHaveBeenCalledWith('act', expect.objectContaining({
+                matchingStrategy: 'all',
+                attributesToSearchOn: ['genres'],
+            }))
+        })
+
+        it('sin exact no se envía matchingStrategy aunque field esté presente', async () => {
+            ;(mockIndex.search as jest.Mock).mockResolvedValue({
+                hits: [mockMovieResponse],
+                estimatedTotalHits: 1,
+            })
+
+            await service.search({ q: 'batman', page: 1, limit: 10, exact: false, field: 'title' })
+
+            expect(mockIndex.search).toHaveBeenCalledWith('batman', expect.not.objectContaining({
+                matchingStrategy: expect.anything(),
+            }))
+        })
+
         it('returns empty results when no matches found', async () => {
             const mockMeiliResult = {
                 hits: [],
@@ -133,7 +178,7 @@ describe('SearchService', () => {
             }
             ;(mockIndex.search as jest.Mock).mockResolvedValue(mockMeiliResult)
 
-            const result = await service.search({ q: 'zzzz', page: 1, limit: 10 })
+            const result = await service.search({ q: 'zzzz', page: 1, limit: 10, exact: false })
 
             expect(result.data).toEqual([])
             expect(result.meta.total).toBe(0)

@@ -19,6 +19,14 @@ export const searchQuerySchema = z.object({
         emptyToUndefined,
         z.string().optional()
     ),
+    field: z.preprocess(
+        emptyToUndefined,
+        z.enum(['title', 'director', 'genres', 'plot']).optional()
+    ),
+    exact: z.preprocess(
+        emptyToUndefined,
+        z.coerce.boolean().optional()
+    ).default(false),
     minYear: z.preprocess(
         emptyToUndefined,
         z.coerce.number().int().min(1895).max(2026).optional()
