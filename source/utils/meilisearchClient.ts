@@ -43,4 +43,8 @@ export const MOVIE_INDEX_CONFIG = {
     filterableAttributes: ['year', 'rating', 'genres', 'ageRating'],
     sortableAttributes: ['rating', 'year'],
     rankingRules: ['words', 'typo', 'proximity', 'attribute', 'sort', 'exactness'],
+    typoTolerance: {
+        enabled: true,
+        minWordSizeForTypos: { oneTypo: 4, twoTypos: 8 },
+    },
 } as const
