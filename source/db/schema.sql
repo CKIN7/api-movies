@@ -150,6 +150,7 @@ CREATE TABLE `users` (
   `email_verified` tinyint(1) NOT NULL DEFAULT '0',
   `email_verified_at` datetime DEFAULT NULL,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `uq_users_email` (`email`)
+  UNIQUE KEY `uq_users_email` (`email`),
+  CONSTRAINT `chk_users_role` CHECK ((`role` in ('admin','premium','user')))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 SET FOREIGN_KEY_CHECKS = 1;
