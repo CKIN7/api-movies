@@ -171,7 +171,7 @@ export class Suggest {
 
   buildResultsUrl(value) {
     if (this.resultsMode === 'search') {
-      return `${this.API_BASE}/movies/search?q=${encodeURIComponent(value)}`;
+      return `${this.API_BASE}/movies/search?q=${encodeURIComponent(value)}&field=${encodeURIComponent(this.currentField)}&exact=true`;
     }
     const key = this.queryKeys[this.currentField];
     return `${this.API_BASE}/movies?${key}=${encodeURIComponent(value)}`;

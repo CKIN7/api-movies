@@ -68,7 +68,7 @@ describe('SearchService', () => {
             }
             ;(mockIndex.search as jest.Mock).mockResolvedValue(mockMeiliResult)
 
-            const result = await service.search({ q: 'inception', page: 1, limit: 10 })
+            const result = await service.search({ q: 'inception', page: 1, limit: 10, exact: false })
 
             expect(result.data).toEqual([mockMovieResponse])
             expect(result.meta.total).toBe(1)
@@ -87,7 +87,7 @@ describe('SearchService', () => {
                 total: 1,
             })
 
-            const result = await service.search({ q: 'inception', page: 1, limit: 10 })
+            const result = await service.search({ q: 'inception', page: 1, limit: 10, exact: false })
 
             expect(result.data).toEqual([mockMovieResponse])
             expect(result.meta.total).toBe(1)
@@ -112,6 +112,7 @@ describe('SearchService', () => {
                 maxYear: 2020,
                 minRating: 7,
                 maxRating: 10,
+                exact: false,
             })
 
             expect(mockIndex.search).toHaveBeenCalledWith('action', expect.objectContaining({
@@ -133,7 +134,7 @@ describe('SearchService', () => {
             }
             ;(mockIndex.search as jest.Mock).mockResolvedValue(mockMeiliResult)
 
-            const result = await service.search({ q: 'zzzz', page: 1, limit: 10 })
+            const result = await service.search({ q: 'zzzz', page: 1, limit: 10, exact: false })
 
             expect(result.data).toEqual([])
             expect(result.meta.total).toBe(0)

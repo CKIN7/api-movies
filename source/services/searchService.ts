@@ -68,19 +68,46 @@ class SearchService {
 
     private async searchWithMeilisearch(params: SearchQueryDTO): Promise<{ hits: MovieResponse[]; estimatedTotalHits: number | undefined }> {
         const filters = this.buildMeilisearchFilters(params)
+        const attrMap = {
+            title: 'title',
+            director: 'director',
+            genres: 'genres',
+            plot: 'plot',
+        }
 
-        const result = await this.movieIndex!.search(params.q, {
+        const searchOptions: any = {
             filter: filters.length > 0 ? filters : undefined,
             page: params.page,
-            limit: params.limit,
+            limit: params.exact ? 100 : params.limit, // fetch more for exact filtering
             attributesToRetrieve: ['id', 'title', 'year', 'director', 'rating', 'genres', 'plot', 'poster', 'ageRating'],
             showRankingScore: true,
-        })
+        }
 
-        const totalHits = (result as any).estimatedTotalHits ?? result.hits.length
+        if (params.field && attrMap[params.field]) {
+            searchOptions.attributesToSearchOn = [attrMap[params.field]]
+        }
+
+        const result = await this.movieIndex!.search(params.q, searchOptions)
+
+        let hits = result.hits as unknown as MovieResponse[]
+        let totalHits = (result as any).estimatedTotalHits ?? hits.length
+
+        if (params.exact && params.field && attrMap[params.field]) {
+            const attr = attrMap[params.field]
+            const q = params.q.toLowerCase()
+            const exactHits = hits.filter(hit => {
+                const value = hit[attr as keyof MovieResponse] as string | string[]
+                if (attr === 'genres') {
+                    return Array.isArray(value) && value.some(g => g.toLowerCase() === q)
+                }
+                return typeof value === 'string' && value.toLowerCase() === q
+            })
+            hits = exactHits
+            totalHits = exactHits.length
+        }
 
         return {
-            hits: result.hits as unknown as MovieResponse[],
+            hits: hits.slice(0, params.limit),
             estimatedTotalHits: totalHits,
         }
     }

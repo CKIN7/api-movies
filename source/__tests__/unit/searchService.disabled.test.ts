@@ -13,7 +13,7 @@ describe('SearchService con MEILISEARCH_ENABLED=false', () => {
         deleteDocument: jest.fn(),
     }
     const mockRepo = { findMany: jest.fn() }
-    const query = { q: 'inception', page: 1, limit: 10 }
+    const query = { q: 'inception', page: 1, limit: 10, exact: false }
     let service: SearchService
 
     beforeEach(() => {
