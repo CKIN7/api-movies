@@ -67,6 +67,12 @@ class UserRepository {
             `UPDATE users SET password_hash = ? WHERE id = ?`, [passwordHash, userId]
         )
     }
+
+    async updateRole(userId: string, role: string){
+        await this.query(
+            `UPDATE users SET role = ? WHERE id = ?`, [role, userId]
+        )
+    }
 }
 
 export default UserRepository
