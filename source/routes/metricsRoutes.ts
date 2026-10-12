@@ -1,5 +1,6 @@
 import { Router, Response } from 'express'
 import { requireAuth } from '../middleware/requireAuth'
+import { requireRole } from '../middleware/requireRole'
 import { getRateLimitMetrics, clearMetrics } from '../services/rateLimitMetrics'
 import { clearPenalty, cleanupExpiredPenalties } from '../middleware/penaltyBox'
 
@@ -35,23 +36,25 @@ import { clearPenalty, cleanupExpiredPenalties } from '../middleware/penaltyBox'
 
 const router = Router()
 
-router.get('/rate-limit', requireAuth, async (_req, res: Response) => {
+const adminOnly = [requireAuth, requireRole('admin')]
+
+router.get('/rate-limit', ...adminOnly, async (_req, res: Response) => {
   const metrics = await getRateLimitMetrics()
   res.json(metrics)
 })
 
-router.delete('/rate-limit', requireAuth, async (_req, res: Response) => {
+router.delete('/rate-limit', ...adminOnly, async (_req, res: Response) => {
   await clearMetrics()
   res.json({ message: 'Metrics cleared' })
 })
 
-router.delete('/rate-limit/penalty/:identifier', requireAuth, async (req, res: Response) => {
+router.delete('/rate-limit/penalty/:identifier', ...adminOnly, async (req, res: Response) => {
   const identifier = Array.isArray(req.params.identifier) ? req.params.identifier[0] : req.params.identifier
   await clearPenalty(identifier)
   res.json({ message: `Penalty cleared for ${identifier}` })
 })
 
-router.delete('/rate-limit/penalty', requireAuth, async (_req, res: Response) => {
+router.delete('/rate-limit/penalty', ...adminOnly, async (_req, res: Response) => {
   const cleaned = await cleanupExpiredPenalties()
   res.json({ message: `Cleaned ${cleaned} expired penalties` })
 })
