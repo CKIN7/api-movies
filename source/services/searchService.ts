@@ -78,7 +78,7 @@ class SearchService {
         const searchOptions: any = {
             filter: filters.length > 0 ? filters : undefined,
             page: params.page,
-            limit: params.exact ? 100 : params.limit, // fetch more for exact filtering
+            limit: params.limit,
             attributesToRetrieve: ['id', 'title', 'year', 'director', 'rating', 'genres', 'plot', 'poster', 'ageRating'],
             showRankingScore: true,
         }
@@ -87,27 +87,17 @@ class SearchService {
             searchOptions.attributesToSearchOn = [attrMap[params.field]]
         }
 
-        const result = await this.movieIndex!.search(params.q, searchOptions)
-
-        let hits = result.hits as unknown as MovieResponse[]
-        let totalHits = (result as any).estimatedTotalHits ?? hits.length
-
-        if (params.exact && params.field && attrMap[params.field]) {
-            const attr = attrMap[params.field]
-            const qWords = params.q.toLowerCase().split(/\s+/).filter(Boolean)
-            const exactHits = hits.filter(hit => {
-                const value = hit[attr as keyof MovieResponse] as string | string[]
-                const valueStr = (attr === 'genres' && Array.isArray(value)
-                    ? value.join(' ')
-                    : String(value)).toLowerCase()
-                return qWords.every(w => valueStr.includes(w))
-            })
-            hits = exactHits
-            totalHits = exactHits.length
+        if (params.exact) {
+            searchOptions.matchingStrategy = 'all'
         }
 
+        const result = await this.movieIndex!.search(params.q, searchOptions)
+
+        const hits = result.hits as unknown as MovieResponse[]
+        const totalHits = (result as any).estimatedTotalHits ?? hits.length
+
         return {
-            hits: hits.slice(0, params.limit),
+            hits,
             estimatedTotalHits: totalHits,
         }
     }
