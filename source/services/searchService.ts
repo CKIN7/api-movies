@@ -1,5 +1,6 @@
 import type { Index, SearchResponse } from 'meilisearch'
 import type { SearchQueryDTO } from '../schemas/searchQuery'
+import type { SuggestQueryDTO } from '../schemas/suggestQuerySchema'
 import type { PaginatedResponse } from '../types/movie'
 import type MovieRepository from '../repositories/MovieRepository'
 import { Movie, type MovieResponse } from '../domain/Movie'
@@ -17,6 +18,12 @@ export interface SearchResult {
         processingTimeMs: number
         source: 'meilisearch' | 'mysql'
     }
+}
+
+const SUGGEST_ATTR: Record<SuggestQueryDTO['field'], string> = {
+    title: 'title',
+    director: 'director',
+    genre: 'genres',
 }
 
 class SearchService {
@@ -132,6 +139,31 @@ class SearchService {
                 processingTimeMs,
                 source: 'mysql',
             },
+        }
+    }
+
+    async suggest(query: SuggestQueryDTO): Promise<string[]> {
+        if (!this.canUseMeilisearch()) {
+            return this.movieRepo.suggest(query)
+        }
+
+        try {
+            const attr = SUGGEST_ATTR[query.field]
+            const result = await this.movieIndex!.search(query.q, {
+                attributesToSearchOn: [attr],
+                attributesToRetrieve: [attr],
+                limit: query.limit * 5,
+            })
+
+            const hits = result.hits as Array<Record<string, string | string[]>>
+            const values = query.field === 'genre'
+                ? hits.flatMap(h => (Array.isArray(h[attr]) ? h[attr] : [String(h[attr])]))
+                : hits.map(h => String(h[attr]))
+
+            return [...new Set(values.filter(v => v.length > 0))].slice(0, query.limit)
+        } catch (error) {
+            logger.warn(`[Search] Suggest via Meilisearch failed, falling back to MySQL: ${(error as Error).message}`)
+            return this.movieRepo.suggest(query)
         }
     }
 
