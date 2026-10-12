@@ -26,8 +26,26 @@ describe('requireAuth', () => {
 
         requireAuth(req, res, next)
 
-        expect(req.user).toEqual({ id: TEST_USER_ID })
+        expect(req.user).toEqual({ id: TEST_USER_ID, role: 'admin' })
         expect(next).toHaveBeenCalledTimes(1)
+    })
+
+    test('adjunta el rol del claim a req.user', () => {
+        const req = mockReq(authHeader(TEST_USER_ID, 'access', 'user').Authorization)
+
+        requireAuth(req, {} as Response, jest.fn())
+
+        expect(req.user).toEqual({ id: TEST_USER_ID, role: 'user' })
+    })
+
+    test('token sin claim role lanza 401', () => {
+        const token = jwt.sign({ sub: TEST_USER_ID, type: 'access' }, process.env.JWT_SECRET!, { expiresIn: '15min' })
+        expect401(() => requireAuth(mockReq(`Bearer ${token}`), {} as Response, jest.fn()))
+    })
+
+    test('token con rol desconocido lanza 401', () => {
+        const token = jwt.sign({ sub: TEST_USER_ID, type: 'access', role: 'superadmin' }, process.env.JWT_SECRET!, { expiresIn: '15min' })
+        expect401(() => requireAuth(mockReq(`Bearer ${token}`), {} as Response, jest.fn()))
     })
 
     test('sin header Authorization lanza 401', () => {
