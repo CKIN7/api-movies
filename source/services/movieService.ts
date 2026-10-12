@@ -16,6 +16,7 @@ import { SuggestQueryDTO } from '../schemas/suggestQuerySchema'
 import { getCached, setCached, invalidatePattern, CACHE_KEYS } from '../utils/cache'
 import { getRedisClient } from '../utils/redisClient'
 import type Redis from 'ioredis'
+import type SearchService from './searchService'
 
 // ═══════════════════════════════════════════════════════════════
 //  Patrones: Facade + Dependency Injection
@@ -40,6 +41,7 @@ class MovieService {
         private auditRepo: AuditLogRepository,
         private castRepo: CastRepository,
         private cache: Redis = getRedisClient(),
+        private searchService: SearchService | null = null,
     ) {}
 
     async getMovies(params: MovieQueryDTO): Promise<PaginatedResponse<MovieResponse[]>> {
@@ -321,6 +323,10 @@ class MovieService {
 
                 await this.auditRepo.record({movieId: movieId, action: 'CREATE', oldSnapshot:null, newSnapshot: movieResponse})
 
+                if (this.searchService) {
+                    await this.searchService.indexMovie(movieResponse)
+                }
+
                 if (this.isCacheEnabled()) {
                     try {
                         const movieListPattern = 'movies:list:*'
@@ -396,6 +402,10 @@ class MovieService {
                     await this.auditRepo.record({movieId: id, action: 'UPDATE', oldSnapshot: oldSnapshot, newSnapshot: newSnapshot})
                 }
 
+                if (this.searchService) {
+                    await this.searchService.updateMovie(newSnapshot)
+                }
+
                 await this.invalidateMovieCaches(id)
 
                 return newSnapshot
@@ -421,6 +431,10 @@ class MovieService {
                     await this.castRepo.deleteByMovieId(id)
                     await this.movieRepo.delete(id)
                 })
+
+                if (this.searchService) {
+                    await this.searchService.removeMovie(id)
+                }
 
                 await this.invalidateMovieCaches(id)
         } catch (error) {
