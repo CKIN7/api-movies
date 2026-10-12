@@ -85,14 +85,14 @@ describe('AuthService - refresh', () => {
         expect(result).toEqual({
             accessToken: 'access-nuevo',
             refreshToken: 'refresh-nuevo',
-            user: { id: 'user-1', email: 'user@example.com', role: 'user' },
+            user: { id: 'user-1', email: 'user@example.com', role: 'user', isVerified: false },
         })
         expect(result.user).not.toHaveProperty('passwordHash')
         expect(mockedVerify).toHaveBeenCalledWith('refresh-old', process.env.JWT_REFRESH_SECRET)
         expect(repos.refreshTokenRepository.findValid).toHaveBeenCalledWith('refresh-old')
         expect(repos.userRepository.findById).toHaveBeenCalledWith('user-1')
         expect(mockedSign).toHaveBeenCalledWith(
-            { sub: 'user-1', type: 'access' }, process.env.JWT_SECRET, expect.any(Object))
+            { sub: 'user-1', type: 'access', role: 'user' }, process.env.JWT_SECRET, expect.any(Object))
         expect(mockedSign).toHaveBeenCalledWith(
             { sub: 'user-1', type: 'refresh', jti: expect.any(String) }, process.env.JWT_REFRESH_SECRET, expect.any(Object))
         expect(repos.refreshTokenRepository.revoke).toHaveBeenCalledWith('refresh-old')
