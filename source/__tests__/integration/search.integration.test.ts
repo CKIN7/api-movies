@@ -44,11 +44,12 @@ const mockSearchResult = {
 }
 
 describe('Search API Integration', () => {
-    let mockSearchService: { search: jest.Mock }
+    let mockSearchService: { search: jest.Mock; suggest: jest.Mock }
 
     beforeEach(() => {
         mockSearchService = {
             search: jest.fn().mockResolvedValue(mockSearchResult),
+            suggest: jest.fn().mockResolvedValue(['Inception', 'Inception: The Cobol Job']),
         }
     })
 
@@ -167,6 +168,60 @@ describe('Search API Integration', () => {
             const res = await request(app)
                 .get('/movies/search')
                 .query({ q: 'action', minRating: 9, maxRating: 5 })
+
+            expect(res.status).toBe(400)
+        })
+    })
+
+    describe('GET /movies/search/suggest', () => {
+        it('returns suggestions with valid query', async () => {
+            const app = createApp(undefined, mockSearchService as unknown as SearchService)
+
+            const res = await request(app)
+                .get('/movies/search/suggest')
+                .query({ q: 'ince', field: 'title' })
+
+            expect(res.status).toBe(200)
+            expect(res.body).toEqual(['Inception', 'Inception: The Cobol Job'])
+            expect(mockSearchService.suggest).toHaveBeenCalledWith({ q: 'ince', field: 'title', limit: 8 })
+        })
+
+        it('passes field and limit to the service', async () => {
+            const app = createApp(undefined, mockSearchService as unknown as SearchService)
+
+            await request(app)
+                .get('/movies/search/suggest')
+                .query({ q: 'chris', field: 'director', limit: 5 })
+
+            expect(mockSearchService.suggest).toHaveBeenCalledWith({ q: 'chris', field: 'director', limit: 5 })
+        })
+
+        it('returns 400 when q is missing', async () => {
+            const app = createApp(undefined, mockSearchService as unknown as SearchService)
+
+            const res = await request(app)
+                .get('/movies/search/suggest')
+                .query({ field: 'title' })
+
+            expect(res.status).toBe(400)
+        })
+
+        it('returns 400 when q is shorter than 3 chars', async () => {
+            const app = createApp(undefined, mockSearchService as unknown as SearchService)
+
+            const res = await request(app)
+                .get('/movies/search/suggest')
+                .query({ q: 'ab', field: 'title' })
+
+            expect(res.status).toBe(400)
+        })
+
+        it('returns 400 when field is invalid', async () => {
+            const app = createApp(undefined, mockSearchService as unknown as SearchService)
+
+            const res = await request(app)
+                .get('/movies/search/suggest')
+                .query({ q: 'ince', field: 'actor' })
 
             expect(res.status).toBe(400)
         })
