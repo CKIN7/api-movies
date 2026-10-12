@@ -34,6 +34,9 @@ import WatchlistRepository from './repositories/WatchlistRepository'
 import WatchlistService from './services/WatchlistService'
 import WatchlistController from './controllers/WatchlistController'
 import { createWatchlistRoutes } from './routes/watchlistRoutes'
+import UserService from './services/userService'
+import UserController from './controllers/userController'
+import { createUserRoutes } from './routes/userRoutes'
 import { metricsRouter } from './routes/metricsRoutes'
 import SearchService from './services/searchService'
 import SearchController from './controllers/searchController'
@@ -101,11 +104,16 @@ export function createApp(movieService?: MovieService, searchService?: SearchSer
     const watchlistController = new WatchlistController(watchlistService)
     const watchlistRouter = createWatchlistRoutes(watchlistController)
 
+    const userService = new UserService(userRepository, refreshTokenRepository)
+    const userController = new UserController(userService)
+    const userRouter = createUserRoutes(userController)
+
     app.use('/movies/search', searchRouter)
     app.use('/movies', exportRouter)
     app.use('/movies', router)
     app.use('/movies', reviewRouter)
     app.use('/users', watchlistRouter)
+    app.use('/users', userRouter)
     app.use('/auth', authRouter)
     app.use('/metrics', metricsRouter)
 
