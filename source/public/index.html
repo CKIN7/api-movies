@@ -85,6 +85,12 @@
   .status-msg.error { color: #ef5350; }
 
   /* ── Suggest ── */
+  .suggest-compare { display: grid; grid-template-columns: 1fr; gap: 20px; }
+  @media (min-width: 900px) { .suggest-compare { grid-template-columns: 1fr 1fr; } }
+  .suggest-compare > section { border: 1px solid #333; border-radius: 10px; padding: 16px; background: #141414; }
+  .engine-badge { display: inline-block; font-size: 0.65rem; padding: 2px 8px; border-radius: 4px; margin-left: 8px; vertical-align: middle; text-transform: uppercase; letter-spacing: 1px; }
+  .engine-badge.mysql { background: #3a2a00; color: #ffb300; border: 1px solid #5d4300; }
+  .engine-badge.meili { background: #0d2b4e; color: #8ab4f8; border: 1px solid #1a4a7e; }
   .autocomplete { position: relative; }
   .autocomplete input {
     width: 100%; padding: 12px 14px; font-size: 1rem; color: #eee;
@@ -331,23 +337,42 @@
     </div>
   </section>
 
-  <!-- ═══════════ Suggest ═══════════ -->
-  <section id="suggest-section">
-    <div class="section-title">Búsqueda Suggest</div>
+  <!-- ═══════════ Suggest: MySQL vs Meilisearch ═══════════ -->
+  <div class="suggest-compare">
+    <section id="suggest-section">
+      <div class="section-title">Suggest <span class="engine-badge mysql">MySQL · prefijo</span></div>
 
-    <div class="tabs" id="tabs">
-      <button class="tab active" data-field="title">Título</button>
-      <button class="tab" data-field="director">Director</button>
-      <button class="tab" data-field="genre">Género</button>
-    </div>
+      <div class="tabs" id="tabs">
+        <button class="tab active" data-field="title">Título</button>
+        <button class="tab" data-field="director">Director</button>
+        <button class="tab" data-field="genre">Género</button>
+      </div>
 
-    <div class="autocomplete">
-      <input type="text" id="suggest-input" placeholder="Escribe un título…" autocomplete="off">
-      <div class="dropdown" id="suggest-dropdown"></div>
-    </div>
+      <div class="autocomplete">
+        <input type="text" id="suggest-input" placeholder="Escribe un título…" autocomplete="off">
+        <div class="dropdown" id="suggest-dropdown"></div>
+      </div>
 
-    <div class="results" id="suggest-results"></div>
-  </section>
+      <div class="results" id="suggest-results"></div>
+    </section>
+
+    <section id="suggest-meili-section">
+      <div class="section-title">Suggest <span class="engine-badge meili">Meilisearch · fuzzy</span></div>
+
+      <div class="tabs" id="tabs-meili">
+        <button class="tab active" data-field="title">Título</button>
+        <button class="tab" data-field="director">Director</button>
+        <button class="tab" data-field="genre">Género</button>
+      </div>
+
+      <div class="autocomplete">
+        <input type="text" id="suggest-meili-input" placeholder="Escribe un título…" autocomplete="off">
+        <div class="dropdown" id="suggest-meili-dropdown"></div>
+      </div>
+
+      <div class="results" id="suggest-meili-results"></div>
+    </section>
+  </div>
 
   <!-- ═══════════ Watchlist ═══════════ -->
   <section id="section-watchlist" class="section" role="tabpanel" aria-labelledby="tab-watchlist">
