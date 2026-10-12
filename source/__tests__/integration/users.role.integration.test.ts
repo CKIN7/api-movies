@@ -5,7 +5,7 @@ import { setupTestDb, teardownTestDb, clearTestData, seedTestData } from '../hel
 import { authHeader, TEST_USER_ID } from '../helpers/auth'
 import type { Connection } from 'mysql2/promise'
 
-const TARGET_ID = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee'
+const TARGET_ID = 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee'
 const MISSING_ID = '99999999-9999-4999-8999-999999999999'
 
 let db: Connection
