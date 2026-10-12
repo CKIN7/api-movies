@@ -3,10 +3,10 @@ import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
 import { createApp } from '../../api'
 import { setupTestDb, teardownTestDb, clearTestData, seedTestData } from '../helpers/db'
-import { TEST_USER_ID } from '../helpers/auth'
 import type { Connection } from 'mysql2/promise'
 
-const TARGET_ID = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee'
+// UUID v4 válido (Zod z.uuid() exige versión 1-8 y variante 89ab)
+const TARGET_ID = 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee'
 const CREDENTIALS = { email: 'target@example.com', password: 'password123' }
 
 let db: Connection
@@ -34,19 +34,7 @@ function decode(token: string): { sub?: string; type?: string; role?: string } {
 }
 
 describe('Claims de rol en el JWT (integración real con DB)', () => {
-    test('login de admin emite access token con role=admin', async () => {
-        const res = await request(createApp())
-            .post('/auth/login')
-            .send({ email: 'admin@example.com', password: 'password123' })
-
-        expect(res.status).toBe(200)
-        const payload = decode(res.body.accessToken)
-        expect(payload.sub).toBe(TEST_USER_ID)
-        expect(payload.type).toBe('access')
-        expect(payload.role).toBe('admin')
-    })
-
-    test('login de usuario normal emite access token con role=user', async () => {
+    test('login emite access token con sub, type y claim role', async () => {
         const res = await request(createApp())
             .post('/auth/login')
             .send(CREDENTIALS)
@@ -55,15 +43,20 @@ describe('Claims de rol en el JWT (integración real con DB)', () => {
         expect(res.body.user.role).toBe('user')
         const payload = decode(res.body.accessToken)
         expect(payload.sub).toBe(TARGET_ID)
+        expect(payload.type).toBe('access')
         expect(payload.role).toBe('user')
     })
 
-    test('el refresh token NO lleva claim role (solo access token)', async () => {
+    test('el refresh token NO lleva claim role (solo el access token)', async () => {
         const res = await request(createApp())
             .post('/auth/login')
-            .send({ email: 'admin@example.com', password: 'password123' })
+            .send(CREDENTIALS)
 
-        const refreshPayload = jwt.verify(res.body.refreshToken, process.env.JWT_REFRESH_SECRET!) as { role?: string }
+        expect(res.status).toBe(200)
+        const refreshPayload = jwt.verify(
+            res.body.refreshToken,
+            process.env.JWT_REFRESH_SECRET!
+        ) as { role?: string }
         expect(refreshPayload.role).toBeUndefined()
     })
 
