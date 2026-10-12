@@ -94,13 +94,13 @@ class SearchService {
 
         if (params.exact && params.field && attrMap[params.field]) {
             const attr = attrMap[params.field]
-            const q = params.q.toLowerCase()
+            const qWords = params.q.toLowerCase().split(/\s+/).filter(Boolean)
             const exactHits = hits.filter(hit => {
                 const value = hit[attr as keyof MovieResponse] as string | string[]
-                if (attr === 'genres') {
-                    return Array.isArray(value) && value.some(g => g.toLowerCase() === q)
-                }
-                return typeof value === 'string' && value.toLowerCase() === q
+                const valueStr = (attr === 'genres' && Array.isArray(value)
+                    ? value.join(' ')
+                    : String(value)).toLowerCase()
+                return qWords.every(w => valueStr.includes(w))
             })
             hits = exactHits
             totalHits = exactHits.length
