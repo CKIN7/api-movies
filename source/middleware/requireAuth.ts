@@ -1,6 +1,7 @@
 import type { Request, Response, NextFunction } from 'express'
 import AppError from '../utils/AppError'
 import jwt from 'jsonwebtoken'
+import { isRole } from '../types/user'
 
 export function requireAuth(req: Request, resp: Response, next: NextFunction) {
     const header = req.headers.authorization
@@ -11,16 +12,17 @@ export function requireAuth(req: Request, resp: Response, next: NextFunction) {
     const token = header.slice(7)
     if(!token) throw new AppError('Token vacío', 401)
     
-    let payload: { sub?: string; type?: string }
+    let payload: { sub?: string; type?: string; role?: string }
     try {
-    payload = jwt.verify(token, process.env.JWT_SECRET!) as { sub?: string; type?: string }
+    payload = jwt.verify(token, process.env.JWT_SECRET!) as { sub?: string; type?: string; role?: string }
 
     } catch {
       throw new AppError('Token inválido o expirado', 401) 
     }
     if(!payload.sub) throw new AppError('Token inválido', 401)
     if(payload.type !== 'access') throw new AppError('Token inválido', 401)
+    if(!isRole(payload.role)) throw new AppError('Token sin rol válido', 401)
 
-    req.user = {id: payload.sub}
+    req.user = {id: payload.sub, role: payload.role}
     next();
 }
