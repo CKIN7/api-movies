@@ -126,6 +126,67 @@ describe('SearchService', () => {
             }))
         })
 
+        it('exact + field filtra por todas las palabras de la query en el campo', async () => {
+            ;(mockIndex.search as jest.Mock).mockResolvedValue({
+                hits: [
+                    { id: 68, title: 'The Batman', genres: ['crime'] },
+                    { id: 19, title: 'The Lord of the Rings: The Return of the King', genres: ['action', 'adventure'] },
+                ],
+                estimatedTotalHits: 2,
+            })
+
+            const result = await service.search({ q: 'batman', page: 1, limit: 10, exact: true, field: 'title' })
+
+            expect(result.data).toHaveLength(1)
+            expect((result.data[0] as any).title).toBe('The Batman')
+            expect(result.meta.total).toBe(1)
+        })
+
+        it('exact + field excluye titulos que no contienen todas las palabras', async () => {
+            ;(mockIndex.search as jest.Mock).mockResolvedValue({
+                hits: [
+                    { id: 68, title: 'The Batman', genres: ['crime'] },
+                    { id: 1, title: 'Batman Begins', genres: ['action'] },
+                ],
+                estimatedTotalHits: 2,
+            })
+
+            const result = await service.search({ q: 'the batman', page: 1, limit: 10, exact: true, field: 'title' })
+
+            expect(result.data).toHaveLength(1)
+            expect((result.data[0] as any).title).toBe('The Batman')
+        })
+
+        it('exact + genre matchea por substring en los generos del documento', async () => {
+            ;(mockIndex.search as jest.Mock).mockResolvedValue({
+                hits: [
+                    { id: 68, title: 'The Batman', genres: ['crime', 'thriller'] },
+                    { id: 19, title: 'The Lord of the Rings', genres: ['action', 'adventure'] },
+                ],
+                estimatedTotalHits: 2,
+            })
+
+            const result = await service.search({ q: 'act', page: 1, limit: 10, exact: true, field: 'genres' })
+
+            expect(result.data).toHaveLength(1)
+            expect((result.data[0] as any).title).toBe('The Lord of the Rings')
+        })
+
+        it('sin exact no se aplica filtro aunque field esté presente', async () => {
+            ;(mockIndex.search as jest.Mock).mockResolvedValue({
+                hits: [
+                    { id: 68, title: 'The Batman', genres: ['crime'] },
+                    { id: 19, title: 'The Lord of the Rings: The Return of the King', genres: ['action'] },
+                ],
+                estimatedTotalHits: 2,
+            })
+
+            const result = await service.search({ q: 'batman', page: 1, limit: 10, exact: false, field: 'title' })
+
+            expect(result.data).toHaveLength(2)
+            expect(result.meta.total).toBe(2)
+        })
+
         it('returns empty results when no matches found', async () => {
             const mockMeiliResult = {
                 hits: [],
