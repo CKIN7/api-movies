@@ -193,6 +193,13 @@ export class RecommendationService {
         return `recs:user:${userId}:${type}`
     }
 
+    // Namespace separado: la key `...:collab` guarda la lista final de
+    // items (RecommendationItem[]), ésta guarda la matriz de scores
+    // (Record<string, number>) que consume collabForUser/hybrid.
+    private collabScoresKey(userId: string): string {
+        return `recs:user:${userId}:collab:scores`
+    }
+
     private redisReady(): boolean {
         try {
             return isRedisHealthy()
@@ -295,7 +302,7 @@ export class RecommendationService {
     ): Promise<Map<number, number>> {
         if (interactions.length === 0) return new Map()
 
-        const key = this.cacheKey(userId, 'collab')
+        const key = this.collabScoresKey(userId)
         if (this.redisReady()) {
             const cached = await getCached<Record<string, number>>(getRedisClient(), key)
             if (cached) {
@@ -362,7 +369,7 @@ export class RecommendationService {
         for (const [userId, interactions] of byUser) {
             const watched = new Set(interactions.map(i => i.movieId))
             const scores = collabScores(interactions, itemMaps, new Set([...watched].filter(id => allCandidateIds.has(id))))
-            const key = this.cacheKey(userId, 'collab')
+            const key = this.collabScoresKey(userId)
             if (scores.size > 0) {
                 await setCached(getRedisClient(), key, topEntries(scores, COLLAB_TOP_N), CACHE_TTL_SECONDS)
             } else {
