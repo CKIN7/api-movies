@@ -360,7 +360,7 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/movies?page=1&limit=10&genre=&genreMode=and&title=&director=&q=&ageRating=&minYear=&maxYear=&minRating=&maxRating=&minDuration=&maxDuration=&sort=rating&order=desc",
+              "raw": "{{baseUrl}}/movies?page=1&limit=10&genre=&genreMode=and&sort=rating&order=desc",
               "host": ["{{baseUrl}}"],
               "path": ["movies"],
               "query": [
@@ -382,7 +382,7 @@
                 { "key": "order", "value": "desc", "description": "asc | desc (si hay sort sin order, order=asc)" }
               ]
             },
-            "description": "Listado paginado con filtros y orden. `limit` máximo 100. Los mínimos no pueden superar los máximos (year/rating/duration) → 400."
+            "description": "Listado paginado con filtros y orden. `limit` máximo 100. Los mínimos no pueden superar los máximos (year/rating/duration) → 400. Los parámetros deshabilitados (title, director, q, ageRating, min/max) son ejemplos: actívalos según necesites."
           },
           "event": [
             {
@@ -411,7 +411,7 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/movies/random?genre=&minYear=&maxYear=&minRating=&count=",
+              "raw": "{{baseUrl}}/movies/random",
               "host": ["{{baseUrl}}"],
               "path": ["movies", "random"],
               "query": [
@@ -595,6 +595,7 @@
               "raw": "{\n  \"title\": \"Interestelar\",\n  \"year\": 2014,\n  \"genre\": [\"ciencia ficción\", \"drama\"],\n  \"director\": \"Christopher Nolan\",\n  \"rating\": 8.7,\n  \"duration\": 169,\n  \"plot\": \"Un grupo de exploradores viaja a través de un agujero de gusano en el espacio en un intento de asegurar la supervivencia de la humanidad.\",\n  \"poster\": \"https://image.tmdb.org/t/p/w500/gEU2QniE6E77NI6lCU6MxlNBvIx.jpg\",\n  \"available\": true,\n  \"ageRating\": \"PG-13\",\n  \"cast\": [\n    { \"actor\": \"Matthew McConaughey\", \"character\": \"Cooper\" },\n    { \"actor\": \"Anne Hathaway\", \"character\": \"Brand\" }\n  ]\n}",
               "options": { "raw": { "language": "json" } }
             },
+            "url": { "raw": "{{baseUrl}}/movies", "host": ["{{baseUrl}}"], "path": ["movies"] },
             "description": "Crea una película. **Rol admin**. Validaciones Zod: year 1895-2026, rating 0-10 (múltiplo de 0.1, default 5), duration ≤300, ageRating enum (default PG-13), sin HTML en textos, poster URL válida, cast máx 20. Guarda el id creado en `movieId`."
           },
           "event": [
@@ -680,7 +681,7 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/movies/search?q=nolan&page=1&limit=10&genre=&field=&exact=false&minYear=&maxYear=&minRating=&maxRating=",
+              "raw": "{{baseUrl}}/movies/search?q=nolan&page=1&limit=10",
               "host": ["{{baseUrl}}"],
               "path": ["movies", "search"],
               "query": [
@@ -696,7 +697,7 @@
                 { "key": "maxRating", "value": "", "disabled": true }
               ]
             },
-            "description": "Búsqueda con filtros. La respuesta incluye en `meta`: `query`, `processingTimeMs` y `source`."
+            "description": "Búsqueda con filtros. La respuesta incluye en `meta`: `query`, `processingTimeMs` y `source`. Los parámetros deshabilitados (genre, field, exact, min/max) son ejemplos: actívalos según necesites."
           },
           "event": [
             {
@@ -939,7 +940,7 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/users/me/watchlist?page=1&limit=10&genre=&sortBy=addedAt&sortOrder=desc",
+              "raw": "{{baseUrl}}/users/me/watchlist?page=1&limit=10&sortBy=addedAt&sortOrder=desc",
               "host": ["{{baseUrl}}"],
               "path": ["users", "me", "watchlist"],
               "query": [
@@ -950,7 +951,7 @@
                 { "key": "sortOrder", "value": "desc", "description": "asc | desc" }
               ]
             },
-            "description": "Watchlist paginada con orden y filtro por género."
+            "description": "Watchlist paginada con orden y filtro por género (género deshabilitado por defecto: actívalo si lo necesitas)."
           },
           "event": [
             {
@@ -1001,7 +1002,7 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/movies/export/{{exportFormat}}?genre=&title=&q=&minYear=&maxYear=&minRating=&maxRating=&sort=&order=",
+              "raw": "{{baseUrl}}/movies/export/{{exportFormat}}",
               "host": ["{{baseUrl}}"],
               "path": ["movies", "export", "{{exportFormat}}"],
               "query": [
@@ -1016,7 +1017,7 @@
                 { "key": "order", "value": "", "disabled": true }
               ]
             },
-            "description": "`:format` ∈ `csv` | `json` (variable `exportFormat`, default csv). Acepta los mismos filtros de query que `GET /movies`. Para verlo cómodamente en Postman: pestaña *Settings → Download postman response files* o usa *Send and Download*."
+            "description": "`:format` ∈ `csv` | `json` (variable `exportFormat`, default csv). Acepta los mismos filtros de query que `GET /movies` (parámetros deshabilitados como ejemplo: actívalos según necesites). Para verlo cómodamente en Postman: pestaña *Settings → Download postman response files* o usa *Send and Download*."
           },
           "event": [
             {
@@ -1050,7 +1051,7 @@
               "options": { "raw": { "language": "json" } }
             },
             "url": { "raw": "{{baseUrl}}/users/{{targetUserId}}/role", "host": ["{{baseUrl}}"], "path": ["users", "{{targetUserId}}", "role"] },
-            "description": "Cambia el rol a `user` | `premium` | `admin`. El `:id` debe ser un **UUID** de un usuario distunto al propio (cambiar tu propio rol → 400). Usa `targetUserId` (por ejemplo el `newUserId` guardado en Register). Responde `{ message, user }`."
+            "description": "Cambia el rol a `user` | `premium` | `admin`. El `:id` debe ser un **UUID** de un usuario distinto al propio (cambiar tu propio rol → 400). Usa `targetUserId` (por ejemplo el `newUserId` guardado en Register). Responde `{ message, user }`."
           },
           "event": [
             {

@@ -1,15 +1,15 @@
 # Postman — API Movies
 
-Colección Postman con los 34 endpoints de la API (más 3 casos negativos de errores).
+Colección Postman (formato v2.1 JSON) con los 34 endpoints de la API (más 3 casos negativos de errores).
 
 ## Archivos
 
-- `api-movies.postman_collection.json` — colección (v2.1).
+- `api-movies.postman_collection.json` — colección.
 - `api-movies.postman_environment.json` — environment con variables (`baseUrl`, credenciales del admin seed, tokens, etc.).
 
 ## Importación
 
-1. Postman → **Import** → selecciona los dos archivos JSON.
+1. Postman → **Import** → selecciona ambos archivos JSON (o arrástralos a la ventana).
 2. Selecciona el environment **API Movies - Local** en el selector superior derecho.
 3. Levanta la API (`npm run dev` en `source/`, necesita MySQL y Redis).
 
@@ -17,7 +17,7 @@ Colección Postman con los 34 endpoints de la API (más 3 casos negativos de err
 
 1. **Auth → Login (admin seed)** — usa `admin@example.com` / `password123` (usuario seed verificado con rol admin; ver `db/seed.ts`). Guarda automáticamente `accessToken`, `refreshToken` y `userId`.
 2. Ejecuta las carpetas en orden: **Movies → Search → Reviews → Watchlist → Export → Users → Metrics**.
-3. El pre-request de la colección **renueva el access token** solo cuando está por expirar (usa `/auth/refresh`, que rota el refresh token). Si falla el refresh, vuelve a ejecutar el login.
+3. El pre-request de la colección **renueva el access token** vía `/auth/refresh` automáticamente cuando está por expirar (el refresh token rota en cada uso). Si falla el refresh, vuelve a ejecutar el login.
 
 ## Variables principales
 
@@ -41,3 +41,4 @@ Colección Postman con los 34 endpoints de la API (más 3 casos negativos de err
 - `DELETE /movies/:id` borra de verdad: usa una película creada por ti si vas a seguir probando.
 - Para descargar el archivo de export cómodamente: Postman → Settings → *Download postman response files*, o botón *Send and Download*.
 - La búsqueda (`/movies/search`) usa Meilisearch si está habilitado y hace fallback a MySQL (`meta.source` lo indica).
+- Los parámetros de query marcados como *ejemplo* (deshabilitados) se pueden activar en la pestaña **Params** de cada request.
