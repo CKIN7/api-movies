@@ -5,6 +5,10 @@ import type { AddToWatchlistDTO, WatchlistQueryDTO, PaginatedWatchlistResponse, 
 import { WatchlistEntry } from '../domain/WatchlistEntry'
 import { UserPreferencesService } from './userPreferencesService'
 
+function priorityDelta(priority: number | null | undefined): number {
+    return (priority ?? 3) >= 4 ? 2 : 1
+}
+
 class WatchlistService {
     constructor(
         private watchlistRepo: WatchlistRepository,
@@ -26,7 +30,7 @@ class WatchlistService {
             dto.priority ?? 3
         )
 
-        const delta = (dto.priority ?? 3) >= 4 ? 2 : 1
+        const delta = priorityDelta(dto.priority)
         await this.updateGenreAffinityForMovie(userId, dto.movieId, delta)
 
         const entry = await this.watchlistRepo.findByUserAndMovie(userId, dto.movieId)
@@ -75,8 +79,14 @@ class WatchlistService {
     }
 
     async remove(userId: string, movieId: number): Promise<void> {
+        const existing = await this.watchlistRepo.findByUserAndMovie(userId, movieId)
+
         const deleted = await this.watchlistRepo.delete(userId, movieId)
         if (!deleted) throw new AppError('Entrada no encontrada en tu watchlist', 404)
+
+        if (existing) {
+            await this.updateGenreAffinityForMovie(userId, movieId, -priorityDelta(existing.priority))
+        }
     }
 }
 
