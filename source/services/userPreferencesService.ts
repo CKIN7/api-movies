@@ -1,19 +1,19 @@
 import { UserPreferencesRepository } from '../repositories/UserPreferencesRepository'
-import { GenreRepository } from '../repositories/GenreRepository'
-import { DirectorRepository } from '../repositories/DirectorRepository'
-import { CastRepository } from '../repositories/CastRepository'
 import { UserPreferences } from '../domain/UserPreferences'
 import AppError from '../utils/AppError'
 import logger from '../utils/logger'
 import type { UpdateUserPreferencesDTO } from '../types/user'
+import { DbLogger } from '../utils/DbLogger'
 
 export class UserPreferencesService {
     constructor(
         private userPreferencesRepository: UserPreferencesRepository,
-        private genreRepository: GenreRepository,
-        private directorRepository: DirectorRepository,
-        private castRepository: CastRepository,
+        private conn: any,
     ) {}
+
+    private async query(sql: string, params?: any[]) {
+        return await DbLogger.query('query', sql, params || [], () => this.conn.query(sql, params)) as any
+    }
 
     async getPreferences(userId: string) {
         try {
@@ -37,22 +37,31 @@ export class UserPreferencesService {
     async updatePreferences(userId: string, dto: UpdateUserPreferencesDTO) {
         try {
             if (dto.favoriteGenres && dto.favoriteGenres.length > 0) {
-                const genres = await this.genreRepository.findByIds(dto.favoriteGenres)
-                if (genres.length !== dto.favoriteGenres.length) {
+                const [rows] = await this.query(
+                    'SELECT id_genre FROM genres WHERE id_genre IN (?)',
+                    [dto.favoriteGenres]
+                )
+                if ((rows as any[]).length !== dto.favoriteGenres.length) {
                     throw new AppError('Uno o más genre_ids no existen', 400)
                 }
             }
 
             if (dto.favoriteDirectors && dto.favoriteDirectors.length > 0) {
-                const directors = await this.directorRepository.findByIds(dto.favoriteDirectors)
-                if (directors.length !== dto.favoriteDirectors.length) {
+                const [rows] = await this.query(
+                    'SELECT director_id FROM directors WHERE director_id IN (?)',
+                    [dto.favoriteDirectors]
+                )
+                if ((rows as any[]).length !== dto.favoriteDirectors.length) {
                     throw new AppError('Uno o más director_ids no existen', 400)
                 }
             }
 
             if (dto.favoriteActors && dto.favoriteActors.length > 0) {
-                const actors = await this.castRepository.findByIds(dto.favoriteActors)
-                if (actors.length !== dto.favoriteActors.length) {
+                const [rows] = await this.query(
+                    'SELECT actor_id FROM actors WHERE actor_id IN (?)',
+                    [dto.favoriteActors]
+                )
+                if ((rows as any[]).length !== dto.favoriteActors.length) {
                     throw new AppError('Uno o más actor_ids no existen', 400)
                 }
             }
