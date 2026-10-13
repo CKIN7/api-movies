@@ -993,6 +993,155 @@
       ]
     },
     {
+      "name": "Preferences",
+      "item": [
+        {
+          "name": "Obtener mis preferencias",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/users/me/preferences",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "me",
+                "preferences"
+              ]
+            },
+            "description": "Devuelve las preferencias del usuario autenticado. Si no existe registro, lo crea con valores vacíos y responde 200 (cold start)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+                  "const json = pm.response.json();",
+                  "pm.test('Arreglos de favoritos y affinity', function () {",
+                  "    pm.expect(json).to.have.property('favoriteGenres');",
+                  "    pm.expect(json).to.have.property('favoriteDirectors');",
+                  "    pm.expect(json).to.have.property('favoriteActors');",
+                  "    pm.expect(json).to.have.property('genreAffinity');",
+                  "    pm.expect(json.favoriteGenres).to.be.an('array');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Actualizar mis preferencias",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"favoriteGenres\": [1, 2],\n    \"favoriteDirectors\": [10],\n    \"favoriteActors\": [100]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users/me/preferences",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "me",
+                "preferences"
+              ]
+            },
+            "description": "Reemplaza los favoritos declarados (PUT completo, no merge). `favoriteGenres`, `favoriteDirectors` y `favoriteActors` son arrays de IDs numéricos. `genreAffinity` es de solo lectura: la deriva la API de reviews/watchlist, no se puede enviar acá."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+                  "const json = pm.response.json();",
+                  "pm.test('Favoritos persistidos', function () {",
+                  "    pm.expect(json.favoriteGenres).to.include.members([1, 2]);",
+                  "    pm.expect(json.favoriteDirectors).to.include(10);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Recommendations",
+      "item": [
+        {
+          "name": "Mis recomendaciones",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/users/me/recommendations?type=hybrid&limit=20",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "me",
+                "recommendations"
+              ],
+              "query": [
+                {
+                  "key": "type",
+                  "value": "hybrid",
+                  "description": "hybrid (default) | content | collab"
+                },
+                {
+                  "key": "limit",
+                  "value": "20",
+                  "description": "Default 20, máx 50"
+                }
+              ]
+            },
+            "description": "Recomendaciones personalizadas.\n\n- **content**: similitud con tu historial (reviews + watchlist).\n- **collab**: usuarios similares (item-item coseno).\n- **hybrid** (default): `content*0.4 + collab*0.4 + pref*0.2` donde `pref` usa tus preferencias (Feature 1).\n\nSin historial ni preferencias → `[]` (cold start, no error). Caché Redis 24h; se invalida al mutar reviews/watchlist."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+                  "const json = pm.response.json();",
+                  "pm.test('Array de items con movie/score/reason', function () {",
+                  "    pm.expect(json).to.be.an('array');",
+                  "    json.forEach(function (item) {",
+                  "        pm.expect(item).to.have.property('movie');",
+                  "        pm.expect(item).to.have.property('score');",
+                  "        pm.expect(item).to.have.property('reason');",
+                  "        pm.expect(item.score).to.be.above(0);",
+                  "    });",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
       "name": "Export",
       "description": "Exportación del catálogo como archivo. **Requiere rol premium o admin** (un user recibe 403). Devuelve `Content-Disposition: attachment; filename=\"catalogo.csv|json\"`.",
       "item": [
@@ -1234,6 +1383,49 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('Status 404', function () { pm.response.to.have.status(404); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "400 type inválido (recommendations)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/users/me/recommendations?type=banana", "host": ["{{baseUrl}}"], "path": ["users", "me", "recommendations"], "query": [{ "key": "type", "value": "banana" }] },
+            "description": "`type` debe ser hybrid | content | collab → esperado 400 con mensaje de validación Zod."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 400', function () { pm.response.to.have.status(400); });",
+                  "pm.test('Mensaje de validación', function () {",
+                  "    pm.expect(pm.response.json().error).to.exist;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "400 limit fuera de rango (recommendations)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/users/me/recommendations?limit=51", "host": ["{{baseUrl}}"], "path": ["users", "me", "recommendations"], "query": [{ "key": "limit", "value": "51" }] },
+            "description": "`limit` acepta 1–50. 51 (o 0, negativo, no numérico) → esperado 400."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 400', function () { pm.response.to.have.status(400); });"
                 ]
               }
             }
