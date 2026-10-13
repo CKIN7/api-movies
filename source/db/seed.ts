@@ -70,6 +70,7 @@ export async function clearAll(conn: Connection): Promise<void> {
     await conn.execute('DELETE FROM refresh_tokens')
     await conn.execute('DELETE FROM email_verifications')
     await conn.execute('DELETE FROM reviews')
+    await conn.execute('DELETE FROM user_preferences')
     await conn.execute('DELETE FROM user_watchlists')
     await conn.execute('DELETE FROM users')
     await conn.execute('DELETE FROM movie_actors')
