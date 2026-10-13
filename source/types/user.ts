@@ -32,10 +32,10 @@ export function isRole(value: unknown): value is Role {
 
 export interface UserPreferencesRow {
     user_id: string
-    favorite_genres: string | null
-    favorite_directors: string | null
-    favorite_actors: string | null
-    genre_affinity: string | null
+    favorite_genres: string | number[] | null
+    favorite_directors: string | number[] | null
+    favorite_actors: string | number[] | null
+    genre_affinity: string | Record<string, number> | null
     updated_at: string
 }
 
