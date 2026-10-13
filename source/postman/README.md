@@ -1,6 +1,6 @@
 # Postman — API Movies
 
-Colección Postman (formato v2.1 JSON) con los 34 endpoints de la API (más 3 casos negativos de errores).
+Colección Postman (formato v2.1 JSON) con los 37 endpoints de la API (más 5 casos negativos de errores).
 
 ## Archivos
 
@@ -16,7 +16,7 @@ Colección Postman (formato v2.1 JSON) con los 34 endpoints de la API (más 3 ca
 ## Flujo recomendado
 
 1. **Auth → Login (admin seed)** — usa `admin@example.com` / `password123` (usuario seed verificado con rol admin; ver `db/seed.ts`). Guarda automáticamente `accessToken`, `refreshToken` y `userId`.
-2. Ejecuta las carpetas en orden: **Movies → Search → Reviews → Watchlist → Export → Users → Metrics**.
+2. Ejecuta las carpetas en orden: **Movies → Search → Reviews → Watchlist → Preferences → Recommendations → Export → Users → Metrics**.
 3. El pre-request de la colección **renueva el access token** vía `/auth/refresh` automáticamente cuando está por expirar (el refresh token rota en cada uso). Si falla el refresh, vuelve a ejecutar el login.
 
 ## Variables principales
