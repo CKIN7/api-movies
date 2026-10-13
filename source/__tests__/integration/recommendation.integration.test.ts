@@ -1,7 +1,8 @@
 import request from 'supertest'
 import { createApp } from '../../api'
 import { setupTestDb, teardownTestDb, clearTestData, seedTestData } from '../helpers/db'
-import { authHeader } from '../helpers/auth'
+import { authHeader, TEST_USER_ID } from '../helpers/auth'
+import { invalidateUserRecommendations } from '../../utils/cache'
 import type { Connection } from 'mysql2/promise'
 
 let db: Connection
@@ -15,6 +16,8 @@ afterAll(async () => {
 })
 
 beforeEach(async () => {
+    // Redis se comparte con dev: limpia claves huérfanas del usuario de test
+    await invalidateUserRecommendations(TEST_USER_ID)
     await clearTestData(db)
     await seedTestData(db)
 })
