@@ -42,6 +42,10 @@ import SearchService from './services/searchService'
 import SearchController from './controllers/searchController'
 import { createSearchRoutes } from './routes/searchRoutes'
 import { getMovieIndex, isMeilisearchEnabled } from './utils/meilisearchClient'
+import { UserPreferencesRepository } from './repositories/UserPreferencesRepository'
+import { UserPreferencesService } from './services/userPreferencesService'
+import { UserPreferencesController } from './controllers/userPreferencesController'
+import { createUserPreferencesRoutes } from './routes/userPreferencesRoutes'
 
 // ═══════════════════════════════════════════════════════════════
 //  Patrones: Dependency Injection + Factory + Chain of Resp.
@@ -94,13 +98,16 @@ export function createApp(movieService?: MovieService, searchService?: SearchSer
     const authController = new AuthController(authService)
     const authRouter = createAuthRoutes(authController)
 
+    const userPreferencesRepository = new UserPreferencesRepository(conn)
+    const userPreferencesService = new UserPreferencesService(userPreferencesRepository, conn)
+
     const reviewRepository = new ReviewRepository(conn)
-    const reviewService = new ReviewService(reviewRepository, movieRepo)
+    const reviewService = new ReviewService(reviewRepository, movieRepo, userPreferencesService)
     const reviewController = new ReviewController(reviewService)
     const reviewRouter = createReviewRoutes(reviewController)
 
     const watchlistRepository = new WatchlistRepository(conn)
-    const watchlistService = new WatchlistService(watchlistRepository, movieRepo)
+    const watchlistService = new WatchlistService(watchlistRepository, movieRepo, userPreferencesService)
     const watchlistController = new WatchlistController(watchlistService)
     const watchlistRouter = createWatchlistRoutes(watchlistController)
 
@@ -108,12 +115,16 @@ export function createApp(movieService?: MovieService, searchService?: SearchSer
     const userController = new UserController(userService)
     const userRouter = createUserRoutes(userController)
 
+    const userPreferencesController = new UserPreferencesController(userPreferencesService)
+    const userPreferencesRouter = createUserPreferencesRoutes(userPreferencesController)
+
     app.use('/movies/search', searchRouter)
     app.use('/movies', exportRouter)
     app.use('/movies', router)
     app.use('/movies', reviewRouter)
     app.use('/users', watchlistRouter)
     app.use('/users', userRouter)
+    app.use('/users', userPreferencesRouter)
     app.use('/auth', authRouter)
     app.use('/metrics', metricsRouter)
 
