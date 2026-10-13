@@ -4,13 +4,15 @@ import AppError from "../utils/AppError";
 import logger from "../utils/logger";
 import type { CreateReviewDTO, CreateReviewResult, PaginatedReviewsResponse, ReviewResponse, ReviewRow, UpdateReviewDTO } from '../types/review';
 import { Review } from "../domain/Review";
+import { UserPreferencesService } from "./userPreferencesService";
 // import { UpdateReviewDTO } from "../schemas/reviews";
 
 
 class ReviewService {
     constructor(
         private reviewRepository: ReviewRepository,
-        private movieRepository: MovieRepository
+        private movieRepository: MovieRepository,
+        private userPreferencesService: UserPreferencesService
     ) {}
 
     async getReviews(movieId: number, page: number, limit: number): Promise<PaginatedReviewsResponse>{
@@ -52,6 +54,9 @@ class ReviewService {
             
             const {review, isNew} = await this.reviewRepository.upsert(userId, movieId, dto)
 
+            const delta = dto.rating >= 4.5 ? 5 : dto.rating >= 3.5 ? 3 : 1
+            await this.updateGenreAffinityForMovie(userId, movieId, delta)
+
             return {
                 review: Review.fromRow(review).toResponse(),
                 isNew
@@ -61,6 +66,21 @@ class ReviewService {
             if (error instanceof AppError) throw error
             logger.error(`Error en createReview: ${(error as Error).message}`)
             throw new AppError('Error al intentar crear una pelicula', 500)
+        }
+    }
+
+    private async updateGenreAffinityForMovie(userId: string, movieId: number, delta: number): Promise<void> {
+        try {
+            const [rows] = await (this.movieRepository as any).conn.query(
+                'SELECT genre_id FROM movie_genres WHERE movie_id = ?',
+                [movieId]
+            )
+            const genres = rows as { genre_id: number }[]
+            for (const g of genres) {
+                await this.userPreferencesService.updateGenreAffinity(userId, g.genre_id, delta)
+            }
+        } catch (error) {
+            logger.error(`Error updating genre affinity: ${(error as Error).message}`)
         }
     }
     
