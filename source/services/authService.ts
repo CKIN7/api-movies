@@ -33,7 +33,7 @@ class AuthService {
             
             if(user.emailVerified === false) throw new AppError('Verifica tu email antes de iniciar sesión', 403)
             
-            const accessToken = jwt.sign({sub: user.id, type: 'access'}, process.env.JWT_SECRET!, {expiresIn: '15min'})
+            const accessToken = jwt.sign({sub: user.id, type: 'access', role: user.role}, process.env.JWT_SECRET!, {expiresIn: '15min'})
             const refreshToken = jwt.sign({sub: user.id, type: 'refresh', jti: randomUUID()}, process.env.JWT_REFRESH_SECRET!, {expiresIn: '7d'})
 
             const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
@@ -118,7 +118,7 @@ class AuthService {
             if(!payload.sub) throw new AppError('Token inválido', 401)
             const user = await this.userRepository.findById(payload.sub)
 
-            const accessToken = jwt.sign({sub: user?.id, type: 'access'}, process.env.JWT_SECRET!, {expiresIn: '15min'})
+            const accessToken = jwt.sign({sub: user?.id, type: 'access', role: user?.role}, process.env.JWT_SECRET!, {expiresIn: '15min'})
             const newRefreshToken = jwt.sign({sub: user?.id, type: 'refresh', jti: randomUUID()}, process.env.JWT_REFRESH_SECRET!, {expiresIn: '7d'})
             
             await this.refreshTokenRepository.revoke(validToken.token);

@@ -1,6 +1,7 @@
 import express from 'express'
 import MovieController from '../controllers/movieController'
 import { requireAuth } from '../middleware/requireAuth'
+import { requireRole } from '../middleware/requireRole'
 
 // ═══════════════════════════════════════════════════════════════
 //  Patrón: Factory Method
@@ -18,9 +19,9 @@ export function createMovieRoutes(controller: MovieController) {
     router.get('/suggest', controller.getSuggest)
     router.get('/:id', controller.getById)
     router.get('/:id/similar', controller.getSimilar)
-    router.get('/:id/audit-log', controller.getAuditLog)
-    router.post('/', requireAuth, controller.createMovie)
-    router.patch('/:id', requireAuth, controller.updateMovie)
-    router.delete('/:id', requireAuth, controller.deleteMovie)
+    router.get('/:id/audit-log', requireAuth, requireRole('admin'), controller.getAuditLog)
+    router.post('/', requireAuth, requireRole('admin'), controller.createMovie)
+    router.patch('/:id', requireAuth, requireRole('admin'), controller.updateMovie)
+    router.delete('/:id', requireAuth, requireRole('admin'), controller.deleteMovie)
     return router
 }
