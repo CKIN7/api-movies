@@ -4,6 +4,7 @@ import AppError from '../utils/AppError'
 import type { AddToWatchlistDTO, WatchlistQueryDTO, PaginatedWatchlistResponse, WatchlistEntryResponse } from '../types/watchlist'
 import { WatchlistEntry } from '../domain/WatchlistEntry'
 import { UserPreferencesService } from './userPreferencesService'
+import { invalidateUserRecommendations } from '../utils/cache'
 
 function priorityDelta(priority: number | null | undefined): number {
     return (priority ?? 3) >= 4 ? 2 : 1
@@ -32,6 +33,7 @@ class WatchlistService {
 
         const delta = priorityDelta(dto.priority)
         await this.updateGenreAffinityForMovie(userId, dto.movieId, delta)
+        await invalidateUserRecommendations(userId)
 
         const entry = await this.watchlistRepo.findByUserAndMovie(userId, dto.movieId)
         if (!entry) throw new AppError('Error al crear entrada', 500)
@@ -87,6 +89,8 @@ class WatchlistService {
         if (existing) {
             await this.updateGenreAffinityForMovie(userId, movieId, -priorityDelta(existing.priority))
         }
+
+        await invalidateUserRecommendations(userId)
     }
 }
 
