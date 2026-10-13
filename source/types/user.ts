@@ -29,3 +29,26 @@ export const ROLE_RANK: Record<Role, number> = {
 export function isRole(value: unknown): value is Role {
     return typeof value === 'string' && (ROLES as readonly string[]).includes(value)
 }
+
+export interface UserPreferencesRow {
+    user_id: string
+    favorite_genres: string | null
+    favorite_directors: string | null
+    favorite_actors: string | null
+    genre_affinity: string | null
+    updated_at: string
+}
+
+export interface UserPreferencesResponse {
+    favoriteGenres: number[]
+    favoriteDirectors: number[]
+    favoriteActors: number[]
+    genreAffinity: Record<string, number>
+    updatedAt: Date
+}
+
+export interface UpdateUserPreferencesDTO {
+    favoriteGenres?: number[]
+    favoriteDirectors?: number[]
+    favoriteActors?: number[]
+}
