@@ -7,6 +7,9 @@ import { Review } from "../domain/Review";
 import { UserPreferencesService } from "./userPreferencesService";
 // import { UpdateReviewDTO } from "../schemas/reviews";
 
+function ratingDelta(rating: number): number {
+    return rating >= 4.5 ? 5 : rating >= 3.5 ? 3 : 1
+}
 
 class ReviewService {
     constructor(
@@ -51,11 +54,17 @@ class ReviewService {
 
             const movie = await this.movieRepository.findById(movieId)
             if(!movie) throw new AppError('Película no encontrada', 404);
-            
+
+            const previous = await this.reviewRepository.findByUserAndMovie(userId, movieId)
+
             const {review, isNew} = await this.reviewRepository.upsert(userId, movieId, dto)
 
-            const delta = dto.rating >= 4.5 ? 5 : dto.rating >= 3.5 ? 3 : 1
-            await this.updateGenreAffinityForMovie(userId, movieId, delta)
+            if (isNew) {
+                await this.updateGenreAffinityForMovie(userId, movieId, ratingDelta(dto.rating))
+            } else if (previous && Number(previous.rating) !== Number(dto.rating)) {
+                await this.updateGenreAffinityForMovie(userId, movieId, -ratingDelta(Number(previous.rating)))
+                await this.updateGenreAffinityForMovie(userId, movieId, ratingDelta(dto.rating))
+            }
 
             return {
                 review: Review.fromRow(review).toResponse(),
@@ -106,10 +115,18 @@ class ReviewService {
                 throw new AppError('No hay campos para actualizar', 400);
             }
 
+            const previous = await this.reviewRepository.findByUserAndMovie(userId, movieId)
+            if (!previous) throw new AppError('Reseña no encontrada', 404);
+
             const updatedReview = await this.reviewRepository.update(userId, movieId, dto)
 
             if (!updatedReview) throw new AppError('Reseña no encontrada', 404);
-            
+
+            if (dto.rating !== undefined && Number(dto.rating) !== Number(previous.rating)) {
+                await this.updateGenreAffinityForMovie(userId, movieId, -ratingDelta(Number(previous.rating)))
+                await this.updateGenreAffinityForMovie(userId, movieId, ratingDelta(dto.rating))
+            }
+
             return Review.fromRow(updatedReview).toResponse();
             
             
@@ -122,10 +139,16 @@ class ReviewService {
 
     async deleteMyReview(userId: string, movieId: number): Promise<void> {
         try {
+            const previous = await this.reviewRepository.findByUserAndMovie(userId, movieId)
+
             const deleted = await this.reviewRepository.delete(userId, movieId);
 
             if (!deleted) {
                 throw new AppError('Reseña no encontrada', 404);
+            }
+
+            if (previous) {
+                await this.updateGenreAffinityForMovie(userId, movieId, -ratingDelta(Number(previous.rating)))
             }
 
         } catch (error) {
