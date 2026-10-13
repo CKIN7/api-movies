@@ -26,7 +26,7 @@ class WatchlistService {
             dto.priority ?? 3
         )
 
-        const delta = dto.priority >= 4 ? 2 : 1
+        const delta = (dto.priority ?? 3) >= 4 ? 2 : 1
         await this.updateGenreAffinityForMovie(userId, dto.movieId, delta)
 
         const entry = await this.watchlistRepo.findByUserAndMovie(userId, dto.movieId)
