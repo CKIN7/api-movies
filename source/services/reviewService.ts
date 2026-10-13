@@ -5,6 +5,7 @@ import logger from "../utils/logger";
 import type { CreateReviewDTO, CreateReviewResult, PaginatedReviewsResponse, ReviewResponse, ReviewRow, UpdateReviewDTO } from '../types/review';
 import { Review } from "../domain/Review";
 import { UserPreferencesService } from "./userPreferencesService";
+import { invalidateUserRecommendations } from "../utils/cache";
 // import { UpdateReviewDTO } from "../schemas/reviews";
 
 function ratingDelta(rating: number): number {
@@ -65,6 +66,8 @@ class ReviewService {
                 await this.updateGenreAffinityForMovie(userId, movieId, -ratingDelta(Number(previous.rating)))
                 await this.updateGenreAffinityForMovie(userId, movieId, ratingDelta(dto.rating))
             }
+
+            await invalidateUserRecommendations(userId)
 
             return {
                 review: Review.fromRow(review).toResponse(),
@@ -127,6 +130,8 @@ class ReviewService {
                 await this.updateGenreAffinityForMovie(userId, movieId, ratingDelta(dto.rating))
             }
 
+            await invalidateUserRecommendations(userId)
+
             return Review.fromRow(updatedReview).toResponse();
             
             
@@ -150,6 +155,8 @@ class ReviewService {
             if (previous) {
                 await this.updateGenreAffinityForMovie(userId, movieId, -ratingDelta(Number(previous.rating)))
             }
+
+            await invalidateUserRecommendations(userId)
 
         } catch (error) {
             if (error instanceof AppError) throw error;
