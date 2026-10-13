@@ -1,6 +1,7 @@
 import crypto from 'crypto'
 import type Redis from 'ioredis'
 import logger from './logger'
+import { getRedisClient, isRedisHealthy } from './redisClient'
 
 export async function getCached<T>(client: Redis, key: string): Promise<T | null> {
     const raw = await client.get(key)
@@ -58,4 +59,16 @@ export const CACHE_KEYS = {
     movieSimilar: (id: number, page: number, limit: number) => `movie:${id}:similar:${page}:${limit}`,
     movieList: (params: Record<string, unknown>) => buildListKey('movies:list', params),
     genres: () => 'movies:genres',
+    recs: (userId: string, type: string) => `recs:user:${userId}:${type}`,
 } as const
+
+// Invalida todas las recomendaciones cacheadas de un usuario.
+// Fail-open: si Redis no está listo, no hace nada (el TTL de 24h cubre).
+export async function invalidateUserRecommendations(userId: string): Promise<void> {
+    try {
+        if (!isRedisHealthy()) return
+        await invalidatePattern(getRedisClient(), `recs:user:${userId}:*`)
+    } catch (error) {
+        logger.warn(`Failed to invalidate recommendations for user ${userId}: ${(error as Error).message}`)
+    }
+}
