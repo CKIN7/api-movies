@@ -51,9 +51,15 @@ export class UserPreferencesRepository {
 
     async updateGenreAffinity(userId: string, genreId: number, delta: number): Promise<void> {
         const existing = await this.findByUserId(userId)
-        const affinity: Record<string, number> = existing?.genre_affinity
-            ? JSON.parse(existing.genre_affinity)
-            : {}
+        const raw = existing?.genre_affinity
+        let affinity: Record<string, number> = {}
+        if (raw) {
+            if (typeof raw === 'string') {
+                try { affinity = JSON.parse(raw) } catch { affinity = {} }
+            } else {
+                affinity = raw
+            }
+        }
 
         const key = String(genreId)
         affinity[key] = (affinity[key] || 0) + delta
@@ -79,12 +85,12 @@ export class UserPreferencesRepository {
         totalWatchlist: number
     }> {
         const [genreRows] = await this.query(
-            `SELECT mg.genre_id AS genreId, g.genreName, COUNT(*) AS count
+            `SELECT mg.genre_id AS genreId, g.genre_name AS genreName, COUNT(*) AS count
              FROM reviews r
              JOIN movie_genres mg ON r.movie_id = mg.movie_id
              JOIN genres g ON mg.genre_id = g.id_genre
              WHERE r.user_id = ?
-             GROUP BY mg.genre_id, g.genreName
+             GROUP BY mg.genre_id, g.genre_name
              ORDER BY count DESC
              LIMIT 5`,
             [userId]
