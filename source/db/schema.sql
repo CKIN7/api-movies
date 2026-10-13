@@ -124,6 +124,18 @@ CREATE TABLE `reviews` (
   CONSTRAINT `fk_reviews_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
+DROP TABLE IF EXISTS `user_preferences`;
+CREATE TABLE `user_preferences` (
+  `user_id` char(36) NOT NULL,
+  `favorite_genres` json DEFAULT NULL,
+  `favorite_directors` json DEFAULT NULL,
+  `favorite_actors` json DEFAULT NULL,
+  `genre_affinity` json DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`user_id`),
+  CONSTRAINT `fk_user_preferences_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
 DROP TABLE IF EXISTS `user_watchlists`;
 CREATE TABLE `user_watchlists` (
   `id` int NOT NULL AUTO_INCREMENT,
