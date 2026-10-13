@@ -1,5 +1,15 @@
 import type { UserPreferencesRow, UserPreferencesResponse } from '../types/user'
 
+function parseJsonColumn<T>(value: string | T | null | undefined, fallback: T): T {
+    if (value === null || value === undefined) return fallback
+    if (typeof value !== 'string') return value
+    try {
+        return JSON.parse(value) as T
+    } catch {
+        return fallback
+    }
+}
+
 export class UserPreferences {
     constructor(
         public readonly userId: string,
@@ -13,10 +23,10 @@ export class UserPreferences {
     static fromRow(row: UserPreferencesRow): UserPreferences {
         return new UserPreferences(
             row.user_id,
-            row.favorite_genres ? JSON.parse(row.favorite_genres) : [],
-            row.favorite_directors ? JSON.parse(row.favorite_directors) : [],
-            row.favorite_actors ? JSON.parse(row.favorite_actors) : [],
-            row.genre_affinity ? JSON.parse(row.genre_affinity) : {},
+            parseJsonColumn(row.favorite_genres, [] as number[]),
+            parseJsonColumn(row.favorite_directors, [] as number[]),
+            parseJsonColumn(row.favorite_actors, [] as number[]),
+            parseJsonColumn(row.genre_affinity, {} as Record<string, number>),
             new Date(row.updated_at),
         )
     }
