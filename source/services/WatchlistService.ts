@@ -3,11 +3,13 @@ import MovieRepository from '../repositories/MovieRepository'
 import AppError from '../utils/AppError'
 import type { AddToWatchlistDTO, WatchlistQueryDTO, PaginatedWatchlistResponse, WatchlistEntryResponse } from '../types/watchlist'
 import { WatchlistEntry } from '../domain/WatchlistEntry'
+import { UserPreferencesService } from './userPreferencesService'
 
 class WatchlistService {
     constructor(
         private watchlistRepo: WatchlistRepository,
-        private movieRepo: MovieRepository
+        private movieRepo: MovieRepository,
+        private userPreferencesService: UserPreferencesService
     ) {}
 
     async add(userId: string, dto: AddToWatchlistDTO): Promise<WatchlistEntryResponse> {
@@ -24,10 +26,28 @@ class WatchlistService {
             dto.priority ?? 3
         )
 
+        const delta = dto.priority >= 4 ? 2 : 1
+        await this.updateGenreAffinityForMovie(userId, dto.movieId, delta)
+
         const entry = await this.watchlistRepo.findByUserAndMovie(userId, dto.movieId)
         if (!entry) throw new AppError('Error al crear entrada', 500)
 
         return WatchlistEntry.fromRow(entry, movieRow).toResponse()
+    }
+
+    private async updateGenreAffinityForMovie(userId: string, movieId: number, delta: number): Promise<void> {
+        try {
+            const [rows] = await (this.movieRepo as any).conn.query(
+                'SELECT genre_id FROM movie_genres WHERE movie_id = ?',
+                [movieId]
+            )
+            const genres = rows as { genre_id: number }[]
+            for (const g of genres) {
+                await this.userPreferencesService.updateGenreAffinity(userId, g.genre_id, delta)
+            }
+        } catch (error) {
+            // Non-critical: don't fail the watchlist operation
+        }
     }
 
     async getMyWatchlist(userId: string, query: WatchlistQueryDTO): Promise<PaginatedWatchlistResponse> {
