@@ -46,6 +46,10 @@ import { UserPreferencesRepository } from './repositories/UserPreferencesReposit
 import { UserPreferencesService } from './services/userPreferencesService'
 import { UserPreferencesController } from './controllers/userPreferencesController'
 import { createUserPreferencesRoutes } from './routes/userPreferencesRoutes'
+import { RecommendationRepository } from './repositories/RecommendationRepository'
+import { RecommendationService } from './services/recommendationService'
+import { RecommendationController } from './controllers/recommendationController'
+import { createRecommendationRoutes } from './routes/recommendationRoutes'
 
 // ═══════════════════════════════════════════════════════════════
 //  Patrones: Dependency Injection + Factory + Chain of Resp.
@@ -118,6 +122,11 @@ export function createApp(movieService?: MovieService, searchService?: SearchSer
     const userPreferencesController = new UserPreferencesController(userPreferencesService)
     const userPreferencesRouter = createUserPreferencesRoutes(userPreferencesController)
 
+    const recommendationRepository = new RecommendationRepository(conn)
+    const recommendationService = new RecommendationService(recommendationRepository, userPreferencesService, movieRepo)
+    const recommendationController = new RecommendationController(recommendationService)
+    const recommendationRouter = createRecommendationRoutes(recommendationController)
+
     app.use('/movies/search', searchRouter)
     app.use('/movies', exportRouter)
     app.use('/movies', router)
@@ -125,6 +134,7 @@ export function createApp(movieService?: MovieService, searchService?: SearchSer
     app.use('/users', watchlistRouter)
     app.use('/users', userRouter)
     app.use('/users', userPreferencesRouter)
+    app.use('/users', recommendationRouter)
     app.use('/auth', authRouter)
     app.use('/metrics', metricsRouter)
 
