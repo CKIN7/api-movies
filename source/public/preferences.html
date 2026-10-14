@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Movies API — Preferencias y Recomendaciones</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #111; color: #eee;
+    min-height: 100vh; padding-bottom: 60px;
+  }
+  .container { width: 960px; max-width: 100%; margin: 0 auto; padding: 0 16px; }
+
+  /* ── Header ── */
+  .top-bar {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 16px 0; border-bottom: 1px solid #333; margin-bottom: 28px;
+  }
+  .back-link { color: #8ab4f8; text-decoration: none; font-size: 0.9rem; }
+  .back-link:hover { text-decoration: underline; }
+
+  .auth-header { display: flex; align-items: center; gap: 10px; }
+  .auth-buttons { display: flex; gap: 8px; }
+  .user-menu { display: flex; align-items: center; gap: 10px; }
+  .user-menu #user-email { font-size: 0.85rem; color: #ccc; }
+  .verification-badge {
+    font-size: 0.7rem; background: #5c2a2a; color: #f28b82;
+    padding: 2px 8px; border-radius: 10px;
+  }
+  .verification-badge.verified { background: #1e4620; color: #81c995; }
+
+  h1 { font-size: 1.4rem; margin-bottom: 4px; }
+  .subtitle { text-align: center; color: #888; font-size: 0.85rem; margin-bottom: 28px; }
+
+  section { margin-bottom: 40px; }
+  .section-title {
+    font-size: 1.1rem; margin-bottom: 16px; color: #ccc;
+    border-bottom: 1px solid #333; padding-bottom: 8px;
+  }
+
+  .btn {
+    background: #0066cc; color: #fff; border: none; border-radius: 6px;
+    padding: 7px 18px; cursor: pointer; font-size: 0.85rem; transition: background .15s;
+    white-space: nowrap;
+  }
+  .btn:hover { background: #0052a3; }
+  .btn:disabled { opacity: .5; cursor: not-allowed; }
+  .btn-outline { background: transparent; border: 1px solid #555; color: #aaa; }
+  .btn-outline:hover { border-color: #888; color: #eee; }
+  .btn-danger { background: #8b2e2e; }
+  .btn-danger:hover { background: #a33; }
+
+  .hidden { display: none !important; }
+
+  /* ── Preferencias ── */
+  .prefs-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  @media (max-width: 720px) { .prefs-grid { grid-template-columns: 1fr; } }
+
+  .panel { background: #1a1a1a; border: 1px solid #333; border-radius: 10px; padding: 20px; }
+  .panel h3 { font-size: 0.95rem; color: #ccc; margin-bottom: 12px; }
+
+  .genre-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 6px; }
+  .genre-chip {
+    background: #2a2a2a; border: 1px solid #444; color: #aaa;
+    padding: 5px 12px; border-radius: 16px; cursor: pointer; font-size: 0.8rem;
+    transition: all .15s; user-select: none;
+  }
+  .genre-chip:hover { border-color: #888; color: #eee; }
+  .genre-chip.selected { background: #0066cc; border-color: #0066cc; color: #fff; }
+
+  .field { margin-bottom: 14px; }
+  .field label { display: block; font-size: 0.75rem; color: #aaa; margin-bottom: 4px; }
+  .field input {
+    background: #111; border: 1px solid #444; border-radius: 6px;
+    padding: 7px 10px; color: #eee; font-size: 0.85rem; width: 100%; outline: none;
+  }
+  .field input:focus { border-color: #0066cc; }
+  .field .hint { font-size: 0.7rem; color: #666; margin-top: 3px; }
+
+  .affinity-chips { display: flex; flex-wrap: wrap; gap: 8px; min-height: 28px; }
+  .affinity-chip {
+    background: #253a1e; border: 1px solid #3d5c33; color: #b7e1a3;
+    padding: 4px 10px; border-radius: 12px; font-size: 0.75rem;
+  }
+  .affinity-empty { color: #666; font-size: 0.8rem; font-style: italic; }
+
+  .prefs-meta { margin-top: 12px; font-size: 0.72rem; color: #666; }
+
+  /* ── Recomendaciones ── */
+  .recs-controls { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 16px; }
+  .recs-controls select {
+    background: #1a1a1a; border: 1px solid #444; border-radius: 6px;
+    padding: 6px 10px; color: #eee; font-size: 0.85rem; outline: none;
+  }
+  .recs-controls select option { background: #1a1a1a; }
+
+  .recs-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 14px;
+  }
+  .rec-card {
+    background: #1a1a1a; border: 1px solid #333; border-radius: 10px;
+    padding: 16px; display: flex; flex-direction: column; gap: 6px;
+  }
+  .rec-card .title { font-weight: 600; font-size: 0.95rem; }
+  .rec-card .meta { color: #888; font-size: 0.8rem; }
+  .rec-card .director { color: #8ab4f8; font-size: 0.8rem; }
+  .rec-card .genres { display: flex; gap: 4px; flex-wrap: wrap; margin: 4px 0; }
+  .rec-card .genres span {
+    background: #2a2a2a; padding: 2px 8px; border-radius: 4px; font-size: 0.7rem; color: #aaa;
+  }
+  .rec-card .score-row { display: flex; align-items: center; gap: 8px; margin-top: auto; }
+  .rec-card .score-bar { flex: 1; height: 6px; background: #2a2a2a; border-radius: 3px; overflow: hidden; }
+  .rec-card .score-fill { height: 100%; background: #0066cc; border-radius: 3px; }
+  .rec-card .score-num { font-size: 0.75rem; color: #8ab4f8; font-weight: 600; min-width: 28px; text-align: right; }
+  .rec-card .reason {
+    font-size: 0.7rem; color: #fdd835; background: #2a2610;
+    padding: 3px 8px; border-radius: 4px; margin-top: 4px;
+  }
+
+  .status-msg { color: #888; font-size: 0.85rem; padding: 20px 0; text-align: center; }
+  .status-msg.error { color: #f28b82; }
+
+  /* ── Simulador ── */
+  .sim-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  @media (max-width: 720px) { .sim-grid { grid-template-columns: 1fr; } }
+  .sim-row { display: flex; gap: 8px; align-items: end; }
+  .sim-row .field { flex: 1; margin-bottom: 0; }
+  .sim-row .field input { width: 90px; }
+  .sim-note { font-size: 0.72rem; color: #666; margin-top: 10px; }
+
+  /* ── Toasts ── */
+  .toast-container {
+    position: fixed; bottom: 20px; right: 20px; display: flex;
+    flex-direction: column; gap: 8px; z-index: 1000;
+  }
+  .toast {
+    background: #2a2a2a; border: 1px solid #444; color: #eee;
+    padding: 10px 16px; border-radius: 8px; font-size: 0.82rem;
+    box-shadow: 0 4px 12px rgba(0,0,0,.4); animation: toastIn .2s ease;
+  }
+  .toast.error { border-color: #8b2e2e; color: #f28b82; }
+  @keyframes toastIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; } }
+
+  /* ── Modales (requeridos por auth.js) ── */
+  .modal { display: none; position: fixed; inset: 0; z-index: 500; align-items: center; justify-content: center; }
+  .modal.open { display: flex; }
+  .modal-overlay { position: absolute; inset: 0; background: rgba(0,0,0,.6); }
+  .modal-content {
+    position: relative; background: #1a1a1a; border: 1px solid #444;
+    border-radius: 10px; padding: 28px; width: 360px; max-width: 92%;
+  }
+  .modal-content h2 { font-size: 1.1rem; margin-bottom: 16px; }
+  .modal-content label { display: block; font-size: 0.78rem; color: #aaa; margin-bottom: 12px; }
+  .modal-content input {
+    display: block; width: 100%; margin-top: 4px;
+    background: #111; border: 1px solid #444; border-radius: 6px;
+    padding: 8px 10px; color: #eee; font-size: 0.85rem; outline: none;
+  }
+  .modal-content input:focus { border-color: #0066cc; }
+  .modal-content small { display: block; color: #666; font-size: 0.7rem; margin: -8px 0 12px; }
+  .modal-content .btn { width: 100%; margin-bottom: 10px; }
+  .modal-content p { font-size: 0.8rem; color: #888; text-align: center; }
+  .modal-content p button { background: none; border: none; color: #8ab4f8; cursor: pointer; font-size: 0.8rem; }
+  .error-msg { color: #f28b82; font-size: 0.78rem; min-height: 1em; margin-top: 8px; }
+  .btn-resend { background: #0066cc; color: #fff; border: none; border-radius: 4px; cursor: pointer; }
+
+  .login-required {
+    background: #1a1a1a; border: 1px dashed #444; border-radius: 10px;
+    padding: 28px; text-align: center; color: #888; font-size: 0.9rem;
+  }
+</style>
+</head>
+<body>
+
+<!-- Auth Header (IDs requeridos por auth.js) -->
+<header class="top-bar container" style="padding-left:16px;padding-right:16px;">
+  <a class="back-link" href="/">← Landing</a>
+  <div class="auth-header">
+    <div class="auth-buttons" id="auth-buttons">
+      <button class="btn" id="btn-login">Login</button>
+      <button class="btn" id="btn-register">Register</button>
+    </div>
+    <div class="user-menu hidden" id="user-menu">
+      <span id="user-email"></span>
+      <span class="verification-badge" id="verification-badge">Sin verificar</span>
+      <button class="btn btn-outline" id="btn-logout">Logout</button>
+    </div>
+  </div>
+</header>
+
+<div class="container">
+  <h1>Preferencias y Recomendaciones</h1>
+  <p class="subtitle">Features 1 y 2 — perfil de gustos + motor de recomendaciones</p>
+
+  <div id="login-required" class="login-required hidden">
+    Iniciá sesión para ver tus preferencias y recomendaciones.
+  </div>
+
+  <div id="app" class="hidden">
+
+    <!-- ══ Preferencias ══ -->
+    <section id="section-preferences">
+      <h2 class="section-title">Mis preferencias</h2>
+      <div class="prefs-grid">
+        <div class="panel">
+          <h3>Géneros favoritos</h3>
+          <div class="genre-chips" id="genre-chips">
+            <span class="affinity-empty">Cargando géneros…</span>
+          </div>
+        </div>
+        <div class="panel">
+          <h3>Artistas favoritos</h3>
+          <div class="field">
+            <label for="fav-directors">Directores (IDs separados por coma)</label>
+            <input type="text" id="fav-directors" placeholder="10, 20">
+            <div class="hint">Ej: 10 = Christopher Nolan (ver seed)</div>
+          </div>
+          <div class="field">
+            <label for="fav-actors">Actores (IDs separados por coma)</label>
+            <input type="text" id="fav-actors" placeholder="100, 101">
+          </div>
+          <button class="btn" id="btn-save-prefs">Guardar preferencias</button>
+        </div>
+      </div>
+      <div class="panel" style="margin-top:16px;">
+        <h3>Géneros derivados de tu actividad (genreAffinity)</h3>
+        <div class="affinity-chips" id="affinity-chips">
+          <span class="affinity-empty">Sin interacciones aún</span>
+        </div>
+        <div class="prefs-meta" id="prefs-updated"></div>
+      </div>
+    </section>
+
+    <!-- ══ Recomendaciones ══ -->
+    <section id="section-recommendations">
+      <h2 class="section-title">Mis recomendaciones</h2>
+      <div class="recs-controls">
+        <select id="recs-type">
+          <option value="hybrid" selected>hybrid (default)</option>
+          <option value="content">content</option>
+          <option value="collab">collab</option>
+        </select>
+        <select id="recs-limit">
+          <option value="5">5</option>
+          <option value="10" selected>10</option>
+          <option value="20">20</option>
+          <option value="50">50</option>
+        </select>
+        <button class="btn" id="btn-load-recs">Actualizar</button>
+      </div>
+      <div id="recs-status" class="status-msg hidden"></div>
+      <div class="recs-grid" id="recs-grid"></div>
+    </section>
+
+    <!-- ══ Simulador de interacción ══ -->
+    <section id="section-simulator">
+      <h2 class="section-title">Simular interacción (alimenta el historial)</h2>
+      <div class="sim-grid">
+        <div class="panel">
+          <h3>Review</h3>
+          <div class="sim-row">
+            <div class="field">
+              <label for="sim-review-movie">movieId</label>
+              <input type="number" id="sim-review-movie" min="1" placeholder="1">
+            </div>
+            <div class="field">
+              <label for="sim-review-rating">rating (1–5)</label>
+              <input type="number" id="sim-review-rating" min="1" max="5" value="5">
+            </div>
+            <button class="btn" id="btn-sim-review">Postear</button>
+          </div>
+          <div class="sim-row" style="margin-top:10px;">
+            <div class="field">
+              <label for="sim-review-del-movie">movieId a eliminar</label>
+              <input type="number" id="sim-review-del-movie" min="1" placeholder="1">
+            </div>
+            <button class="btn btn-danger" id="btn-sim-unreview">Eliminar review</button>
+          </div>
+        </div>
+        <div class="panel">
+          <h3>Watchlist</h3>
+          <div class="sim-row">
+            <div class="field">
+              <label for="sim-watch-movie">movieId</label>
+              <input type="number" id="sim-watch-movie" min="1" placeholder="3">
+            </div>
+            <div class="field">
+              <label for="sim-watch-priority">priority (1–5)</label>
+              <input type="number" id="sim-watch-priority" min="1" max="5" value="5">
+            </div>
+            <button class="btn" id="btn-sim-watch">Agregar</button>
+          </div>
+          <div class="sim-row" style="margin-top:10px;">
+            <div class="field">
+              <label for="sim-watch-del-movie">movieId a quitar</label>
+              <input type="number" id="sim-watch-del-movie" min="1" placeholder="3">
+            </div>
+            <button class="btn btn-danger" id="btn-sim-unwatch">Quitar de watchlist</button>
+          </div>
+          <p class="sim-note">Cada acción recalcula genreAffinity (F1) y invalida la caché de recomendaciones (F2).</p>
+        </div>
+      </div>
+    </section>
+
+  </div>
+</div>
+
+<!-- Modal Login (requerido por auth.js) -->
+<div class="modal" id="modal-login">
+  <div class="modal-overlay" id="modal-overlay"></div>
+  <div class="modal-content">
+    <h2>Iniciar Sesión</h2>
+    <form id="form-login">
+      <label>Email<input type="email" name="email" required autocomplete="email"></label>
+      <label>Contraseña<input type="password" name="password" required autocomplete="current-password"></label>
+      <button type="submit" class="btn">Entrar</button>
+    </form>
+    <p>¿No tienes cuenta? <button type="button" id="switch-to-register">Regístrate</button></p>
+    <div class="error-msg" id="login-error"></div>
+  </div>
+</div>
+
+<!-- Modal Register (requerido por auth.js) -->
+<div class="modal" id="modal-register">
+  <div class="modal-overlay" id="modal-overlay-register"></div>
+  <div class="modal-content">
+    <h2>Registrarse</h2>
+    <form id="form-register">
+      <label>Email<input type="email" name="email" required autocomplete="email"></label>
+      <label>Contraseña<input type="password" name="password" required minlength="8" autocomplete="new-password"></label>
+      <small>Mín 8 chars, mayúscula, minúscula, número, símbolo</small>
+      <button type="submit" class="btn">Crear cuenta</button>
+    </form>
+    <p>¿Ya tienes cuenta? <button type="button" id="switch-to-login">Inicia sesión</button></p>
+    <div class="error-msg" id="register-error"></div>
+  </div>
+</div>
+
+<div class="toast-container" id="toast-container"></div>
+
+<script type="module" src="./preferences.js"></script>
+</body>
+</html>
