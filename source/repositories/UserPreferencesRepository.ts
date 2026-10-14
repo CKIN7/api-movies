@@ -1,6 +1,12 @@
 import { UserPreferencesRow } from '../types/user'
 import { DbLogger } from '../utils/DbLogger'
 
+export interface UserPreferencesFavorites {
+    favoriteGenres: number[]
+    favoriteDirectors: number[]
+    favoriteActors: number[]
+}
+
 export class UserPreferencesRepository {
     constructor(private conn: any) {}
 
@@ -16,66 +22,66 @@ export class UserPreferencesRepository {
         return (rows as UserPreferencesRow[])[0] || null
     }
 
-    async upsert(userId: string, data: {
-        favoriteGenres?: number[]
-        favoriteDirectors?: number[]
-        favoriteActors?: number[]
+    async insert(userId: string, data: UserPreferencesFavorites & {
+        genreAffinity: Record<string, number>
     }): Promise<void> {
-        const existing = await this.findByUserId(userId)
-
-        const favoriteGenres = data.favoriteGenres !== undefined
-            ? JSON.stringify(data.favoriteGenres)
-            : existing?.favorite_genres ?? null
-        const favoriteDirectors = data.favoriteDirectors !== undefined
-            ? JSON.stringify(data.favoriteDirectors)
-            : existing?.favorite_directors ?? null
-        const favoriteActors = data.favoriteActors !== undefined
-            ? JSON.stringify(data.favoriteActors)
-            : existing?.favorite_actors ?? null
-
-        if (existing) {
-            await this.query(
-                `UPDATE user_preferences
-                 SET favorite_genres = ?, favorite_directors = ?, favorite_actors = ?
-                 WHERE user_id = ?`,
-                [favoriteGenres, favoriteDirectors, favoriteActors, userId]
-            )
-        } else {
-            await this.query(
-                `INSERT INTO user_preferences (user_id, favorite_genres, favorite_directors, favorite_actors)
-                 VALUES (?, ?, ?, ?)`,
-                [userId, favoriteGenres, favoriteDirectors, favoriteActors]
-            )
-        }
+        await this.query(
+            `INSERT INTO user_preferences
+             (user_id, favorite_genres, favorite_directors, favorite_actors, genre_affinity)
+             VALUES (?, ?, ?, ?, ?)`,
+            [
+                userId,
+                JSON.stringify(data.favoriteGenres),
+                JSON.stringify(data.favoriteDirectors),
+                JSON.stringify(data.favoriteActors),
+                JSON.stringify(data.genreAffinity),
+            ]
+        )
     }
 
-    async updateGenreAffinity(userId: string, genreId: number, delta: number): Promise<void> {
-        const existing = await this.findByUserId(userId)
-        const raw = existing?.genre_affinity
-        let affinity: Record<string, number> = {}
-        if (raw) {
-            if (typeof raw === 'string') {
-                try { affinity = JSON.parse(raw) } catch { affinity = {} }
-            } else {
-                affinity = raw
-            }
-        }
+    async update(userId: string, data: UserPreferencesFavorites): Promise<void> {
+        await this.query(
+            `UPDATE user_preferences
+             SET favorite_genres = ?, favorite_directors = ?, favorite_actors = ?
+             WHERE user_id = ?`,
+            [
+                JSON.stringify(data.favoriteGenres),
+                JSON.stringify(data.favoriteDirectors),
+                JSON.stringify(data.favoriteActors),
+                userId,
+            ]
+        )
+    }
 
-        const key = String(genreId)
-        affinity[key] = (affinity[key] || 0) + delta
-        if (affinity[key] <= 0) delete affinity[key]
+    async saveAffinity(userId: string, affinity: Record<string, number>): Promise<void> {
+        await this.query(
+            'UPDATE user_preferences SET genre_affinity = ? WHERE user_id = ?',
+            [JSON.stringify(affinity), userId]
+        )
+    }
 
-        if (existing) {
-            await this.query(
-                'UPDATE user_preferences SET genre_affinity = ? WHERE user_id = ?',
-                [JSON.stringify(affinity), userId]
-            )
-        } else {
-            await this.query(
-                'INSERT INTO user_preferences (user_id, genre_affinity) VALUES (?, ?)',
-                [userId, JSON.stringify(affinity)]
-            )
-        }
+    async existingGenreIds(ids: number[]): Promise<number[]> {
+        const [rows] = await this.query(
+            'SELECT id_genre FROM genres WHERE id_genre IN (?)',
+            [ids]
+        )
+        return (rows as { id_genre: number }[]).map(r => r.id_genre)
+    }
+
+    async existingDirectorIds(ids: number[]): Promise<number[]> {
+        const [rows] = await this.query(
+            'SELECT director_id FROM directors WHERE director_id IN (?)',
+            [ids]
+        )
+        return (rows as { director_id: number }[]).map(r => r.director_id)
+    }
+
+    async existingActorIds(ids: number[]): Promise<number[]> {
+        const [rows] = await this.query(
+            'SELECT actor_id FROM actors WHERE actor_id IN (?)',
+            [ids]
+        )
+        return (rows as { actor_id: number }[]).map(r => r.actor_id)
     }
 
     async getStats(userId: string): Promise<{
