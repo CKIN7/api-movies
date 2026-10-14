@@ -3,17 +3,11 @@ import { UserPreferences } from '../domain/UserPreferences'
 import AppError from '../utils/AppError'
 import logger from '../utils/logger'
 import type { UpdateUserPreferencesDTO } from '../types/user'
-import { DbLogger } from '../utils/DbLogger'
 
 export class UserPreferencesService {
     constructor(
         private userPreferencesRepository: UserPreferencesRepository,
-        private conn: any,
     ) {}
-
-    private async query(sql: string, params?: any[]) {
-        return await DbLogger.query('query', sql, params || [], () => this.conn.query(sql, params)) as any
-    }
 
     async getPreferences(userId: string) {
         try {
@@ -37,40 +31,47 @@ export class UserPreferencesService {
     async updatePreferences(userId: string, dto: UpdateUserPreferencesDTO) {
         try {
             if (dto.favoriteGenres && dto.favoriteGenres.length > 0) {
-                const [rows] = await this.query(
-                    'SELECT id_genre FROM genres WHERE id_genre IN (?)',
-                    [dto.favoriteGenres]
-                )
-                if ((rows as any[]).length !== dto.favoriteGenres.length) {
+                const found = await this.userPreferencesRepository.existingGenreIds(dto.favoriteGenres)
+                if (found.length !== dto.favoriteGenres.length) {
                     throw new AppError('Uno o más genre_ids no existen', 400)
                 }
             }
 
             if (dto.favoriteDirectors && dto.favoriteDirectors.length > 0) {
-                const [rows] = await this.query(
-                    'SELECT director_id FROM directors WHERE director_id IN (?)',
-                    [dto.favoriteDirectors]
-                )
-                if ((rows as any[]).length !== dto.favoriteDirectors.length) {
+                const found = await this.userPreferencesRepository.existingDirectorIds(dto.favoriteDirectors)
+                if (found.length !== dto.favoriteDirectors.length) {
                     throw new AppError('Uno o más director_ids no existen', 400)
                 }
             }
 
             if (dto.favoriteActors && dto.favoriteActors.length > 0) {
-                const [rows] = await this.query(
-                    'SELECT actor_id FROM actors WHERE actor_id IN (?)',
-                    [dto.favoriteActors]
-                )
-                if ((rows as any[]).length !== dto.favoriteActors.length) {
+                const found = await this.userPreferencesRepository.existingActorIds(dto.favoriteActors)
+                if (found.length !== dto.favoriteActors.length) {
                     throw new AppError('Uno o más actor_ids no existen', 400)
                 }
             }
 
-            await this.userPreferencesRepository.upsert(userId, {
-                favoriteGenres: dto.favoriteGenres,
-                favoriteDirectors: dto.favoriteDirectors,
-                favoriteActors: dto.favoriteActors,
-            })
+            const row = await this.userPreferencesRepository.findByUserId(userId)
+            const current = row ? UserPreferences.fromRow(row) : null
+
+            const favoriteGenres = dto.favoriteGenres ?? current?.favoriteGenres ?? []
+            const favoriteDirectors = dto.favoriteDirectors ?? current?.favoriteDirectors ?? []
+            const favoriteActors = dto.favoriteActors ?? current?.favoriteActors ?? []
+
+            if (row) {
+                await this.userPreferencesRepository.update(userId, {
+                    favoriteGenres,
+                    favoriteDirectors,
+                    favoriteActors,
+                })
+            } else {
+                await this.userPreferencesRepository.insert(userId, {
+                    favoriteGenres,
+                    favoriteDirectors,
+                    favoriteActors,
+                    genreAffinity: {},
+                })
+            }
 
             return this.getPreferences(userId)
         } catch (error) {
@@ -91,7 +92,25 @@ export class UserPreferencesService {
 
     async updateGenreAffinity(userId: string, genreId: number, delta: number): Promise<void> {
         try {
-            await this.userPreferencesRepository.updateGenreAffinity(userId, genreId, delta)
+            const row = await this.userPreferencesRepository.findByUserId(userId)
+            const affinity = row
+                ? UserPreferences.fromRow(row).genreAffinity
+                : {}
+
+            const key = String(genreId)
+            affinity[key] = (affinity[key] ?? 0) + delta
+            if (affinity[key] <= 0) delete affinity[key]
+
+            if (row) {
+                await this.userPreferencesRepository.saveAffinity(userId, affinity)
+            } else {
+                await this.userPreferencesRepository.insert(userId, {
+                    favoriteGenres: [],
+                    favoriteDirectors: [],
+                    favoriteActors: [],
+                    genreAffinity: affinity,
+                })
+            }
         } catch (error) {
             logger.error(`Error in updateGenreAffinity: ${(error as Error).message}`)
         }
