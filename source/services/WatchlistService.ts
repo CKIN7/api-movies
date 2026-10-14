@@ -7,7 +7,15 @@ import { UserPreferencesService } from './userPreferencesService'
 import { invalidateUserRecommendations } from '../utils/cache'
 
 function priorityDelta(priority: number | null | undefined): number {
-    return (priority ?? 3) >= 4 ? 2 : 1
+    // Si no se define una prioridad, usamos 3 por defecto
+    const currentPriority = priority ?? 3;
+
+    // Las prioridades altas (4 o más) tienen un delta mayor
+    if (currentPriority >= 4) {
+        return 2;
+    }
+    
+    return 1;
 }
 
 class WatchlistService {
