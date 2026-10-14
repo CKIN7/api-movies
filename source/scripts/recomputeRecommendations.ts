@@ -21,7 +21,7 @@ async function recompute(): Promise<void> {
     const movieRepo = new MovieRepository(connection)
     const recRepo = new RecommendationRepository(connection)
     const prefsRepo = new UserPreferencesRepository(connection)
-    const prefsService = new UserPreferencesService(prefsRepo, connection)
+    const prefsService = new UserPreferencesService(prefsRepo)
     const service = new RecommendationService(recRepo, prefsService, movieRepo)
 
     const processed = await service.recomputeCollabForAllUsers()
