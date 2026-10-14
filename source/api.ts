@@ -103,7 +103,7 @@ export function createApp(movieService?: MovieService, searchService?: SearchSer
     const authRouter = createAuthRoutes(authController)
 
     const userPreferencesRepository = new UserPreferencesRepository(conn)
-    const userPreferencesService = new UserPreferencesService(userPreferencesRepository, conn)
+    const userPreferencesService = new UserPreferencesService(userPreferencesRepository)
 
     const reviewRepository = new ReviewRepository(conn)
     const reviewService = new ReviewService(reviewRepository, movieRepo, userPreferencesService)
