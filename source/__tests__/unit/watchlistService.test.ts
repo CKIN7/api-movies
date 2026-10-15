@@ -1,6 +1,12 @@
 import WatchlistService from '../../services/WatchlistService'
+import { UserPreferencesService } from '../../services/userPreferencesService'
 import type { MovieRow } from '../../types/movie'
 import type { WatchlistRow } from '../../types/watchlist'
+
+const mockUserPreferencesService = {
+    userPreferencesRepository: {} as any,
+    conn: {} as any,
+} as unknown as UserPreferencesService
 
 const mockWatchlistRepo = {
     findByUserAndMovie: jest.fn(),
@@ -19,7 +25,7 @@ describe('WatchlistService (unit)', () => {
 
     beforeEach(() => {
         jest.clearAllMocks()
-        service = new WatchlistService(mockWatchlistRepo as any, mockMovieRepo as any)
+        service = new WatchlistService(mockWatchlistRepo as any, mockMovieRepo as any, mockUserPreferencesService)
     })
 
     const mockMovieRow: MovieRow = {

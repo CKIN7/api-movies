@@ -57,8 +57,9 @@ class MovieController {
 
     }
 
-    getGenres = async (_req: Request, resp: Response) => {
-        const genres = await this.movieService.getAllGenres()
+    getGenres = async (req: Request, resp: Response) => {
+        const full = req.query.full === 'true'
+        const genres = await this.movieService.getAllGenres(full)
         resp.json(genres)
     }
 

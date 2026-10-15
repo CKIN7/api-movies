@@ -2,6 +2,7 @@ import { createApp } from '../../api'
 import ReviewService from '../../services/reviewService'
 import ReviewRepository from '../../repositories/ReviewRepository'
 import MovieRepository from '../../repositories/MovieRepository'
+import { UserPreferencesService } from '../../services/userPreferencesService'
 import type { CreateReviewDTO, UpdateReviewDTO } from '../../types/review'
 import type { ReviewRow, ReviewsSummary, CreateReviewResult } from '../../types/review'
 
@@ -46,7 +47,12 @@ mockReviewRepo.delete.mockResolvedValue(true)
 const mockMovieRepoTyped = mockMovieRepo as unknown as MovieRepository
 const mockReviewRepoTyped = mockReviewRepo as unknown as ReviewRepository
 
-const mockReviewService = new ReviewService(mockReviewRepoTyped, mockMovieRepoTyped)
+const mockUserPreferencesService = {
+    userPreferencesRepository: {} as any,
+    conn: {} as any,
+} as unknown as UserPreferencesService
+
+const mockReviewService = new ReviewService(mockReviewRepoTyped, mockMovieRepoTyped, mockUserPreferencesService)
 
 const mockApp = createApp(mockReviewService as any)
 

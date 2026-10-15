@@ -3,11 +3,26 @@ import MovieRepository from '../repositories/MovieRepository'
 import AppError from '../utils/AppError'
 import type { AddToWatchlistDTO, WatchlistQueryDTO, PaginatedWatchlistResponse, WatchlistEntryResponse } from '../types/watchlist'
 import { WatchlistEntry } from '../domain/WatchlistEntry'
+import { UserPreferencesService } from './userPreferencesService'
+import { invalidateUserRecommendations } from '../utils/cache'
+
+function priorityDelta(priority: number | null | undefined): number {
+    // Si no se define una prioridad, usamos 3 por defecto
+    const currentPriority = priority ?? 3;
+
+    // Las prioridades altas (4 o más) tienen un delta mayor
+    if (currentPriority >= 4) {
+        return 2;
+    }
+    
+    return 1;
+}
 
 class WatchlistService {
     constructor(
         private watchlistRepo: WatchlistRepository,
-        private movieRepo: MovieRepository
+        private movieRepo: MovieRepository,
+        private userPreferencesService: UserPreferencesService
     ) {}
 
     async add(userId: string, dto: AddToWatchlistDTO): Promise<WatchlistEntryResponse> {
@@ -24,10 +39,29 @@ class WatchlistService {
             dto.priority ?? 3
         )
 
+        const delta = priorityDelta(dto.priority)
+        await this.updateGenreAffinityForMovie(userId, dto.movieId, delta)
+        await invalidateUserRecommendations(userId)
+
         const entry = await this.watchlistRepo.findByUserAndMovie(userId, dto.movieId)
         if (!entry) throw new AppError('Error al crear entrada', 500)
 
         return WatchlistEntry.fromRow(entry, movieRow).toResponse()
+    }
+
+    private async updateGenreAffinityForMovie(userId: string, movieId: number, delta: number): Promise<void> {
+        try {
+            const [rows] = await (this.movieRepo as any).conn.query(
+                'SELECT genre_id FROM movie_genres WHERE movie_id = ?',
+                [movieId]
+            )
+            const genres = rows as { genre_id: number }[]
+            for (const g of genres) {
+                await this.userPreferencesService.updateGenreAffinity(userId, g.genre_id, delta)
+            }
+        } catch (error) {
+            // Non-critical: don't fail the watchlist operation
+        }
     }
 
     async getMyWatchlist(userId: string, query: WatchlistQueryDTO): Promise<PaginatedWatchlistResponse> {
@@ -55,8 +89,16 @@ class WatchlistService {
     }
 
     async remove(userId: string, movieId: number): Promise<void> {
+        const existing = await this.watchlistRepo.findByUserAndMovie(userId, movieId)
+
         const deleted = await this.watchlistRepo.delete(userId, movieId)
         if (!deleted) throw new AppError('Entrada no encontrada en tu watchlist', 404)
+
+        if (existing) {
+            await this.updateGenreAffinityForMovie(userId, movieId, -priorityDelta(existing.priority))
+        }
+
+        await invalidateUserRecommendations(userId)
     }
 }
 

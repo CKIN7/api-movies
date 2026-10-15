@@ -145,6 +145,7 @@ class MovieService {
             await this.safeInvalidate(similarMoviesPattern)
             await this.safeInvalidate(movieListPattern)
             await this.cache.del(genresCacheKey)
+            await this.cache.del(`${genresCacheKey}:full`)
         } catch (error) {
             const errorMessage = (error as Error).message
             logger.warn(`[Cache] Failed to invalidate caches for movie ${movieId}: ${errorMessage}`)
@@ -253,20 +254,22 @@ class MovieService {
         }
     }
 
-    async getAllGenres(): Promise<string[]> {
+    async getAllGenres(full: boolean = false): Promise<string[] | { id: number; name: string }[]> {
+        const cacheKey = full ? `${CACHE_KEYS.genres()}:full` : CACHE_KEYS.genres()
+
         if (this.isCacheEnabled()) {
-            const cacheKey = CACHE_KEYS.genres()
-            const cachedGenres = await this.safeGetCached<string[]>(cacheKey)
+            const cachedGenres = await this.safeGetCached<string[] | { id: number; name: string }[]>(cacheKey)
 
             if (cachedGenres !== null) {
                 return cachedGenres
             }
         }
 
-        const genres = await this.genreRepo.findAll()
+        const genres = full
+            ? await this.genreRepo.findAllWithIds()
+            : await this.genreRepo.findAll()
 
         if (this.isCacheEnabled()) {
-            const cacheKey = CACHE_KEYS.genres()
             await this.safeSetCached(cacheKey, genres, CACHE_TTL_GENRES)
         }
 
@@ -334,6 +337,7 @@ class MovieService {
 
                         await this.safeInvalidate(movieListPattern)
                         await this.cache.del(genresCacheKey)
+                        await this.cache.del(`${genresCacheKey}:full`)
                     } catch (error) {
                         const errorMessage = (error as Error).message
                         logger.warn(`[Cache] Failed to invalidate list caches after create: ${errorMessage}`)
