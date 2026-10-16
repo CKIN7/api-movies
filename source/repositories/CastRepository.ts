@@ -1,4 +1,5 @@
 import { DbLogger } from '../utils/DbLogger'
+import { activeConnection } from '../db/transactionContext'
 
 // ═══════════════════════════════════════════════════════════════
 //  Patrones: Repository + Template Method
@@ -12,7 +13,7 @@ class CastRepository {
     constructor(private conn: any) {}
 
     private async query(sql: string, params?: any[]) {
-        return await DbLogger.query('query', sql, params || [], () => this.conn.query(sql, params)) as any
+        return await DbLogger.query('query', sql, params || [], () => activeConnection(this.conn).query(sql, params)) as any
     }
 
     async findByName(name: string): Promise<number | null> {
