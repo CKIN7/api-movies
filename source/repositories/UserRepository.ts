@@ -1,12 +1,13 @@
 import { InsertUserParams, UserRow } from "../types/user";
 import { DbLogger } from "../utils/DbLogger";
 import { randomUUID } from 'crypto'
+import { activeConnection } from "../db/transactionContext";
 
 class UserRepository {
     constructor(private conn: any) {}
 
     private async query(sql: string, params?: any[]) {
-        return await DbLogger.query('query', sql, params || [], () => this.conn.query(sql, params)) as any
+        return await DbLogger.query('query', sql, params || [], () => activeConnection(this.conn).query(sql, params)) as any
     }
 
     async findByEmail(email: string):Promise<UserRow | null> {
