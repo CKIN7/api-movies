@@ -45,7 +45,7 @@ export class RecommendationRepository {
 
     async getCandidates(): Promise<RecommendationCandidateRow[]> {
         const [rows] = await this.query(
-            `SELECT m.id, m.title, m.year, m.rating, m.id_director,
+            `SELECT m.id, m.title, m.year, m.rating, m.duration, m.age_rating, m.id_director,
                     COALESCE(GROUP_CONCAT(DISTINCT mg.genre_id), '') AS genreIds,
                     COALESCE(GROUP_CONCAT(DISTINCT g.genre_name), '') AS genreNames,
                     COALESCE(GROUP_CONCAT(DISTINCT ma.actor_id), '') AS actorIds
@@ -53,7 +53,7 @@ export class RecommendationRepository {
              LEFT JOIN movie_genres mg ON mg.movie_id = m.id
              LEFT JOIN genres g ON g.id_genre = mg.genre_id
              LEFT JOIN movie_actors ma ON ma.movie_id = m.id
-             GROUP BY m.id, m.title, m.year, m.rating, m.id_director`
+             GROUP BY m.id, m.title, m.year, m.rating, m.duration, m.age_rating, m.id_director`
         )
         return rows as RecommendationCandidateRow[]
     }
