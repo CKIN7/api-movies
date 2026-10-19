@@ -1,5 +1,6 @@
 import type { AuditLogEntry, AuditLogParams, InsertAuditLogParams } from '../types/auditLog'
 import { DbLogger } from '../utils/DbLogger'
+import { activeConnection } from '../db/transactionContext'
 
 // ═══════════════════════════════════════════════════════════════
 //  Patrón: Repository
@@ -12,7 +13,7 @@ class AuditLogRepository {
     constructor(private conn: any) {}
 
     private async query(sql: string, params?: any[]) {
-        return await DbLogger.query('query', sql, params || [], () => this.conn.query(sql, params)) as any
+        return await DbLogger.query('query', sql, params || [], () => activeConnection(this.conn).query(sql, params)) as any
     }
 
     async findByMovieId({ movieId, limit, offset }: AuditLogParams): Promise<AuditLogEntry[]> {

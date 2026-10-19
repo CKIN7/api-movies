@@ -9,5 +9,6 @@ module.exports = {
   // que arranquen los workers, y setTestDbEnv redirige DB_NAME de la app a
   // esa BD dentro de cada worker. Asi los tests jamas tocan moviesdb.
   globalSetup: '<rootDir>/__tests__/helpers/globalSetup.js',
-  setupFiles: ['<rootDir>/__tests__/helpers/setTestDbEnv.js']
+  setupFiles: ['<rootDir>/__tests__/helpers/setTestDbEnv.js'],
+  setupFilesAfterEnv: ['<rootDir>/__tests__/helpers/closeDb.js']
 }

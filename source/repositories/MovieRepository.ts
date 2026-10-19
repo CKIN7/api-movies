@@ -4,6 +4,7 @@ import type { RandomMovieQueryDTO } from '../schemas/randomMovieQuery'
 import { DbLogger } from '../utils/DbLogger'
 import MovieQueryBuilder from './MovieQueryBuilder';
 import { SuggestQueryDTO } from '../schemas/suggestQuerySchema';
+import { activeConnection, runInTransaction } from '../db/transactionContext';
 
 // ═══════════════════════════════════════════════════════════════
 //  Patrón: Repository
@@ -20,7 +21,7 @@ class MovieRepository {
     constructor(private conn: any) {}
 
     private async query(sql: string, params?: any[]) {
-        return await DbLogger.query('query', sql, params || [], () => this.conn.query(sql, params)) as any
+        return await DbLogger.query('query', sql, params || [], () => activeConnection(this.conn).query(sql, params)) as any
     }
 
     async findMany(query: MovieQueryDTO, offset: number): Promise<{ rows: MovieRow[]; total: number }> {
@@ -267,15 +268,24 @@ class MovieRepository {
     // ═══════════════════════════════════════════════════════════
     //  Patrón: Transaction Script
     // ═══════════════════════════════════════════════════════════
+    //  Con un pool, la transacción toma una conexión dedicada, la
+    //  publica en el contexto async (para que todos los repositorios
+    //  ejecuten dentro de la transacción) y la libera siempre.
+    //  Si el conn inyectado no es un pool (p. ej. una Connection de
+    //  test), se usa directamente sin reserva/liberación.
     async transaction<T>(fn: () => Promise<T>): Promise<T> {
-        await this.conn.beginTransaction()
+        const usePool = typeof this.conn.getConnection === 'function'
+        const conn = usePool ? await this.conn.getConnection() : this.conn
         try {
-            const result = await fn()
-            await this.conn.commit()
+            await conn.beginTransaction()
+            const result = await runInTransaction(conn, fn)
+            await conn.commit()
             return result
         } catch (error) {
-            await this.conn.rollback()
+            await conn.rollback()
             throw error
+        } finally {
+            if (usePool) conn.release()
         }
     }
 }

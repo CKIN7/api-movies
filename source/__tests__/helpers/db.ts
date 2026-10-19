@@ -2,7 +2,7 @@ import mysql from 'mysql2/promise'
 import type { Connection } from 'mysql2/promise'
 import dotenv from 'dotenv'
 import path from 'path'
-import { clearAll, seedDatabase, connectToServer, applySchema, recreateDatabase, databaseExists } from '../../db/seed'
+import { clearAll, seedDatabase, connectToServer, recreateDatabase, databaseExists } from '../../db/seed'
 import { getRedisClient } from '../../utils/redisClient'
 
 dotenv.config({ path: path.resolve(__dirname, '../../.env') })
@@ -26,14 +26,15 @@ async function resetRateLimitState(): Promise<void> {
 // ═══════════════════════════════════════════════════════════════
 //  Los tests NUNCA tocan la BD de la app (moviesdb).
 //  - jest globalSetup (helpers/globalSetup.js) crea DB_NAME_TEST con
-//    db/schema.sql antes de arrancar los workers.
+//    db/schema.sql ANTES de arrancar los workers (único momento
+//    seguro para DDL: aún no hay conexiones abiertas).
 //  - jest setupFiles (helpers/setTestDbEnv.js) hace que db/connection.ts
 //    de la app apunte a esa BD de tests dentro del worker.
-//  - setupTestDb() (beforeAll) vuelve a aplicar db/schema.sql: cada suite
-//    empieza con tablas vacias y no hereda datos ni transacciones de la
-//    suite anterior. NO se hace DROP DATABASE porque la conexion de la app
-//    (abierta al importar api.ts, antes de este hook) quedaria sin BD.
-//  Nota: maxWorkers: 1 en jest.config.js; si se paraleliza habra que
+//  - setupTestDb() (beforeAll) NO vuelve a aplicar el esquema: el DDL
+//    por suite (DROP/CREATE TABLE) esperaba metadata locks de las
+//    conexiones abiertas de la app y colgaba la DB. En su lugar vacía
+//    las tablas para que cada suite empiece limpia.
+//  Nota: maxWorkers: 1 en jest.config.js; si se paraleliza habrá que
 //  dar una BD de tests por worker.
 // ═══════════════════════════════════════════════════════════════
 
@@ -45,23 +46,24 @@ export async function setupTestDb(): Promise<Connection> {
 
     const bootstrap = await connectToServer()
     try {
-        if (await databaseExists(bootstrap, name)) {
-            await bootstrap.query(`USE \`${name}\``)
-            await applySchema(bootstrap)
-        } else {
+        if (!(await databaseExists(bootstrap, name))) {
             await recreateDatabase(bootstrap, name)
         }
     } finally {
         await bootstrap.end()
     }
 
-    return mysql.createConnection({
+    const conn = await mysql.createConnection({
         host: process.env.DB_HOST,
         user: process.env.DB_USER || process.env.DB_user,
         password: process.env.DB_PASSWORD,
         database: name,
         port: Number(process.env.DB_PORT) || 3306
     })
+
+    await clearAll(conn)
+
+    return conn
 }
 
 export async function teardownTestDb(conn: Connection): Promise<void> {

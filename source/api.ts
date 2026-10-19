@@ -14,7 +14,7 @@ import { requestLogger } from './middleware/requestLogger'
 import { rateLimiter } from './middleware/rateLimiter'
 import { connectRedis, disconnectRedis } from './utils/redisClient'
 import type { Request, Response, NextFunction } from 'express'
-import connection from './db/connection'
+import connection, { closeDb } from './db/connection'
 import ExportService from './services/exportService'
 import ExportController from './controllers/exportController'
 import { createExportRoutes } from './routes/exportRoutes'
@@ -169,12 +169,14 @@ if (require.main === module) {
     process.on('SIGTERM', async () => {
         logger.info('SIGTERM received, shutting down gracefully')
         await disconnectRedis()
+        await closeDb()
         process.exit(0)
     })
 
     process.on('SIGINT', async () => {
         logger.info('SIGINT received, shutting down gracefully')
         await disconnectRedis()
+        await closeDb()
         process.exit(0)
     })
 }
