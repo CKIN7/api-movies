@@ -1,4 +1,9 @@
-import type { UserPreferencesRow, UserPreferencesResponse } from '../types/user'
+import type {
+    ContentFilters,
+    GenreAffinity,
+    UserPreferencesResponse,
+    UserPreferencesRow,
+} from '../types/user'
 
 function parseJsonColumn<T>(value: string | T | null | undefined, fallback: T): T {
     if (value === null || value === undefined) return fallback
@@ -16,7 +21,11 @@ export class UserPreferences {
         public favoriteGenres: number[],
         public favoriteDirectors: number[],
         public favoriteActors: number[],
-        public genreAffinity: Record<string, number>,
+        public dislikedGenres: number[],
+        public dislikedDirectors: number[],
+        public dislikedActors: number[],
+        public contentFilters: ContentFilters,
+        public genreAffinity: GenreAffinity,
         public updatedAt: Date,
     ) {}
 
@@ -26,7 +35,11 @@ export class UserPreferences {
             parseJsonColumn(row.favorite_genres, [] as number[]),
             parseJsonColumn(row.favorite_directors, [] as number[]),
             parseJsonColumn(row.favorite_actors, [] as number[]),
-            parseJsonColumn(row.genre_affinity, {} as Record<string, number>),
+            parseJsonColumn(row.disliked_genres, [] as number[]),
+            parseJsonColumn(row.disliked_directors, [] as number[]),
+            parseJsonColumn(row.disliked_actors, [] as number[]),
+            parseJsonColumn(row.content_filters, {} as ContentFilters),
+            parseJsonColumn(row.genre_affinity, {} as GenreAffinity),
             new Date(row.updated_at),
         )
     }
@@ -36,6 +49,10 @@ export class UserPreferences {
             favoriteGenres: this.favoriteGenres,
             favoriteDirectors: this.favoriteDirectors,
             favoriteActors: this.favoriteActors,
+            dislikedGenres: this.dislikedGenres,
+            dislikedDirectors: this.dislikedDirectors,
+            dislikedActors: this.dislikedActors,
+            contentFilters: this.contentFilters,
             genreAffinity: this.genreAffinity,
             updatedAt: this.updatedAt,
         }
