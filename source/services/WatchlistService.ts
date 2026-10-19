@@ -1,6 +1,7 @@
 import WatchlistRepository from '../repositories/WatchlistRepository'
 import MovieRepository from '../repositories/MovieRepository'
 import AppError from '../utils/AppError'
+import logger from '../utils/logger'
 import type { AddToWatchlistDTO, WatchlistQueryDTO, PaginatedWatchlistResponse, WatchlistEntryResponse } from '../types/watchlist'
 import { WatchlistEntry } from '../domain/WatchlistEntry'
 import { UserPreferencesService } from './userPreferencesService'
@@ -60,7 +61,13 @@ class WatchlistService {
                 await this.userPreferencesService.updateGenreAffinity(userId, g.genre_id, delta)
             }
         } catch (error) {
-            // Non-critical: don't fail the watchlist operation
+            // Non-critical: no rompe la operación de watchlist, pero deja rastro.
+            logger.warn('No se pudo actualizar genreAffinity desde watchlist', {
+                userId,
+                movieId,
+                delta,
+                error: (error as Error).message,
+            })
         }
     }
 
