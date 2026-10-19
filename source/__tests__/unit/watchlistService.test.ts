@@ -1,11 +1,13 @@
 import WatchlistService from '../../services/WatchlistService'
 import { UserPreferencesService } from '../../services/userPreferencesService'
+import logger from '../../utils/logger'
 import type { MovieRow } from '../../types/movie'
 import type { WatchlistRow } from '../../types/watchlist'
 
 const mockUserPreferencesService = {
     userPreferencesRepository: {} as any,
     conn: {} as any,
+    updateGenreAffinity: jest.fn(),
 } as unknown as UserPreferencesService
 
 const mockWatchlistRepo = {
@@ -17,7 +19,8 @@ const mockWatchlistRepo = {
 
 const mockMovieRepo = {
     findById: jest.fn(),
-    findByIds: jest.fn()
+    findByIds: jest.fn(),
+    conn: { query: jest.fn() }
 }
 
 describe('WatchlistService (unit)', () => {
@@ -25,6 +28,7 @@ describe('WatchlistService (unit)', () => {
 
     beforeEach(() => {
         jest.clearAllMocks()
+        mockMovieRepo.conn.query.mockResolvedValue([[]])
         service = new WatchlistService(mockWatchlistRepo as any, mockMovieRepo as any, mockUserPreferencesService)
     })
 
@@ -101,6 +105,25 @@ describe('WatchlistService (unit)', () => {
             expect(result.priority).toBe(3)
             expect(result.notes).toBeNull()
             expect(mockWatchlistRepo.create).toHaveBeenCalledWith('user-1', 42, null, 3)
+        })
+
+        test('loguea warn si falla la afinidad pero no rompe el add', async () => {
+            mockMovieRepo.findById.mockResolvedValue(mockMovieRow)
+            mockWatchlistRepo.findByUserAndMovie
+                .mockResolvedValueOnce(null)
+                .mockResolvedValueOnce(mockEntryRow)
+            mockWatchlistRepo.create.mockResolvedValue(1)
+            mockMovieRepo.conn.query.mockRejectedValue(new Error('db down'))
+
+            const warnSpy = jest.spyOn(logger, 'warn').mockImplementation(() => logger as any)
+
+            await expect(service.add('user-1', { movieId: 42 })).resolves.toBeDefined()
+            expect(warnSpy).toHaveBeenCalledWith(
+                'No se pudo actualizar genreAffinity desde watchlist',
+                expect.objectContaining({ userId: 'user-1', movieId: 42 })
+            )
+
+            warnSpy.mockRestore()
         })
     })
 
