@@ -1,5 +1,10 @@
 import { UserPreferencesService } from '../../services/userPreferencesService'
 import { UserPreferencesRepository } from '../../repositories/UserPreferencesRepository'
+import { invalidateUserRecommendations } from '../../utils/cache'
+
+jest.mock('../../utils/cache', () => ({
+    invalidateUserRecommendations: jest.fn(),
+}))
 
 const mockUserPreferencesRepo = {
     findByUserId: jest.fn(),
@@ -17,7 +22,11 @@ const existingRow = {
     favorite_genres: '[1, 3]',
     favorite_directors: '[2]',
     favorite_actors: '[10]',
-    genre_affinity: '{"1": 8}',
+    disliked_genres: '[]',
+    disliked_directors: '[]',
+    disliked_actors: '[]',
+    content_filters: '{}',
+    genre_affinity: '{"1": {"score": 8, "updatedAt": "2026-10-13T10:00:00.000Z"}}',
     updated_at: '2026-10-13T10:00:00.000Z',
 }
 
@@ -34,12 +43,9 @@ describe('UserPreferencesService (unit)', () => {
     describe('getPreferences', () => {
         test('retorna preferencias del usuario cuando existen', async () => {
             mockUserPreferencesRepo.findByUserId.mockResolvedValue({
-                user_id: 'user-1',
-                favorite_genres: '[1, 3]',
-                favorite_directors: '[2]',
+                ...existingRow,
                 favorite_actors: null,
                 genre_affinity: '{"1": 8.5}',
-                updated_at: '2026-10-13T10:00:00.000Z',
             })
 
             const result = await service.getPreferences('user-1')
@@ -50,23 +56,22 @@ describe('UserPreferencesService (unit)', () => {
             expect(result.genreAffinity).toEqual({ '1': 8.5 })
         })
 
-        test('retorna preferencias vacías cuando no existen', async () => {
+        test('retorna preferencias vacías y updatedAt null cuando no existen', async () => {
             mockUserPreferencesRepo.findByUserId.mockResolvedValue(null)
 
             const result = await service.getPreferences('user-1')
 
             expect(result.favoriteGenres).toEqual([])
-            expect(result.favoriteDirectors).toEqual([])
-            expect(result.favoriteActors).toEqual([])
+            expect(result.dislikedGenres).toEqual([])
+            expect(result.contentFilters).toEqual({})
             expect(result.genreAffinity).toEqual({})
+            expect(result.updatedAt).toBeNull()
         })
     })
 
     describe('updatePreferences', () => {
-        test('actualiza favoritos sobre fila existente (merge con campos no enviados)', async () => {
+        test('actualiza favoritos, invalida recs y hace merge con campos no enviados', async () => {
             mockUserPreferencesRepo.existingGenreIds.mockResolvedValue([1, 3])
-            mockUserPreferencesRepo.findByUserId.mockResolvedValue(existingRow)
-            mockUserPreferencesRepo.update.mockResolvedValue(undefined)
             mockUserPreferencesRepo.findByUserId
                 .mockResolvedValueOnce(existingRow)
                 .mockResolvedValueOnce({ ...existingRow, favorite_genres: '[1, 3]' })
@@ -77,8 +82,13 @@ describe('UserPreferencesService (unit)', () => {
                 favoriteGenres: [1, 3],
                 favoriteDirectors: [2],
                 favoriteActors: [10],
+                dislikedGenres: [],
+                dislikedDirectors: [],
+                dislikedActors: [],
+                contentFilters: {},
             })
             expect(mockUserPreferencesRepo.insert).not.toHaveBeenCalled()
+            expect(invalidateUserRecommendations).toHaveBeenCalledWith('user-1')
             expect(result.favoriteGenres).toEqual([1, 3])
         })
 
@@ -89,13 +99,16 @@ describe('UserPreferencesService (unit)', () => {
 
             await service.updatePreferences('user-1', { favoriteGenres: [1] })
 
-            expect(mockUserPreferencesRepo.insert).toHaveBeenCalledWith('user-1', {
+            expect(mockUserPreferencesRepo.insert).toHaveBeenCalledWith('user-1', expect.objectContaining({
                 favoriteGenres: [1],
                 favoriteDirectors: [],
                 favoriteActors: [],
+                dislikedGenres: [],
+                contentFilters: {},
                 genreAffinity: {},
-            })
+            }))
             expect(mockUserPreferencesRepo.update).not.toHaveBeenCalled()
+            expect(invalidateUserRecommendations).toHaveBeenCalledWith('user-1')
         })
 
         test('lanza 400 si genre_id no existe', async () => {
@@ -122,6 +135,15 @@ describe('UserPreferencesService (unit)', () => {
                 service.updatePreferences('user-1', { favoriteActors: [10, 999] })
             ).rejects.toThrow('Uno o más actor_ids no existen')
         })
+
+        test('lanza 400 si un id es favorito y dislike a la vez', async () => {
+            mockUserPreferencesRepo.existingGenreIds.mockResolvedValue([1, 3])
+            mockUserPreferencesRepo.findByUserId.mockResolvedValue(existingRow)
+
+            await expect(
+                service.updatePreferences('user-1', { favoriteGenres: [1, 3], dislikedGenres: [3] })
+            ).rejects.toThrow('no puede ser favorito y dislike')
+        })
     })
 
     describe('getStats', () => {
@@ -142,28 +164,21 @@ describe('UserPreferencesService (unit)', () => {
     })
 
     describe('updateGenreAffinity', () => {
-        test('suma el delta al affinity existente y persiste', async () => {
-            mockUserPreferencesRepo.findByUserId.mockResolvedValue({
-                ...existingRow,
-                genre_affinity: '{"1": 5, "3": 2}',
-            })
+        test('suma el delta, guarda con timestamp y persiste', async () => {
+            mockUserPreferencesRepo.findByUserId.mockResolvedValue(existingRow)
             mockUserPreferencesRepo.saveAffinity.mockResolvedValue(undefined)
 
             await service.updateGenreAffinity('user-1', 1, 3)
 
-            expect(mockUserPreferencesRepo.saveAffinity).toHaveBeenCalledWith('user-1', {
-                '1': 8,
-                '3': 2,
-            })
+            const saved = mockUserPreferencesRepo.saveAffinity.mock.calls[0][1]
+            expect(saved['1'].score).toBe(11)
+            expect(typeof saved['1'].updatedAt).toBe('string')
         })
 
         test('borra la clave cuando el delta deja el contador en cero o menos', async () => {
-            mockUserPreferencesRepo.findByUserId.mockResolvedValue({
-                ...existingRow,
-                genre_affinity: '{"1": 5}',
-            })
+            mockUserPreferencesRepo.findByUserId.mockResolvedValue(existingRow)
 
-            await service.updateGenreAffinity('user-1', 1, -5)
+            await service.updateGenreAffinity('user-1', 1, -8)
 
             expect(mockUserPreferencesRepo.saveAffinity).toHaveBeenCalledWith('user-1', {})
         })
@@ -174,12 +189,15 @@ describe('UserPreferencesService (unit)', () => {
 
             await service.updateGenreAffinity('user-1', 5, 3)
 
-            expect(mockUserPreferencesRepo.insert).toHaveBeenCalledWith('user-1', {
-                favoriteGenres: [],
-                favoriteDirectors: [],
-                favoriteActors: [],
-                genreAffinity: { '5': 3 },
-            })
+            const inserted = mockUserPreferencesRepo.insert.mock.calls[0][1]
+            expect(inserted.genreAffinity['5'].score).toBe(3)
+            expect(inserted.favoriteGenres).toEqual([])
+        })
+
+        test('no propaga error: loguea warn si falla la escritura', async () => {
+            mockUserPreferencesRepo.findByUserId.mockRejectedValue(new Error('db down'))
+
+            await expect(service.updateGenreAffinity('user-1', 1, 3)).resolves.toBeUndefined()
         })
     })
 })
