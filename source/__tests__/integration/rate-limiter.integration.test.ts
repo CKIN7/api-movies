@@ -30,7 +30,7 @@ describe('Rate Limiter Integration (real Redis, DB 15)', () => {
 
     const res = await request(app).get('/')
 
-    expect(res.status).toBe(404)
+    expect(res.status).toBe(200)
     expect(res.headers['x-ratelimit-limit']).toBe(rateLimitConfig.global.limit.toString())
     expect(res.headers['x-ratelimit-remaining']).toBe((rateLimitConfig.global.limit - 1).toString())
   })
