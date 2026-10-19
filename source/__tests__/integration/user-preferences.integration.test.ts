@@ -38,6 +38,7 @@ describe('User Preferences API (integración real con DB)', () => {
         expect(res.body.favoriteDirectors).toEqual([])
         expect(res.body.favoriteActors).toEqual([])
         expect(res.body.genreAffinity).toEqual({})
+        expect(res.body.updatedAt).toBeNull()
     })
 
     test('PUT /users/me/preferences actualiza géneros favoritos', async () => {
