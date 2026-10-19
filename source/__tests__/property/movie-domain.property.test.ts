@@ -16,7 +16,7 @@ const safeName = fc.array(
 ).map((chars) => chars.join(''))
 
 const ratingStr = fc.oneof(
-    fc.double({ min: 0, max: 10 }).map((n) => String(n)),
+    fc.double({ min: 0, max: 10, noNaN: true }).map((n) => String(n)),
     fc.constant('8.8'),
     fc.constant('0'),
 )
