@@ -43,7 +43,7 @@ describe('POST /auth/resend (integración real con DB)', () => {
             .send({ email: 'resend@example.com', password: 'Password123!' })
         expect(registerRes.status).toBe(201)
 
-        const oldToken = (await getActiveTokens(registerRes.body.id))[0]
+        const oldToken = (await getActiveTokens(registerRes.body.user.id))[0]
 
         const loginBefore = await request(app)
             .post('/auth/login')
@@ -57,7 +57,7 @@ describe('POST /auth/resend (integración real con DB)', () => {
         expect(resendRes.status).toBe(200)
         expect(resendRes.body.message).toBeDefined()
 
-        const activeTokens = await getActiveTokens(registerRes.body.id)
+        const activeTokens = await getActiveTokens(registerRes.body.user.id)
         expect(activeTokens).toHaveLength(1)
         const newToken = activeTokens[0]
 
@@ -99,7 +99,7 @@ describe('POST /auth/resend (integración real con DB)', () => {
             .send({ email: 'hecho@example.com', password: 'Password123!' })
         expect(registerRes.status).toBe(201)
 
-        const token = (await getActiveTokens(registerRes.body.id))[0]
+        const token = (await getActiveTokens(registerRes.body.user.id))[0]
 
         const verifyRes = await request(app)
             .post('/auth/verify')
@@ -113,7 +113,7 @@ describe('POST /auth/resend (integración real con DB)', () => {
         expect(resendRes.status).toBe(200)
         expect(resendRes.body.message).toBeDefined()
 
-        const tokens = await getVerificationTokens(registerRes.body.id)
+        const tokens = await getVerificationTokens(registerRes.body.user.id)
         expect(tokens).toHaveLength(1)
     })
 
