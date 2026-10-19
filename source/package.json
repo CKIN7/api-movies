@@ -7,7 +7,7 @@
     "build": "tsc",
     "start": "node dist/api.js",
     "test": "jest",
-    "test:ratelimit": "jest rate",
+    "test:ratelimit": "jest rate penaltyBox",
     "migrate": "tsx db/migrate.ts",
     "migrate:status": "tsx db/migrate.ts status",
     "seed": "tsx db/seed.ts",
