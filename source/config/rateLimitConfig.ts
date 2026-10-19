@@ -33,3 +33,9 @@ export const rateLimitConfig = {
 } as const
 
 export type RateLimitConfig = typeof rateLimitConfig
+
+// Se lee en tiempo de llamada (no al importar) para que una suite de tests
+// pueda reactivar el limiter después de que setTestDbEnv lo desactive.
+export function isRateLimitEnabled(): boolean {
+  return process.env.RATE_LIMIT_ENABLED !== 'false'
+}
