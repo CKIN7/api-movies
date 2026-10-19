@@ -142,7 +142,7 @@ describe('MovieService - getMovies con page/limit (servicio)', () => {
     }
 
     function createService(repos: ReturnType<typeof createMockRepos>) {
-        return new MovieService(repos.movieRepo as any, repos.directorRepo as any, repos.genreRepo as any, repos.auditRepo as any, repos.castRepo as any)
+        return new MovieService(repos.movieRepo as any, repos.directorRepo as any, repos.genreRepo as any, repos.auditRepo as any, repos.castRepo as any, null as any)
     }
 
     test('debe calcular offset correctamente: page=3 limit=10 => offset=20', async () => {
