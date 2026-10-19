@@ -11,11 +11,26 @@ import type {
     RecommendationQueryDTO,
     UserInteraction,
 } from '../types/recommendation'
+import type { ContentFilters, GenreAffinity, GenreAffinityEntry } from '../types/user'
 
 const CACHE_TTL_SECONDS = 24 * 60 * 60
 const COLLAB_TOP_N = 50
+const DECAY_HALF_LIFE_DAYS = 90
 
 const WEIGHTS = { content: 0.4, collab: 0.4, pref: 0.2 } as const
+
+const AGE_RANK: Record<string, number> = { 'G': 0, 'PG': 1, 'PG-13': 2, 'R': 3, 'NC-17': 4 }
+
+interface PreferenceInput {
+    favoriteGenres: number[]
+    favoriteDirectors: number[]
+    favoriteActors: number[]
+    dislikedGenres: number[]
+    dislikedDirectors: number[]
+    dislikedActors: number[]
+    genreAffinity: GenreAffinity
+    contentFilters: ContentFilters
+}
 
 function parseIdList(raw: string): number[] {
     if (!raw) return []
@@ -33,6 +48,32 @@ function normalizeScores(scores: Map<number, number>): Map<number, number> {
 
 function round1(n: number): number {
     return Math.round(n * 10) / 10
+}
+
+// Decay exponencial: la afinidad pierde la mitad de su peso cada 90 días.
+// Tolerante al formato legado (solo número, sin updatedAt).
+function effectiveAffinity(value: number | GenreAffinityEntry | undefined): number {
+    if (value === undefined) return 0
+    if (typeof value === 'number') return value
+    const ageDays = (Date.now() - new Date(value.updatedAt).getTime()) / 86_400_000
+    if (!Number.isFinite(ageDays) || ageDays < 0) return value.score
+    return value.score * Math.pow(0.5, ageDays / DECAY_HALF_LIFE_DAYS)
+}
+
+function passesFilters(c: RecommendationCandidateRow, filters: ContentFilters): boolean {
+    if (filters.minRating !== undefined && Number(c.rating) < filters.minRating) return false
+    if (filters.maxAgeRating !== undefined) {
+        const rank = AGE_RANK[c.age_rating] ?? 0
+        const maxRank = AGE_RANK[filters.maxAgeRating] ?? 99
+        if (rank > maxRank) return false
+    }
+    if (filters.decades && filters.decades.length > 0) {
+        const decade = Math.floor(Number(c.year) / 10) * 10
+        if (!filters.decades.includes(decade)) return false
+    }
+    if (filters.runtimeMin !== undefined && Number(c.duration) < filters.runtimeMin) return false
+    if (filters.runtimeMax !== undefined && Number(c.duration) > filters.runtimeMax) return false
+    return true
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -92,16 +133,19 @@ function contentScores(
 }
 
 // ═══════════════════════════════════════════════════════════════
-//  Preference boost: géneros/directores/actores favoritos
+//  Preference boost: favoritos (+) y dislikes (−) + affinity con decay
 // ═══════════════════════════════════════════════════════════════
 function preferenceScores(
     candidates: RecommendationCandidateRow[],
-    prefs: { favoriteGenres: number[], favoriteDirectors: number[], favoriteActors: number[], genreAffinity: Record<string, number> },
+    prefs: PreferenceInput,
     watchedIds: Set<number>,
 ): Map<number, number> {
     const favGenres = new Set(prefs.favoriteGenres)
     const favDirectors = new Set(prefs.favoriteDirectors)
     const favActors = new Set(prefs.favoriteActors)
+    const disGenres = new Set(prefs.dislikedGenres)
+    const disDirectors = new Set(prefs.dislikedDirectors)
+    const disActors = new Set(prefs.dislikedActors)
     const affinity = prefs.genreAffinity ?? {}
 
     const raw = new Map<number, number>()
@@ -111,13 +155,18 @@ function preferenceScores(
         let score = 0
 
         for (const g of parseIdList(c.genreIds)) {
-            score += affinity[String(g)] ?? 0
+            score += effectiveAffinity(affinity[String(g)])
             if (favGenres.has(g)) score += 5
+            if (disGenres.has(g)) score -= 10
         }
         if (favDirectors.has(c.id_director)) score += 15
+        if (disDirectors.has(c.id_director)) score -= 30
 
-        const sharedActors = parseIdList(c.actorIds).filter(a => favActors.has(a)).length
-        score += Math.min(sharedActors, 2) * 5
+        const sharedFavActors = parseIdList(c.actorIds).filter(a => favActors.has(a)).length
+        score += Math.min(sharedFavActors, 2) * 5
+
+        const sharedDislikedActors = parseIdList(c.actorIds).filter(a => disActors.has(a)).length
+        score -= Math.min(sharedDislikedActors, 2) * 10
 
         if (score > 0) raw.set(c.id, score)
     }
@@ -231,11 +280,14 @@ export class RecommendationService {
     }
 
     private async compute(userId: string, query: RecommendationQueryDTO): Promise<RecommendationItem[]> {
-        const [interactions, prefs, candidates] = await Promise.all([
+        const [interactions, prefs, rawCandidates] = await Promise.all([
             this.recRepo.getUserInteractions(userId),
             this.prefsService.getPreferences(userId),
             this.recRepo.getCandidates(),
         ])
+
+        const filters: ContentFilters = query.type === 'hybrid' ? (prefs.contentFilters ?? {}) : {}
+        const candidates = rawCandidates.filter(c => passesFilters(c, filters))
 
         const watchedIds = new Set(interactions.map(i => i.movieId))
         const seeds = query.type !== 'collab'
@@ -243,7 +295,7 @@ export class RecommendationService {
             : { scores: new Map<number, number>(), seeds: new Map<number, { title: string, shared: number }>() }
 
         const prefMap = query.type === 'hybrid'
-            ? preferenceScores(candidates, prefs, watchedIds)
+            ? preferenceScores(candidates, prefs as PreferenceInput, watchedIds)
             : new Map<number, number>()
 
         let collabMap = new Map<number, number>()
@@ -290,7 +342,7 @@ export class RecommendationService {
                     genres: (row?.genres ?? '').split(', ').filter(Boolean),
                 },
                 score,
-                reason: this.buildReason(query.type, parts, seeds.seeds.get(id), row?.title),
+                reason: this.buildReason(query.type, parts, seeds.seeds.get(id)),
             }
         })
     }
@@ -324,7 +376,6 @@ export class RecommendationService {
         type: RecommendationQueryDTO['type'],
         parts: { content: number, collab: number, pref: number },
         seed?: { title: string, shared: number },
-        candidateTitle?: string,
     ): string {
         if (type === 'content') {
             return seed && seed.shared > 0 ? `Similar a "${seed.title}"` : 'Basado en tu historial de visualización'
