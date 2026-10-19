@@ -3,25 +3,8 @@ import type { Connection } from 'mysql2/promise'
 import dotenv from 'dotenv'
 import path from 'path'
 import { clearAll, seedDatabase, connectToServer, recreateDatabase, databaseExists } from '../../db/seed'
-import { getRedisClient } from '../../utils/redisClient'
 
 dotenv.config({ path: path.resolve(__dirname, '../../.env') })
-
-// El penalty box es por IP (127.0.0.1 en local) y dura 15 min: si una suite
-// deja activa la penalizacion, TODAS las suites siguientes reciben 403 y la
-// entera queda rota. Se resetea el estado de rate limit antes de cada suite.
-async function resetRateLimitState(): Promise<void> {
-    try {
-        const client = getRedisClient() as any
-        if (client.status === 'wait' && typeof client.connect === 'function') {
-            await client.connect()
-        }
-        const keys: string[] = await client.keys('ratelimit:*')
-        if (keys.length > 0) await client.del(...keys)
-    } catch {
-        // Redis no disponible: el rate limiter hace fail-open, no es bloqueante
-    }
-}
 
 // ═══════════════════════════════════════════════════════════════
 //  Los tests NUNCA tocan la BD de la app (moviesdb).
@@ -41,8 +24,6 @@ async function resetRateLimitState(): Promise<void> {
 export async function setupTestDb(): Promise<Connection> {
     const name = process.env.DB_NAME_TEST ?? process.env.DB_NAME
     if (!name) throw new Error('Falta DB_NAME_TEST (o DB_NAME) en .env')
-
-    await resetRateLimitState()
 
     const bootstrap = await connectToServer()
     try {

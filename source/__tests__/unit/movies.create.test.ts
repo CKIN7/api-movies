@@ -53,7 +53,9 @@ describe('MovieService - createMovie', () => {
             plot: 'Un argumento de prueba',
             poster: 'https://example.com/poster.jpg',
             genres: 'drama',
-            age_rating: 'PG-13'
+            age_rating: 'PG-13',
+            average_rating: null,
+            reviews_count: 0
         }
         repos.directorRepo.findOrCreate.mockResolvedValue(1)
         repos.movieRepo.insert.mockResolvedValue(9)
@@ -89,7 +91,9 @@ describe('MovieService - createMovie', () => {
             poster: 'https://example.com/poster.jpg',
             genres: ['drama'],
             cast: [],
-            ageRating: 'PG-13'
+            ageRating: 'PG-13',
+            averageRating: null,
+            reviewsCount: 0
         })
         expect(repos.movieRepo.insert).toHaveBeenCalledWith(
             expect.objectContaining({ title: 'Nueva Película', directorId: 1 })

@@ -1,51 +1,28 @@
 import request from 'supertest'
 import { createApp } from '../../api'
 import { rateLimitConfig } from '../../config/rateLimitConfig'
-import { connectRedis, disconnectRedis } from '../../utils/redisClient'
+import { connectRedis, disconnectRedis, getRedisClient } from '../../utils/redisClient'
 
-// Configure Redis for testing
-let redis: any
+// Suite de comportamiento del penalty box contra Redis real.
+// setTestDbEnv apunta REDIS_URL a la DB 15 y desactiva el limiter por defecto;
+// aqui se reactiva y se limpia la DB logica dedicada antes/despues.
+let redis: ReturnType<typeof getRedisClient>
 
 beforeAll(async () => {
-    redis = connectRedis()
-    // Wait for connection
-    await new Promise(resolve => setTimeout(resolve, 1000))
-})
-
-afterAll(async () => {
-    // Este suite dispenza activamente el penalty box; se limpia para no
-    // dejar penalizada a 127.0.0.1 al resto de suites (15 min de TTL).
-    try {
-      const keys = await redis.keys('ratelimit:*')
-      if (keys.length > 0) await redis.del(...keys)
-    } catch (e) {
-      // Redis no disponible: ignorar
-    }
-    await disconnectRedis()
+    process.env.RATE_LIMIT_ENABLED = 'true'
+    redis = await connectRedis()
+    await redis.flushdb()
 })
 
 beforeEach(async () => {
-    // Clear ALL rate limiter and penalty keys between tests to ensure isolation
-    try {
-      const keys = await redis.keys('ratelimit:*')
-      if (keys.length > 0) {
-        await redis.del(...keys)
-      }
-      // Also clear penalty box keys
-      const penaltyKeys = await redis.keys('penalty:*')
-      if (penaltyKeys.length > 0) {
-        await redis.del(...penaltyKeys)
-      }
-      // Clear any blocked keys
-      const blockedKeys = await redis.keys('blocked:*')
-      if (blockedKeys.length > 0) {
-        await redis.del(...blockedKeys)
-      }
-    } catch (e) {
-      // Ignore errors - Redis may not support all commands
-    }
-    // Small delay to ensure Redis state is reset
-    await new Promise(resolve => setTimeout(resolve, 50))
+    // flushdb solo vacia la DB actual (15), nunca la DB 0 de desarrollo.
+    await redis.flushdb()
+})
+
+afterAll(async () => {
+    await redis.flushdb()
+    await disconnectRedis()
+    process.env.RATE_LIMIT_ENABLED = 'false'
 })
 
 describe('Rate Limiter Integration (Real Redis)', () => {

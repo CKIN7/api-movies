@@ -49,7 +49,7 @@ describe('rateLimitConfig', () => {
       expect(config.user.limit).toBe(500)
       expect(config.user.windowMs).toBe(60_000)
       expect(config.penalty.thresholds.global).toBe(50)
-      expect(config.penalty.thresholds.auth).toBe(20)
+      expect(config.penalty.thresholds.auth).toBe(10)
       expect(config.penalty.thresholds.write).toBe(30)
       expect(config.penalty.thresholds.user).toBe(100)
       expect(config.penalty.windowMs).toBe(300_000)
@@ -96,6 +96,22 @@ describe('rateLimitConfig', () => {
       expect(config.penalty.durationMs).toBe(1_800_000)
       expect(config.trustProxy).toBe(true)
       expect(config.failOpen).toBe(false)
+    })
+  })
+
+  describe('isRateLimitEnabled', () => {
+    function loadIsEnabled(envVars: Record<string, string | undefined> = {}) {
+      jest.resetModules()
+      process.env = { ...originalEnv, ...envVars }
+      const { isRateLimitEnabled } = require('../../config/rateLimitConfig')
+      return isRateLimitEnabled()
+    }
+
+    it('should be disabled only when RATE_LIMIT_ENABLED is "false"', () => {
+      expect(loadIsEnabled({ RATE_LIMIT_ENABLED: 'false' })).toBe(false)
+      expect(loadIsEnabled({ RATE_LIMIT_ENABLED: 'true' })).toBe(true)
+      expect(loadIsEnabled({ RATE_LIMIT_ENABLED: '0' })).toBe(true)
+      expect(loadIsEnabled({ RATE_LIMIT_ENABLED: undefined })).toBe(true)
     })
   })
 

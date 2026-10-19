@@ -35,7 +35,7 @@ describe('POST /auth/verify (integración real con DB)', () => {
             .send({ email: 'verify@example.com', password: 'Password123!' })
         expect(registerRes.status).toBe(201)
 
-        const token = await getVerificationToken(registerRes.body.id)
+        const token = await getVerificationToken(registerRes.body.user.id)
         expect(token).toBeDefined()
 
         const verifyRes = await request(app)
@@ -72,7 +72,7 @@ describe('POST /auth/verify (integración real con DB)', () => {
             .send({ email: 'reusa@example.com', password: 'Password123!' })
         expect(registerRes.status).toBe(201)
 
-        const token = await getVerificationToken(registerRes.body.id)
+        const token = await getVerificationToken(registerRes.body.user.id)
 
         const first = await request(app)
             .post('/auth/verify')

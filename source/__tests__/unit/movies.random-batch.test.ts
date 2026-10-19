@@ -48,7 +48,7 @@ const fakeMovieRows = [
     { id: 3, title: 'Interstellar', year: 2014, director: 'Christopher Nolan', rating: 8.7, duration: 169, plot: 'A team of explorers travel through a wormhole in space.', poster: 'https://example.com/interstellar.jpg', genres: 'Adventure, Drama, Sci-Fi', cast: 'Matthew McConaughey||Cooper|||Anne Hathaway||Brand', age_rating: 'PG-13' },
     { id: 4, title: 'Pulp Fiction', year: 1994, director: 'Quentin Tarantino', rating: 8.9, duration: 154, plot: 'The lives of two mob hitmen, a boxer, a gangster and his wife intertwine.', poster: 'https://example.com/pulp-fiction.jpg', genres: 'Crime, Drama', cast: 'John Travolta||Vincent Vega|||Samuel L. Jackson||Jules Winnfield', age_rating: 'R' },
     { id: 5, title: 'The Matrix', year: 1999, director: 'Lana Wachowski', rating: 8.7, duration: 136, plot: 'A computer hacker learns about the true nature of his reality.', poster: 'https://example.com/matrix.jpg', genres: 'Action, Sci-Fi', cast: 'Keanu Reeves||Neo|||Laurence Fishburne||Morpheus', age_rating: 'R' },
-]
+].map(row => ({ average_rating: null, reviews_count: 0, ...row }))
 
 function expectedResponse(row: typeof fakeMovieRows[0]) {
     return {
@@ -66,6 +66,8 @@ function expectedResponse(row: typeof fakeMovieRows[0]) {
             return { actor: actor.trim(), character: (character || '').trim() }
         }),
         ageRating: row.age_rating,
+        averageRating: null,
+        reviewsCount: 0,
     }
 }
 

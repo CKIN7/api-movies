@@ -44,10 +44,10 @@ describe('MovieService - getMovies', () => {
     test('debe devolver películas cuando el repositorio responde exitosamente', async () => {
         const repos = createMockRepos()
         const fakeMovies = [
-            { id: 1, title: 'Inception', year: 2010, director: 'Christopher Nolan', rating: 8.8, duration: 148, plot: '...', poster: '...', genres: 'Action, Sci-Fi', age_rating: 'PG-13' }
+            { id: 1, title: 'Inception', year: 2010, director: 'Christopher Nolan', rating: 8.8, duration: 148, plot: '...', poster: '...', genres: 'Action, Sci-Fi', age_rating: 'PG-13', average_rating: null, reviews_count: 0 }
         ]
         repos.movieRepo.findMany.mockResolvedValue({ rows: fakeMovies, total: 1 })
-        const service = new MovieService(repos.movieRepo as any, repos.directorRepo as any, repos.genreRepo as any, repos.auditRepo as any, repos.castRepo as any)
+        const service = new MovieService(repos.movieRepo as any, repos.directorRepo as any, repos.genreRepo as any, repos.auditRepo as any, repos.castRepo as any, null as any)
 
         const result = await service.getMovies({ genre: ['action'], genreMode: 'and', page: 1, limit: 10 })
 
@@ -63,7 +63,9 @@ describe('MovieService - getMovies', () => {
                 poster: '...',
                 genres: ['Action', 'Sci-Fi'],
                 cast: [],
-                ageRating: 'PG-13'
+                ageRating: 'PG-13',
+                averageRating: null,
+                reviewsCount: 0
             }],
             meta: { total: 1, page: 1, limit: 10, totalPages: 1 }
         })
@@ -76,7 +78,7 @@ describe('MovieService - getMovies', () => {
     test('debe llamar al repositorio con los parámetros correctos', async () => {
         const repos = createMockRepos()
         repos.movieRepo.findMany.mockResolvedValue({ rows: [], total: 0 })
-        const service = new MovieService(repos.movieRepo as any, repos.directorRepo as any, repos.genreRepo as any, repos.auditRepo as any, repos.castRepo as any)
+        const service = new MovieService(repos.movieRepo as any, repos.directorRepo as any, repos.genreRepo as any, repos.auditRepo as any, repos.castRepo as any, null as any)
 
         await service.getMovies({ title: 'incept', genreMode: 'and', minYear: 2010, maxYear: 2010, page: 1, limit: 10 })
 
@@ -89,7 +91,7 @@ describe('MovieService - getMovies', () => {
     test('debe llamar al repositorio sin parámetros cuando no se pasan filtros', async () => {
         const repos = createMockRepos()
         repos.movieRepo.findMany.mockResolvedValue({ rows: [], total: 0 })
-        const service = new MovieService(repos.movieRepo as any, repos.directorRepo as any, repos.genreRepo as any, repos.auditRepo as any, repos.castRepo as any)
+        const service = new MovieService(repos.movieRepo as any, repos.directorRepo as any, repos.genreRepo as any, repos.auditRepo as any, repos.castRepo as any, null as any)
 
         await service.getMovies({ genreMode: 'and', page: 1, limit: 10 })
 
@@ -102,7 +104,7 @@ describe('MovieService - getMovies', () => {
     test('debe lanzar AppError con status 500 si el repositorio falla', async () => {
         const repos = createMockRepos()
         repos.movieRepo.findMany.mockRejectedValue(new Error('DB error'))
-        const service = new MovieService(repos.movieRepo as any, repos.directorRepo as any, repos.genreRepo as any, repos.auditRepo as any, repos.castRepo as any)
+        const service = new MovieService(repos.movieRepo as any, repos.directorRepo as any, repos.genreRepo as any, repos.auditRepo as any, repos.castRepo as any, null as any)
 
         await expect(service.getMovies({ genreMode: 'and', page: 1, limit: 10 })).rejects.toThrow(AppError)
     })
@@ -118,7 +120,7 @@ describe('MovieService - getSimilarMovies', () => {
         const repos = createMockRepos()
         repos.movieRepo.findById.mockResolvedValue({ id: 1, title: 'Inception' })
         repos.movieRepo.findSimilar.mockResolvedValue({ rows: fakeSimilarRows, total: 2 })
-        const service = new MovieService(repos.movieRepo as any, repos.directorRepo as any, repos.genreRepo as any, repos.auditRepo as any, repos.castRepo as any)
+        const service = new MovieService(repos.movieRepo as any, repos.directorRepo as any, repos.genreRepo as any, repos.auditRepo as any, repos.castRepo as any, null as any)
 
         await service.getSimilarMovies(1, 1, 10)
 
@@ -129,7 +131,7 @@ describe('MovieService - getSimilarMovies', () => {
         const repos = createMockRepos()
         repos.movieRepo.findById.mockResolvedValue({ id: 1, title: 'Inception' })
         repos.movieRepo.findSimilar.mockResolvedValue({ rows: fakeSimilarRows, total: 2 })
-        const service = new MovieService(repos.movieRepo as any, repos.directorRepo as any, repos.genreRepo as any, repos.auditRepo as any, repos.castRepo as any)
+        const service = new MovieService(repos.movieRepo as any, repos.directorRepo as any, repos.genreRepo as any, repos.auditRepo as any, repos.castRepo as any, null as any)
 
         const result = await service.getSimilarMovies(1, 1, 10)
 
@@ -145,7 +147,7 @@ describe('MovieService - getSimilarMovies', () => {
     test('debe lanzar AppError 404 si la película origen no existe', async () => {
         const repos = createMockRepos()
         repos.movieRepo.findById.mockResolvedValue(null)
-        const service = new MovieService(repos.movieRepo as any, repos.directorRepo as any, repos.genreRepo as any, repos.auditRepo as any, repos.castRepo as any)
+        const service = new MovieService(repos.movieRepo as any, repos.directorRepo as any, repos.genreRepo as any, repos.auditRepo as any, repos.castRepo as any, null as any)
 
         await expect(service.getSimilarMovies(999, 1, 10)).rejects.toThrow(AppError)
         await expect(service.getSimilarMovies(999, 1, 10)).rejects.toMatchObject({ statusCode: 404 })
@@ -155,7 +157,7 @@ describe('MovieService - getSimilarMovies', () => {
         const repos = createMockRepos()
         repos.movieRepo.findById.mockResolvedValue({ id: 1, title: 'Inception' })
         repos.movieRepo.findSimilar.mockResolvedValue({ rows: fakeSimilarRows, total: 25 })
-        const service = new MovieService(repos.movieRepo as any, repos.directorRepo as any, repos.genreRepo as any, repos.auditRepo as any, repos.castRepo as any)
+        const service = new MovieService(repos.movieRepo as any, repos.directorRepo as any, repos.genreRepo as any, repos.auditRepo as any, repos.castRepo as any, null as any)
 
         const result = await service.getSimilarMovies(1, 3, 10)
 
@@ -166,7 +168,7 @@ describe('MovieService - getSimilarMovies', () => {
         const repos = createMockRepos()
         repos.movieRepo.findById.mockResolvedValue({ id: 1, title: 'Inception' })
         repos.movieRepo.findSimilar.mockRejectedValue(new Error('DB error'))
-        const service = new MovieService(repos.movieRepo as any, repos.directorRepo as any, repos.genreRepo as any, repos.auditRepo as any, repos.castRepo as any)
+        const service = new MovieService(repos.movieRepo as any, repos.directorRepo as any, repos.genreRepo as any, repos.auditRepo as any, repos.castRepo as any, null as any)
 
         await expect(service.getSimilarMovies(1, 1, 10)).rejects.toMatchObject({ statusCode: 500 })
     })

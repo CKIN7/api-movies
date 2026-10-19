@@ -210,11 +210,13 @@ describe('penaltyBox', () => {
     })
 
     it('should only trigger when threshold is exceeded (>=)', async () => {
-      await redis.set('ratelimit:penaltyrejections:auth:' + testIdentifier, '19')
+      const authThreshold = rateLimitConfig.penalty.thresholds.auth
+
+      await redis.set('ratelimit:penaltyrejections:auth:' + testIdentifier, String(authThreshold - 1))
       let result = await shouldActivatePenalty(testIdentifier)
       expect(result).toBe(false)
 
-      await redis.set('ratelimit:penaltyrejections:auth:' + testIdentifier, '20')
+      await redis.set('ratelimit:penaltyrejections:auth:' + testIdentifier, String(authThreshold))
       result = await shouldActivatePenalty(testIdentifier)
       expect(result).toBe(true)
     })

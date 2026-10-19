@@ -12,8 +12,9 @@ import { ZodError } from 'zod'
 import logger from './utils/logger'
 import { requestLogger } from './middleware/requestLogger'
 import { rateLimiter } from './middleware/rateLimiter'
+import { isRateLimitEnabled } from './config/rateLimitConfig'
 import { connectRedis, disconnectRedis } from './utils/redisClient'
-import type { Request, Response, NextFunction } from 'express'
+import type { Request, Response, NextFunction, RequestHandler } from 'express'
 import connection, { closeDb } from './db/connection'
 import ExportService from './services/exportService'
 import ExportController from './controllers/exportController'
@@ -62,12 +63,18 @@ import { createRecommendationRoutes } from './routes/recommendationRoutes'
 //  json → requestLogger → router de movies → error handler → 404.
 // ═══════════════════════════════════════════════════════════════
 
-export function createApp(movieService?: MovieService, searchService?: SearchService) {
+const noopRateLimiter: RequestHandler = (_req, _res, next) => next()
+
+export function createApp(
+    movieService?: MovieService,
+    searchService?: SearchService,
+    rateLimiterMiddleware?: RequestHandler
+) {
     const app = express()
 
     app.disable('x-powered-by')
     app.use(express.json())
-    app.use(rateLimiter)
+    app.use(rateLimiterMiddleware ?? (isRateLimitEnabled() ? rateLimiter : noopRateLimiter))
     app.use(requestLogger)
     app.use(express.static('public'))
 
