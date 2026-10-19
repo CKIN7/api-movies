@@ -6,13 +6,13 @@ import type { RecommendationCandidateRow } from '../../types/recommendation'
 
 const candidates: RecommendationCandidateRow[] = [
     // vista por el usuario
-    { id: 1, title: 'Inception', year: 2010, rating: 8.8, id_director: 10, genreIds: '1,2', genreNames: 'action,sci-fi', actorIds: '100' },
+    { id: 1, title: 'Inception', year: 2010, rating: 8.8, id_director: 10, genreIds: '1,2', genreNames: 'action,sci-fi', actorIds: '100', duration: 148, age_rating: 'PG-13' },
     // candidata: comparte ambos géneros con Inception
-    { id: 2, title: 'Interstellar', year: 2014, rating: 8.6, id_director: 10, genreIds: '1,2', genreNames: 'action,sci-fi', actorIds: '100' },
+    { id: 2, title: 'Interstellar', year: 2014, rating: 8.6, id_director: 10, genreIds: '1,2', genreNames: 'action,sci-fi', actorIds: '100', duration: 169, age_rating: 'PG-13' },
     // candidata: solo comparte género 2
-    { id: 3, title: 'The Matrix', year: 1999, rating: 8.7, id_director: 20, genreIds: '2', genreNames: 'sci-fi', actorIds: '200' },
+    { id: 3, title: 'The Matrix', year: 1999, rating: 8.7, id_director: 20, genreIds: '2', genreNames: 'sci-fi', actorIds: '200', duration: 136, age_rating: 'R' },
     // candidata sin relación
-    { id: 4, title: 'Titanic', year: 1997, rating: 7.9, id_director: 30, genreIds: '3', genreNames: 'drama', actorIds: '300' },
+    { id: 4, title: 'Titanic', year: 1997, rating: 7.9, id_director: 30, genreIds: '3', genreNames: 'drama', actorIds: '300', duration: 194, age_rating: 'PG-13' },
 ]
 
 function makeService(overrides: {
