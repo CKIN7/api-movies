@@ -22,7 +22,7 @@ function createTestService() {
 
 beforeAll(async () => { db = await setupTestDb() })
 afterAll(async () => { await teardownTestDb(db) })
-beforeEach(async () => { await clearTestData(db); await seedTestData(db) })
+beforeEach(async () => { await clearTestData(db); await seedTestData(db) }, 30000)
 
 describe('GET /movies/suggest — field=title', () => {
     test('?q=Inc&field=title devuelve Inception', async () => {
