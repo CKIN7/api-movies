@@ -1,10 +1,18 @@
-import { UserPreferencesRow } from '../types/user'
+import { ContentFilters, GenreAffinity, UserPreferencesRow } from '../types/user'
 import { DbLogger } from '../utils/DbLogger'
 
-export interface UserPreferencesFavorites {
+export interface UserPreferencesData {
     favoriteGenres: number[]
     favoriteDirectors: number[]
     favoriteActors: number[]
+    dislikedGenres: number[]
+    dislikedDirectors: number[]
+    dislikedActors: number[]
+    contentFilters: ContentFilters
+}
+
+export interface UserPreferencesInsertData extends UserPreferencesData {
+    genreAffinity: GenreAffinity
 }
 
 export class UserPreferencesRepository {
@@ -22,38 +30,47 @@ export class UserPreferencesRepository {
         return (rows as UserPreferencesRow[])[0] || null
     }
 
-    async insert(userId: string, data: UserPreferencesFavorites & {
-        genreAffinity: Record<string, number>
-    }): Promise<void> {
+    async insert(userId: string, data: UserPreferencesInsertData): Promise<void> {
         await this.query(
             `INSERT INTO user_preferences
-             (user_id, favorite_genres, favorite_directors, favorite_actors, genre_affinity)
-             VALUES (?, ?, ?, ?, ?)`,
+             (user_id, favorite_genres, favorite_directors, favorite_actors,
+              disliked_genres, disliked_directors, disliked_actors, content_filters, genre_affinity)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             [
                 userId,
                 JSON.stringify(data.favoriteGenres),
                 JSON.stringify(data.favoriteDirectors),
                 JSON.stringify(data.favoriteActors),
+                JSON.stringify(data.dislikedGenres),
+                JSON.stringify(data.dislikedDirectors),
+                JSON.stringify(data.dislikedActors),
+                JSON.stringify(data.contentFilters),
                 JSON.stringify(data.genreAffinity),
             ]
         )
     }
 
-    async update(userId: string, data: UserPreferencesFavorites): Promise<void> {
+    async update(userId: string, data: UserPreferencesData): Promise<void> {
         await this.query(
             `UPDATE user_preferences
-             SET favorite_genres = ?, favorite_directors = ?, favorite_actors = ?
+             SET favorite_genres = ?, favorite_directors = ?, favorite_actors = ?,
+                 disliked_genres = ?, disliked_directors = ?, disliked_actors = ?,
+                 content_filters = ?
              WHERE user_id = ?`,
             [
                 JSON.stringify(data.favoriteGenres),
                 JSON.stringify(data.favoriteDirectors),
                 JSON.stringify(data.favoriteActors),
+                JSON.stringify(data.dislikedGenres),
+                JSON.stringify(data.dislikedDirectors),
+                JSON.stringify(data.dislikedActors),
+                JSON.stringify(data.contentFilters),
                 userId,
             ]
         )
     }
 
-    async saveAffinity(userId: string, affinity: Record<string, number>): Promise<void> {
+    async saveAffinity(userId: string, affinity: GenreAffinity): Promise<void> {
         await this.query(
             'UPDATE user_preferences SET genre_affinity = ? WHERE user_id = ?',
             [JSON.stringify(affinity), userId]
