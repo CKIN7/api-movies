@@ -51,6 +51,14 @@ import { RecommendationRepository } from './repositories/RecommendationRepositor
 import { RecommendationService } from './services/recommendationService'
 import { RecommendationController } from './controllers/recommendationController'
 import { createRecommendationRoutes } from './routes/recommendationRoutes'
+import UserProfileRepository from './repositories/UserProfileRepository'
+import { UserProfileService } from './services/userProfileService'
+import { UserProfileController } from './controllers/userProfileController'
+import { createUserProfileRoutes } from './routes/userProfileRoutes'
+import UserSettingsRepository from './repositories/UserSettingsRepository'
+import { UserSettingsService } from './services/userSettingsService'
+import { UserSettingsController } from './controllers/userSettingsController'
+import { createUserSettingsRoutes } from './routes/userSettingsRoutes'
 
 // ═══════════════════════════════════════════════════════════════
 //  Patrones: Dependency Injection + Factory + Chain of Resp.
@@ -129,6 +137,16 @@ export function createApp(
     const userPreferencesController = new UserPreferencesController(userPreferencesService)
     const userPreferencesRouter = createUserPreferencesRoutes(userPreferencesController)
 
+    const userProfileRepository = new UserProfileRepository(conn)
+    const userProfileService = new UserProfileService(userProfileRepository, userRepository, userPreferencesService)
+    const userProfileController = new UserProfileController(userProfileService)
+    const userProfileRouter = createUserProfileRoutes(userProfileController)
+
+    const userSettingsRepository = new UserSettingsRepository(conn)
+    const userSettingsService = new UserSettingsService(userSettingsRepository)
+    const userSettingsController = new UserSettingsController(userSettingsService)
+    const userSettingsRouter = createUserSettingsRoutes(userSettingsController)
+
     const recommendationRepository = new RecommendationRepository(conn)
     const recommendationService = new RecommendationService(recommendationRepository, userPreferencesService, movieRepo)
     const recommendationController = new RecommendationController(recommendationService)
@@ -139,6 +157,8 @@ export function createApp(
     app.use('/movies', router)
     app.use('/movies', reviewRouter)
     app.use('/users', watchlistRouter)
+    app.use('/users', userProfileRouter)
+    app.use('/users', userSettingsRouter)
     app.use('/users', userRouter)
     app.use('/users', userPreferencesRouter)
     app.use('/users', recommendationRouter)
