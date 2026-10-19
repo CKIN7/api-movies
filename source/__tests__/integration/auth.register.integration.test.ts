@@ -36,11 +36,13 @@ describe('POST /auth/register (integración real con DB)', () => {
 
         expect(res.status).toBe(201)
         expect(res.body).toMatchObject({
-            id: expect.any(String),
-            email: 'nuevo@example.com',
-            role: 'user',
+            user: {
+                id: expect.any(String),
+                email: 'nuevo@example.com',
+                role: 'user',
+            },
         })
-        expect(res.body.passwordHash).toBeUndefined()
+        expect(res.body.user.passwordHash).toBeUndefined()
         expect(res.body.accessToken).toBeUndefined()
         expect(res.body.refreshToken).toBeUndefined()
     })
@@ -86,7 +88,7 @@ describe('POST /auth/register (integración real con DB)', () => {
             .send({ email: 'privilegios@example.com', password: 'Password123!', role: 'admin' })
 
         expect(res.status).toBe(201)
-        expect(res.body.role).toBe('user')
+        expect(res.body.user.role).toBe('user')
     })
 
     test('registro normaliza el email (trim + lowercase) y lo devuelve limpio', async () => {
@@ -97,7 +99,7 @@ describe('POST /auth/register (integración real con DB)', () => {
             .send({ email: '  Nuevo@Example.COM  ', password: 'Password123!' })
 
         expect(res.status).toBe(201)
-        expect(res.body.email).toBe('nuevo@example.com')
+        expect(res.body.user.email).toBe('nuevo@example.com')
     })
 
     test('registro con el mismo email pero distinto casing devuelve 409', async () => {
@@ -124,7 +126,7 @@ describe('POST /auth/register (integración real con DB)', () => {
             .send({ email: 'endtoend@example.com', password: 'Password123!' })
         expect(loginBefore.status).toBe(403)
 
-        const token = await getVerificationToken(registerRes.body.id)
+        const token = await getVerificationToken(registerRes.body.user.id)
         expect(token).toBeDefined()
 
         const verifyRes = await request(app)
