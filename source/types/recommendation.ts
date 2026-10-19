@@ -30,6 +30,8 @@ export interface RecommendationCandidateRow {
     title: string
     year: number
     rating: number
+    duration: number
+    age_rating: string
     id_director: number
     genreIds: string
     genreNames: string
