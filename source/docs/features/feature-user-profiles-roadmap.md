@@ -1,9 +1,12 @@
 # HU-12 / Roadmap: User Profiles & Preferences 2.0 (F4–F5)
 
-Fases F0–F3 ya entregadas: correcciones base (`F0`), perfil (`F1`),
-preferencias enriquecidas con dislikes/filtros/decay (`F2`) y configuración (`F3`).
+Fases F0–F5 entregadas: correcciones base (`F0`), perfil (`F1`),
+preferencias enriquecidas con dislikes/filtros/decay (`F2`), configuración (`F3`),
+feedback de recomendaciones (`F4`) y onboarding/cold-start (`F5`).
 
-Este documento describe las fases **pendientes** y el cierre de cada una (incluida la colección de Postman).
+Este documento resume las fases F4–F5, sus entregables y el cierre de cada una
+(incluida la colección de Postman). Las specs detalladas viven en
+`feature-recommendation-feedback.md` y `feature-onboarding.md`.
 
 ---
 
@@ -11,12 +14,14 @@ Este documento describe las fases **pendientes** y el cierre de cada una (inclui
 
 **Objetivo:** cerrar el ciclo usuario → recs → feedback → mejores recs.
 
+**Estado:** implementado (F4-1…F4-6). Ver `feature-recommendation-feedback.md`.
+
 | # | Entregable | Descripción |
 |---|-----------|-------------|
 | F4-1 | Tabla `recommendation_feedback` | `user_id`, `movie_id`, `action` (`view`, `hide`, `like`, `not_interested`), `created_at` |
 | F4-2 | `POST /users/me/recommendations/feedback` | Registra la interacción |
-| F4-3 | Ajuste de afinidad | `like` suma afinidad; `not_interested`/`hide` penalizan la afinidad de **géneros** (F2 solo persiste `genre_affinity`; extender a directores/actores requiere mapas nuevos) |
-| F4-4 | Exclusión | Películas marcadas `not_interested` se excluyen como candidatas |
+| F4-3 | Ajuste de afinidad | `like` +1; `hide` -0.5; `not_interested` -1.5 por **género**. Solo afecta a `type=hybrid`; `updateGenreAffinity` elimina la entrada al llegar a 0 (no hay valores negativos) |
+| F4-4 | Exclusión | Películas marcadas `not_interested` se excluyen en `content`, `collab` y `hybrid` |
 | F4-5 | Invalidación | El feedback invalida el cache de recs del usuario |
 | F4-6 | Postman | Al cerrar la fase: requests de feedback, asserts de reviews (`userId` presente, `email` ausente) y smoke run de la colección (las carpetas `Profile`/`Settings` de F1/F3 ya están incorporadas) |
 
@@ -32,14 +37,16 @@ en perfiles públicos o se condiciona a `privacy_activity`.
 
 **Objetivo:** obtener señal inicial de usuarios nuevos sin historial.
 
+**Estado:** implementado (F5-1…F5-6). Ver `feature-onboarding.md`.
+
 | # | Entregable | Descripción |
 |---|-----------|-------------|
 | F5-1 | `POST /users/me/onboarding` | Selección guiada de géneros/directores favoritos |
 | F5-2 | Seed de afinidad | El onboarding siembra `genre_affinity` con peso alto inicial |
-| F5-3 | Recs "populares del género" | Fallback cuando la afinidad está vacía |
-| F5-4 | Progreso de onboarding | Bandera `onboarding_completed` en `user_settings` |
-| F5-5 | Cold-start híbrido | Mezcla popularidad global + afinidad sembrada |
-| F5-6 | Postman | Al cerrar la fase: requests de onboarding y revisión final de la colección |
+| F5-3 | Recs "populares del género" | Fallback de `hybrid` cuando no hay ranking: `rating` dentro de géneros favoritos/afinidad |
+| F5-4 | Progreso de onboarding | Bandera `onboarding_completed` en `user_settings` (solo lectura vía settings) |
+| F5-5 | Cold-start híbrido | `rating` (popularidad) + favoritos + afinidad efectiva, excluyendo vistos y `not_interested` |
+| F5-6 | Postman | Request `Completar onboarding` en la carpeta `Preferences` y revisión final |
 
 **Riesgos:** sesgo de popularidad → diversificar con un vector de exploración (10%).
 
