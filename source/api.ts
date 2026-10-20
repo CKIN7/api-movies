@@ -61,6 +61,9 @@ import UserSettingsRepository from './repositories/UserSettingsRepository'
 import { UserSettingsService } from './services/userSettingsService'
 import { UserSettingsController } from './controllers/userSettingsController'
 import { createUserSettingsRoutes } from './routes/userSettingsRoutes'
+import { OnboardingService } from './services/onboardingService'
+import { OnboardingController } from './controllers/onboardingController'
+import { createOnboardingRoutes } from './routes/onboardingRoutes'
 
 // ═══════════════════════════════════════════════════════════════
 //  Patrones: Dependency Injection + Factory + Chain of Resp.
@@ -146,8 +149,12 @@ export function createApp(
 
     const userSettingsRepository = new UserSettingsRepository(conn)
     const userSettingsService = new UserSettingsService(userSettingsRepository)
-    const userSettingsController = new UserSettingsController(userSettingsService)
-    const userSettingsRouter = createUserSettingsRoutes(userSettingsController)
+const userSettingsController = new UserSettingsController(userSettingsService)
+const userSettingsRouter = createUserSettingsRoutes(userSettingsController)
+
+const onboardingService = new OnboardingService(userPreferencesService, userSettingsService)
+const onboardingController = new OnboardingController(onboardingService)
+const onboardingRouter = createOnboardingRoutes(onboardingController)
 
 const recommendationRepository = new RecommendationRepository(conn)
 const recommendationFeedbackRepository = new RecommendationFeedbackRepository(conn)
@@ -163,6 +170,7 @@ const recommendationRouter = createRecommendationRoutes(recommendationController
     app.use('/users', watchlistRouter)
     app.use('/users', userProfileRouter)
     app.use('/users', userSettingsRouter)
+    app.use('/users', onboardingRouter)
     app.use('/users', userRouter)
     app.use('/users', userPreferencesRouter)
     app.use('/users', recommendationRouter)
