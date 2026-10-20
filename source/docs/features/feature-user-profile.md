@@ -76,7 +76,9 @@ Si es público, incluye `stats`:
   Perfil público incluye `stats` (reutiliza `getStats`). Nunca incluye `email`.
 
 * **CA-F1-06 — Invalidación**
-  `PATCH` invalida las recomendaciones del usuario (fail-open).
+  `PATCH` invalida las recomendaciones del usuario (fail-open) **solo si cambian `birthYear` o
+  `country`**. Son los únicos campos que el motor podrá consumir en el futuro (filtros de edad y
+  catálogo regional); los cambios cosméticos no fuerzan recomputación.
 
 ---
 
@@ -175,7 +177,7 @@ PATCH /users/me/profile
   ├─ userProfileService.updateProfile()
   │    ├─ findByUserId() → merge con fila actual (o defaults)
   │    ├─ repo.update() | repo.insert()
-  │    └─ invalidateUserRecommendations(userId)
+  │    └─ si cambian birthYear/country → invalidateUserRecommendations(userId)
   └─ 200 OK → UserProfileResponse
 
 GET /users/:id/profile
