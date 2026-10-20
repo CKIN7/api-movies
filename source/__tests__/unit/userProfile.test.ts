@@ -61,16 +61,17 @@ describe('UserProfileService (unit)', () => {
     })
 
     describe('updateProfile', () => {
-        test('inserta cuando no existe y invalida recs', async () => {
+        test('inserta cuando no existe e invalida recs al cambiar datos demográficos', async () => {
             mockProfileRepo.findByUserId
                 .mockResolvedValueOnce(null)
                 .mockResolvedValueOnce(fullRow)
 
-            await service.updateProfile('u1', { displayName: 'Ana', isPublic: true })
+            await service.updateProfile('u1', { displayName: 'Ana', isPublic: true, birthYear: 1990 })
 
             expect(mockProfileRepo.insert).toHaveBeenCalledWith('u1', expect.objectContaining({
                 displayName: 'Ana',
                 isPublic: true,
+                birthYear: 1990,
             }))
             expect(mockProfileRepo.update).not.toHaveBeenCalled()
             expect(invalidateUserRecommendations).toHaveBeenCalledWith('u1')
@@ -89,6 +90,41 @@ describe('UserProfileService (unit)', () => {
                 bio: 'Fan del sci-fi',
                 country: 'ES',
             }))
+            expect(invalidateUserRecommendations).not.toHaveBeenCalled()
+        })
+
+        test('invalida recs cuando cambia birthYear', async () => {
+            mockProfileRepo.findByUserId
+                .mockResolvedValueOnce(fullRow)
+                .mockResolvedValueOnce({ ...fullRow, birth_year: 1991 })
+            mockProfileRepo.update.mockResolvedValue(undefined)
+
+            await service.updateProfile('u1', { birthYear: 1991 })
+
+            expect(invalidateUserRecommendations).toHaveBeenCalledWith('u1')
+        })
+
+        test('invalida recs cuando cambia country', async () => {
+            mockProfileRepo.findByUserId
+                .mockResolvedValueOnce(fullRow)
+                .mockResolvedValueOnce({ ...fullRow, country: 'MX' })
+            mockProfileRepo.update.mockResolvedValue(undefined)
+
+            await service.updateProfile('u1', { country: 'MX' })
+
+            expect(invalidateUserRecommendations).toHaveBeenCalledWith('u1')
+        })
+
+        test('no invalida recs si los datos demográficos no cambian', async () => {
+            mockProfileRepo.findByUserId
+                .mockResolvedValueOnce(fullRow)
+                .mockResolvedValueOnce(fullRow)
+            mockProfileRepo.update.mockResolvedValue(undefined)
+
+            await service.updateProfile('u1', { birthYear: 1990, country: 'ES', bio: 'Otra bio' })
+
+            expect(mockProfileRepo.update).toHaveBeenCalled()
+            expect(invalidateUserRecommendations).not.toHaveBeenCalled()
         })
     })
 
