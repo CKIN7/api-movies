@@ -64,7 +64,17 @@ export class UserProfileService {
                 await this.profileRepo.insert(userId, data)
             }
 
-            await invalidateUserRecommendations(userId)
+            // Hoy recommendationService no lee user_profiles, pero birthYear y country
+            // alimentarán filtros demográficos (edad y catálogo regional) en el futuro.
+            // Se invalida solo si cambian esos campos para no recomputar recs por
+            // cambios cosméticos (displayName, bio, avatarUrl, isPublic).
+            const demographicsChanged =
+                data.birthYear !== (current?.birthYear ?? null) ||
+                data.country !== (current?.country ?? null)
+
+            if (demographicsChanged) {
+                await invalidateUserRecommendations(userId)
+            }
 
             return this.getMyProfile(userId)
         } catch (error) {
