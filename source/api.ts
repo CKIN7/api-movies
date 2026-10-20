@@ -48,7 +48,9 @@ import { UserPreferencesService } from './services/userPreferencesService'
 import { UserPreferencesController } from './controllers/userPreferencesController'
 import { createUserPreferencesRoutes } from './routes/userPreferencesRoutes'
 import { RecommendationRepository } from './repositories/RecommendationRepository'
+import { RecommendationFeedbackRepository } from './repositories/RecommendationFeedbackRepository'
 import { RecommendationService } from './services/recommendationService'
+import { RecommendationFeedbackService } from './services/recommendationFeedbackService'
 import { RecommendationController } from './controllers/recommendationController'
 import { createRecommendationRoutes } from './routes/recommendationRoutes'
 import UserProfileRepository from './repositories/UserProfileRepository'
@@ -147,10 +149,12 @@ export function createApp(
     const userSettingsController = new UserSettingsController(userSettingsService)
     const userSettingsRouter = createUserSettingsRoutes(userSettingsController)
 
-    const recommendationRepository = new RecommendationRepository(conn)
-    const recommendationService = new RecommendationService(recommendationRepository, userPreferencesService, movieRepo)
-    const recommendationController = new RecommendationController(recommendationService)
-    const recommendationRouter = createRecommendationRoutes(recommendationController)
+const recommendationRepository = new RecommendationRepository(conn)
+const recommendationFeedbackRepository = new RecommendationFeedbackRepository(conn)
+const recommendationFeedbackService = new RecommendationFeedbackService(recommendationFeedbackRepository, userPreferencesService, movieRepo)
+const recommendationService = new RecommendationService(recommendationRepository, userPreferencesService, movieRepo, recommendationFeedbackService)
+const recommendationController = new RecommendationController(recommendationService, recommendationFeedbackService)
+const recommendationRouter = createRecommendationRoutes(recommendationController)
 
     app.use('/movies/search', searchRouter)
     app.use('/movies', exportRouter)
