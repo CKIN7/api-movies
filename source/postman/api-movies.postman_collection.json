@@ -782,6 +782,10 @@
                   "    pm.expect(json).to.have.property('isNew');",
                   "    pm.expect(json.data).to.have.property('id');",
                   "});",
+                  "pm.test('Autor por userId, sin email', function () {",
+                  "    pm.expect(json.data).to.have.property('userId');",
+                  "    pm.expect(json.data).to.not.have.property('email');",
+                  "});",
                   "if (json.data && json.data.id) { pm.collectionVariables.set('reviewId', String(json.data.id)); }"
                 ]
               }
@@ -817,6 +821,12 @@
                   "    pm.expect(json.meta).to.have.property('total');",
                   "    pm.expect(json.summary).to.have.property('average');",
                   "    pm.expect(json.summary).to.have.property('count');",
+                  "});",
+                  "pm.test('Autores por userId, sin email', function () {",
+                  "    json.data.forEach(function (review) {",
+                  "        pm.expect(review).to.have.property('userId');",
+                  "        pm.expect(review).to.not.have.property('email');",
+                  "    });",
                   "});"
                 ]
               }
@@ -1310,6 +1320,45 @@
                   "        pm.expect(item.score).to.be.above(0);",
                   "    });",
                   "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Enviar feedback",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"movieId\": {{movieId}},\n  \"action\": \"like\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/users/me/recommendations/feedback", "host": ["{{baseUrl}}"], "path": ["users", "me", "recommendations", "feedback"] },
+            "description": "Registra feedback sobre una película.\n\nAcciones: `view` (sin efecto en ranking), `hide` (-0.5 afinidad), `like` (+1 afinidad), `not_interested` (-1.5 afinidad y **excluye** la película de todas las recomendaciones).\n\nEs idempotente por `(movieId, action)`: `201` con `applied: true` la primera vez, `200` con `applied: false` si se repite. Un feedback nuevo con efecto invalida la caché de recomendaciones. La afinidad solo afecta a `type=hybrid`."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200 o 201 (idempotente)', function () {",
+                  "    pm.expect([200, 201]).to.include(pm.response.code);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "pm.test('Echo de movieId/action y flag applied', function () {",
+                  "    pm.expect(json).to.have.property('movieId');",
+                  "    pm.expect(json).to.have.property('action');",
+                  "    pm.expect(json).to.have.property('applied');",
+                  "});",
+                  "if (pm.response.code === 201) {",
+                  "    pm.test('Feedback nuevo aplicado', function () { pm.expect(json.applied).to.eql(true); });",
+                  "}",
+                  "if (pm.response.code === 200) {",
+                  "    pm.test('Feedback duplicado no reaplicado', function () { pm.expect(json.applied).to.eql(false); });",
+                  "}"
                 ]
               }
             }
