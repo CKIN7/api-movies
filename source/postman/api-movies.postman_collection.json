@@ -1091,6 +1091,40 @@
               }
             }
           ]
+        },
+        {
+          "name": "Completar onboarding",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"favoriteGenres\": [1, 2],\n  \"favoriteDirectors\": [10]\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/users/me/onboarding", "host": ["{{baseUrl}}"], "path": ["users", "me", "onboarding"] },
+            "description": "Onboarding guiado: guarda géneros/directores favoritos, siembra `genre_affinity` (+5 por género) **solo la primera vez** y marca `onboardingCompleted` en settings.\n\n`favoriteGenres`: 1–10 ids existentes, sin duplicados (requerido). `favoriteDirectors`: 0–10 ids (opcional). Repetir el request actualiza los favoritos sin volver a sembrar afinidad (`seeded: false`). Tras completarlo, `GET /users/me/recommendations?type=hybrid` funciona en cold-start."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+                  "const json = pm.response.json();",
+                  "pm.test('Onboarding completado y seed reportado', function () {",
+                  "    pm.expect(json.onboardingCompleted).to.eql(true);",
+                  "    pm.expect(json).to.have.property('seeded');",
+                  "});",
+                  "pm.test('Favoritos devueltos', function () {",
+                  "    pm.expect(json.favoriteGenres).to.be.an('array');",
+                  "    pm.expect(json.favoriteDirectors).to.be.an('array');",
+                  "});"
+                ]
+              }
+            }
+          ]
         }
       ]
     },
