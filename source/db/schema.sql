@@ -167,6 +167,7 @@ CREATE TABLE `user_settings` (
   `privacy_watchlist` varchar(20) NOT NULL DEFAULT 'public',
   `privacy_activity` varchar(20) NOT NULL DEFAULT 'friends',
   `spoiler_free` tinyint(1) NOT NULL DEFAULT '0',
+  `onboarding_completed` tinyint(1) NOT NULL DEFAULT '0',
   `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`user_id`),
   CONSTRAINT `fk_user_settings_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
