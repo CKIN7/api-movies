@@ -1,7 +1,7 @@
 import request from 'supertest'
 import { createApp } from '../../api'
 import { setupTestDb, teardownTestDb, clearTestData, seedTestData } from '../helpers/db'
-import { authHeader } from '../helpers/auth'
+import { authHeader, TEST_USER_ID } from '../helpers/auth'
 import type { Connection } from 'mysql2/promise'
 
 let db: Connection
@@ -36,7 +36,8 @@ describe('Reviews API (integración real con DB)', () => {
             expect(res.body.isNew).toBe(true)
             expect(res.body.data.rating).toBe(4.5)
             expect(res.body.data.comment).toBe('Excelente')
-            expect(res.body.data.email).toBe('admin@example.com')
+            expect(res.body.data.userId).toBe(TEST_USER_ID)
+            expect(res.body.data.email).toBeUndefined()
         })
 
         test('hace upsert y devuelve 200 si review ya existe', async () => {
@@ -153,6 +154,8 @@ describe('Reviews API (integración real con DB)', () => {
                 average: expect.any(Number),
                 count: expect.any(Number),
             })
+            expect(res.body.data[0].userId).toBe(TEST_USER_ID)
+            expect(res.body.data[0].email).toBeUndefined()
         })
 
         test('devuelve array vacío y summary null/0 si sin reviews', async () => {
