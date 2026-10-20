@@ -1,5 +1,6 @@
 import { RecommendationRepository } from '../repositories/RecommendationRepository'
 import { UserPreferencesService } from './userPreferencesService'
+import { RecommendationFeedbackService } from './recommendationFeedbackService'
 import MovieRepository from '../repositories/MovieRepository'
 import { getCached, setCached, invalidatePattern } from '../utils/cache'
 import { getRedisClient, isRedisHealthy } from '../utils/redisClient'
@@ -236,6 +237,7 @@ export class RecommendationService {
         private recRepo: RecommendationRepository,
         private prefsService: UserPreferencesService,
         private movieRepo: MovieRepository,
+        private feedbackService: RecommendationFeedbackService,
     ) {}
 
     private cacheKey(userId: string, type: string): string {
@@ -280,14 +282,16 @@ export class RecommendationService {
     }
 
     private async compute(userId: string, query: RecommendationQueryDTO): Promise<RecommendationItem[]> {
-        const [interactions, prefs, rawCandidates] = await Promise.all([
+        const [interactions, prefs, rawCandidates, excludedMovieIds] = await Promise.all([
             this.recRepo.getUserInteractions(userId),
             this.prefsService.getPreferences(userId),
             this.recRepo.getCandidates(),
+            this.feedbackService.getExcludedMovieIds(userId),
         ])
 
+        const excludedIds = new Set(excludedMovieIds)
         const filters: ContentFilters = query.type === 'hybrid' ? (prefs.contentFilters ?? {}) : {}
-        const candidates = rawCandidates.filter(c => passesFilters(c, filters))
+        const candidates = rawCandidates.filter(c => passesFilters(c, filters) && !excludedIds.has(c.id))
 
         const watchedIds = new Set(interactions.map(i => i.movieId))
         const seeds = query.type !== 'collab'
@@ -317,6 +321,7 @@ export class RecommendationService {
 
         const finalScores = new Map<number, number>()
         for (const [id, parts] of merged) {
+            if (excludedIds.has(id)) continue
             const score = query.type === 'hybrid'
                 ? parts.content * WEIGHTS.content + parts.collab * WEIGHTS.collab + parts.pref * WEIGHTS.pref
                 : query.type === 'content' ? parts.content : parts.collab
