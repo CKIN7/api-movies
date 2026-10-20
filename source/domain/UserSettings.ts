@@ -21,6 +21,7 @@ export class UserSettings {
         public readonly privacyWatchlist: PrivacyLevel,
         public readonly privacyActivity: PrivacyLevel,
         public readonly spoilerFree: boolean,
+        public readonly onboardingCompleted: boolean,
         public readonly updatedAt: string | null,
     ) {}
 
@@ -36,6 +37,7 @@ export class UserSettings {
             row.privacy_watchlist as PrivacyLevel,
             row.privacy_activity as PrivacyLevel,
             toBool(row.spoiler_free),
+            toBool(row.onboarding_completed),
             row.updated_at,
         )
     }
@@ -51,6 +53,7 @@ export class UserSettings {
             privacyWatchlist: this.privacyWatchlist,
             privacyActivity: this.privacyActivity,
             spoilerFree: this.spoilerFree,
+            onboardingCompleted: this.onboardingCompleted,
             updatedAt: this.updatedAt,
         }
     }
