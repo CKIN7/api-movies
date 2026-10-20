@@ -178,4 +178,51 @@ describe('RecommendationService (unit)', () => {
         expect(contentItems.find(i => i.movie.id === 3)).toBeUndefined()
         expect(collabItems.find(i => i.movie.id === 3)).toBeUndefined()
     })
+
+    test('cold start con favoritos: fallback popular en géneros favoritos', async () => {
+        const { service } = makeService({
+            prefs: {
+                favoriteGenres: [3], favoriteDirectors: [], favoriteActors: [],
+                genreAffinity: {},
+            },
+        })
+
+        const items = await service.getRecommendations('user-new', { type: 'hybrid', limit: 10 })
+
+        expect(items.map(i => i.movie.id)).toEqual([4])
+        expect(items[0].score).toBeGreaterThan(0)
+        expect(items[0].reason).toBe('Popular en tus géneros favoritos')
+    })
+
+    test('cold start solo con afinidad: fallback por géneros de interés', async () => {
+        const { service } = makeService({
+            prefs: {
+                favoriteGenres: [], favoriteDirectors: [], favoriteActors: [],
+                genreAffinity: { '3': { score: 5, updatedAt: new Date().toISOString() } },
+            },
+        })
+
+        const items = await service.getRecommendations('user-new', { type: 'hybrid', limit: 10 })
+
+        expect(items.map(i => i.movie.id)).toEqual([4])
+        expect(items[0].reason).toBe('Popular en tus géneros de interés')
+    })
+
+    test('fallback no recomienda lo visto ni lo marcado not_interested', async () => {
+        const prefs = {
+            favoriteGenres: [3], favoriteDirectors: [], favoriteActors: [],
+            genreAffinity: {},
+        }
+
+        const { service: watched } = makeService({
+            prefs,
+            interactions: [{ movieId: 4, weight: 5 }],
+        })
+        const { service: excluded } = makeService({ prefs, excludedMovieIds: [4] })
+
+        await expect(watched.getRecommendations('user-1', { type: 'hybrid', limit: 10 }))
+            .resolves.toEqual([])
+        await expect(excluded.getRecommendations('user-1', { type: 'hybrid', limit: 10 }))
+            .resolves.toEqual([])
+    })
 })
