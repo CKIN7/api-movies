@@ -1,6 +1,7 @@
 import { RecommendationService } from '../../services/recommendationService'
 import { RecommendationRepository } from '../../repositories/RecommendationRepository'
 import { UserPreferencesService } from '../../services/userPreferencesService'
+import { RecommendationFeedbackService } from '../../services/recommendationFeedbackService'
 import MovieRepository from '../../repositories/MovieRepository'
 import type { RecommendationCandidateRow } from '../../types/recommendation'
 
@@ -20,6 +21,7 @@ function makeService(overrides: {
     allInteractions?: { userId: string, movieId: number, weight: number }[]
     prefs?: any
     movieRows?: any[]
+    excludedMovieIds?: number[]
 } = {}) {
     const recRepo = {
         getUserInteractions: jest.fn().mockResolvedValue(overrides.interactions ?? []),
@@ -39,12 +41,17 @@ function makeService(overrides: {
         ),
     }
 
+    const feedbackService = {
+        getExcludedMovieIds: jest.fn().mockResolvedValue(overrides.excludedMovieIds ?? []),
+    }
+
     const service = new RecommendationService(
         recRepo as unknown as RecommendationRepository,
         prefsService as unknown as UserPreferencesService,
         movieRepo as unknown as MovieRepository,
+        feedbackService as unknown as RecommendationFeedbackService,
     )
-    return { service, recRepo, prefsService, movieRepo }
+    return { service, recRepo, prefsService, movieRepo, feedbackService }
 }
 
 describe('RecommendationService (unit)', () => {
@@ -152,5 +159,23 @@ describe('RecommendationService (unit)', () => {
         expect(withMatrix).toBeDefined()
         expect(withoutMatrix).toBeDefined()
         expect(withMatrix!.score).toBeGreaterThan(withoutMatrix!.score)
+    })
+
+    test('excluye películas marcadas como not_interested en todos los tipos', async () => {
+        const { service } = makeService({
+            interactions: [{ movieId: 1, weight: 5 }],
+            allInteractions: [
+                { userId: 'user-1', movieId: 1, weight: 5 },
+                { userId: 'user-2', movieId: 1, weight: 4 },
+                { userId: 'user-2', movieId: 3, weight: 5 },
+            ],
+            excludedMovieIds: [3],
+        })
+
+        const contentItems = await service.getRecommendations('user-1', { type: 'content', limit: 10 })
+        const collabItems = await service.getRecommendations('user-1', { type: 'collab', limit: 10 })
+
+        expect(contentItems.find(i => i.movie.id === 3)).toBeUndefined()
+        expect(collabItems.find(i => i.movie.id === 3)).toBeUndefined()
     })
 })
