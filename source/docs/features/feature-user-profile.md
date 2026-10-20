@@ -31,7 +31,7 @@ Perfil completo del usuario autenticado.
 ### `PATCH /users/me/profile` (auth)
 
 Actualización **parcial**. Campos: `displayName`, `bio`, `avatarUrl`, `country`, `birthYear`, `isPublic`.
-Enviar `null` limpia el campo.
+Enviar `null` limpia el campo (en `bio`, `""` se guarda como cadena vacía: no borra; `displayName: ""` → `400`).
 
 ### `GET /users/:id/profile` (público)
 
@@ -121,7 +121,7 @@ Si es público, incluye `stats`:
 
 | # | Caso | Comportamiento |
 |---|------|----------------|
-| EC1 | `bio: ""` | Se guarda `null` (o vacío normalizado) |
+| EC1 | `bio: ""` | Se guarda `""` (no borra; para borrar hay que enviar `null`) |
 | EC2 | `country: "es"` | Se normaliza a `"ES"` |
 | EC3 | Emojis en `displayName` | Válido |
 | EC4 | `isPublic` cambia | Reflejado de inmediato en `/users/:id/profile` |
@@ -134,34 +134,6 @@ Si es público, incluye `stats`:
 2. **Orden de rutas**: `GET/PATCH /me/profile` antes de `GET /:id/profile`.
 3. **Privacidad**: el DTO público se compone en el servicio; nunca se serializa `email`.
 4. **Sin fila al `GET`**: se devuelve un default estable, sin crear registros de forma implícita.
-
----
-
-## Cambio final: autor de reviews con `userId` (sin `email`)
-
-Para que el frontend pueda navegar de una review a `GET /users/:id/profile`, las respuestas de reviews exponen el UUID del autor. A la vez se deja de exponer su email, que era un dato más sensible y no necesario para la UI.
-
-### Contrato
-
-| Endpoint | Antes | Ahora |
-|----------|-------|-------|
-| `POST /movies/:id/reviews` | `data.email` | `data.userId` |
-| `PATCH /movies/:id/reviews/me` | `data.email` | `data.userId` |
-| `GET /movies/:id/reviews` | cada item con `email` | cada item con `userId` |
-
-`userId` es el `users.id` (UUID v4) del autor. El frontend lo usa para enlazar a `/users/{userId}/profile`; no necesita adivinarlo ni obtenerlo de otra fuente.
-
-### Implementación
-
-* `types/review.ts`: `ReviewResponse.userId`; se elimina `email` de `ReviewRow`.
-* `domain/Review.ts`: el dominio guarda `userId` y `toResponse()` lo serializa; `fromRow()` lee `row.user_id`.
-* `repositories/ReviewRepository.ts`: se elimina el `JOIN users` y la selección de `u.email` en `findByMovieId`, `findById` y `findByUserAndMovie`.
-* `__tests__/integration/reviews.api.integration.test.ts`: valida `userId === TEST_USER_ID` y `email === undefined` en POST y GET.
-* `__tests__/unit/reviews.unit.test.ts`: mocks con filas snake_case (`movie_id`, `user_id`, `created_at`, `updated_at`) sin `email`.
-
-### Compatibilidad
-
-Es un cambio incompatible para cualquier cliente que leyera `email` en reviews. En este repositorio el único consumidor es la UI propia (`public/`), que todavía no renderiza reviews, así que no hay impacto en producción. La colección de Postman no asserta `email`; al actualizarla para F4/F5 conviene añadir la aserción de `userId` y la ausencia de `email`.
 
 ---
 
@@ -222,5 +194,6 @@ GET /users/:id/profile
 
 * `npm test -- userProfile` (unit)
 * `npm test -- user-profile` (integración)
-* `npm test -- reviews` (unit) y `npm test -- reviews.api` (integración): contrato `userId` sin `email`.
 * `npm run build`
+
+El contrato de autor en reviews se documenta aparte: `feature-review-author-contract.md`.
