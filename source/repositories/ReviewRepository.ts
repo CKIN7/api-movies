@@ -10,8 +10,7 @@ class ReviewRepository {
 
     async findByMovieId(movieId: number, limit: number, offset: number): Promise<ReviewRow[]>{
         const [rows] = await this.query(
-            `SELECT r.*, u.email FROM reviews r
-            JOIN users u ON r.user_id = u.id
+            `SELECT r.* FROM reviews r
             WHERE r.movie_id = ?
             ORDER BY r.created_at DESC
             LIMIT ? OFFSET ?
@@ -43,7 +42,7 @@ class ReviewRepository {
 
     async findById(id: number): Promise<ReviewRow | null> {
         const [rows] = await this.query(
-        `SELECT r.*, u.email FROM reviews r JOIN users u ON r.user_id = u.id WHERE r.id = ?`,
+        `SELECT r.* FROM reviews r WHERE r.id = ?`,
         [id]);
         
         return (rows as ReviewRow[])[0] || null;
@@ -51,9 +50,8 @@ class ReviewRepository {
 
     async findByUserAndMovie(userId: string, movieId: number): Promise<ReviewRow | null> {
         const [rows] = await this.query(
-            `SELECT r.id, r.movie_id, r.user_id, r.rating, r.comment, r.created_at, r.updated_at, u.email
+            `SELECT r.id, r.movie_id, r.user_id, r.rating, r.comment, r.created_at, r.updated_at
              FROM reviews r
-             JOIN users u ON r.user_id = u.id
              WHERE r.movie_id = ? AND r.user_id = ?`,
             [movieId, userId]
         );
