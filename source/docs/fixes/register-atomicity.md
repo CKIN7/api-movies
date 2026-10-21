@@ -1,5 +1,7 @@
 # Fix: registro atómico (`users` + `email_verifications`)
 
+> **Tipo:** Fix · **Estado:** Spec (no implementado) · **Revisión:** 2026-10-21
+
 Como usuario nuevo,
 quiero que un fallo a mitad del registro no me deje una cuenta inutilizable,
 para poder reintentar el registro o, al menos, reenviar la verificación sin quedar bloqueado.

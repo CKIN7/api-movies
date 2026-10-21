@@ -1,5 +1,7 @@
 # HU-12 / F3: Configuración de Usuario
 
+> **Tipo:** Feature · **HU:** HU-12 · **Fase:** F3 · **Estado:** Implementado · **Revisión:** 2026-10-21
+
 Como usuario de la API,
 quiero ajustar el idioma, tema, notificaciones y privacidad de mi cuenta,
 para que la experiencia respete mis preferencias.

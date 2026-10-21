@@ -1,5 +1,7 @@
 # HU-12 / F4: Feedback de Recomendaciones
 
+> **Tipo:** Feature · **HU:** HU-12 · **Fase:** F4 · **Estado:** Implementado · **Revisión:** 2026-10-21
+
 Como usuario de la API,
 quiero indicar qué recomendaciones me gustan, no me interesan o ya vi,
 para que el motor ajuste mis afinidades y deje de mostrarme contenido descartado.

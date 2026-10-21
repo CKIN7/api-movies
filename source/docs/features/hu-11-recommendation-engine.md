@@ -1,5 +1,7 @@
 # HU-11: Motor de Recomendaciones (Content-Based + Collaborative + Preferencias)
 
+> **Tipo:** Feature · **HU:** HU-11 · **Estado:** Implementado · **Revisión:** 2026-10-21
+
 Como usuario de la API,  
 quiero recibir recomendaciones de películas personalizadas según mi historial (reviews + watchlist), mis preferencias declaradas y el comportamiento de usuarios similares,  
 para descubrir contenido afín sin tener que buscarlo manualmente.
@@ -189,7 +191,7 @@ source/
 │       └── recommendation.integration.test.ts ★ NUEVO — 8 tests (401, cold start, exclusión, validación)
 └── docs/
     └── features/
-        └── feature-recommendation-engine.md ✎ poblar
+        └── hu-11-recommendation-engine.md   ✎ poblar
 ```
 
 ---

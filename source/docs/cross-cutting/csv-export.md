@@ -1,5 +1,7 @@
 # Historia de Usuario: Exportar Catálogo
 
+> **Tipo:** Feature · **Alcance:** Catálogo · **Estado:** Implementado · **Revisión:** 2026-10-21
+
 **Título:** Como administrador del catálogo, quiero exportar las películas filtradas a un archivo CSV o JSON descargable, para analizar los datos en Excel u otras herramientas externas.
 
 ---

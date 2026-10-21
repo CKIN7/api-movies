@@ -1,5 +1,7 @@
 # HU-12 / F2: Preferencias Enriquecidas (dislikes, filtros y decay)
 
+> **Tipo:** Feature · **HU:** HU-12 · **Fase:** F2 · **Estado:** Implementado · **Revisión:** 2026-10-21
+
 Como usuario de la API,
 quiero expresar tanto lo que me gusta como lo que **no** me gusta, y fijar filtros duros de contenido,
 para que mis recomendaciones se ajusten con más precisión y con el tiempo.

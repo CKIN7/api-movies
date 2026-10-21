@@ -1,5 +1,7 @@
 # HU-12 / F1: Perfil de Usuario
 
+> **Tipo:** Feature · **HU:** HU-12 · **Fase:** F1 · **Estado:** Implementado · **Revisión:** 2026-10-21
+
 Como usuario de la API,
 quiero tener un perfil (nombre visible, bio, avatar, país) con visibilidad configurable,
 para presentarme ante otros usuarios sin exponer mi email.
@@ -196,4 +198,4 @@ GET /users/:id/profile
 * `npm test -- user-profile` (integración)
 * `npm run build`
 
-El contrato de autor en reviews se documenta aparte: `feature-review-author-contract.md`.
+El contrato de autor en reviews se documenta aparte: [`review-author-contract.md`](./review-author-contract.md).

@@ -1,5 +1,7 @@
 # Contrato de autor en reviews: `userId` en lugar de `email`
 
+> **Tipo:** Contrato · **HU:** HU-12 · **Estado:** Implementado · **Revisión:** 2026-10-21
+
 Como consumidor de la API,
 quiero conocer el UUID del autor de una review para poder enlazar a su perfil público,
 sin recibir su email, que es un dato sensible e innecesario para la UI.

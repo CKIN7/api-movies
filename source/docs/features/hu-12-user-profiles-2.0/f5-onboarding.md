@@ -1,5 +1,7 @@
 # HU-12 / F5: Onboarding & Cold-Start
 
+> **Tipo:** Feature · **HU:** HU-12 · **Fase:** F5 · **Estado:** Implementado · **Revisión:** 2026-10-21
+
 Como usuario nuevo de la API,
 quiero elegir mis géneros y directores favoritos al registrarme,
 para recibir recomendaciones útiles desde el primer día sin historial.

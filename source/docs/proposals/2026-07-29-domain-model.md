@@ -1,4 +1,6 @@
+# Propuestas para el Domain Model
 
+> **Tipo:** Propuesta · **Estado:** Pendiente de evaluación · **Fecha:** 2026-07-29
 
 10. Vista Aleatoria Múltiple (Carousel)
 HU: Como usuario, quiero obtener un lote de N películas aleatorias en una sola llamada, para armar un carousel de recomendaciones en la página principal.

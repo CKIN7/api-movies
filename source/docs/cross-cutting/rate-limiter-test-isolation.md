@@ -1,5 +1,7 @@
 # Feature 2: Aislamiento del rate limiter en tests
 
+> **Tipo:** Fix · **Alcance:** Tests · **Estado:** Implementado · **Revisión:** 2026-10-21
+
 Como desarrollador de la API,
 quiero que el rate limiter no contamine el estado entre suites de tests,
 para que la suite completa sea determinista y no dependa del orden de ejecución ni de un Redis "sucio".
@@ -156,7 +158,7 @@ source/
 │   ├── rate-limiter.integration.test.ts                ✎ Redis real, sin falso positivo
 │   └── rate-limiter.redis.integration.test.ts          ✎ FLUSHDB DB 15 + flag on
 ├── __tests__/unit/rateLimitConfig.test.ts              ✎ threshold real + flag
-└── docs/features/feature-rate-limiter-test-isolation.md ✧
+└── docs/cross-cutting/rate-limiter-test-isolation.md    ✧
 ```
 
 ---

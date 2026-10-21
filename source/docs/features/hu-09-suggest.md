@@ -1,5 +1,7 @@
 # HU-9: Sugerencia de Película Incompleta (Autocomplete)
 
+> **Tipo:** Feature · **HU:** HU-09 · **Estado:** Implementado · **Revisión:** 2026-10-21
+
 Como usuario de la API,  
 quiero recibir sugerencias automáticas mientras escribo en un campo de búsqueda de título, director o género,  
 para encontrar resultados más rápido sin necesidad de escribir el término completo.
@@ -168,7 +170,7 @@ source/
 │       └── movies.suggest.integration.test.ts ★ NUEVO
 └── docs/
     └── features/
-        └── feature-suggest.md           ✎ poblar
+        └── hu-09-suggest.md             ✎ poblar
 ```
 
 ---
