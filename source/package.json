@@ -2,9 +2,13 @@
   "name": "api-movies-mvc",
   "version": "1.0.0",
   "type": "commonjs",
+  "engines": {
+    "node": ">=24"
+  },
   "scripts": {
     "dev": "tsx watch api.ts",
     "build": "tsc",
+    "typecheck": "tsc --noEmit",
     "start": "node dist/api.js",
     "test": "jest",
     "test:ratelimit": "jest rate penaltyBox",
