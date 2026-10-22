@@ -17,6 +17,7 @@ feedback de recomendaciones (`F4`) y onboarding/cold-start (`F5`).
 | F4 | [Feedback de recomendaciones](./f4-recommendation-feedback.md) | Implementado |
 | F5 | [Onboarding & cold-start](./f5-onboarding.md) | Implementado |
 | — | [Perfil de usuario frontend](./frontend-profile.md) | Implementado |
+| — | [Configuración de usuario frontend](./frontend-settings.md) | Implementado |
 | — | [Laboratorio frontend F4/F5](./frontend-lab.md) | Implementado |
 | — | [Contrato de autor en reviews](./review-author-contract.md) | Implementado |
 
