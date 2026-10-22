@@ -20,7 +20,7 @@ beforeEach(async () => {
 })
 
 afterAll(async () => {
-    await redis.flushdb()
+    await redis.flushdb().catch(() => {})
     await disconnectRedis()
     process.env.RATE_LIMIT_ENABLED = 'false'
 })
