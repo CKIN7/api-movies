@@ -14,6 +14,7 @@ const DEFAULT_SETTINGS: UserSettingsResponse = {
     privacyWatchlist: 'public',
     privacyActivity: 'friends',
     spoilerFree: false,
+    onboardingCompleted: false,
     updatedAt: null,
 }
 
@@ -46,13 +47,40 @@ export class UserSettingsService {
                 privacyWatchlist: dto.privacyWatchlist ?? current.privacyWatchlist,
                 privacyActivity: dto.privacyActivity ?? current.privacyActivity,
                 spoilerFree: dto.spoilerFree ?? current.spoilerFree,
+                onboardingCompleted: current.onboardingCompleted,
             })
 
             return this.getSettings(userId)
         } catch (error) {
             if (error instanceof AppError) throw error
             logger.error(`Error in updateSettings: ${(error as Error).message}`)
-            throw new AppError('Error al actualizar la configuración', 500)
+            throw new AppError('Error al actualizar la configuraciA3n', 500)
+        }
+    }
+
+    async completeOnboarding(userId: string): Promise<UserSettingsResponse> {
+        try {
+            const row = await this.settingsRepo.findByUserId(userId)
+            const current = row ? UserSettings.fromRow(row).toResponse() : { ...DEFAULT_SETTINGS }
+
+            await this.settingsRepo.save(userId, {
+                language: current.language,
+                theme: current.theme,
+                region: current.region,
+                notifyEmail: current.notifyEmail,
+                notifyPush: current.notifyPush,
+                privacyReviews: current.privacyReviews,
+                privacyWatchlist: current.privacyWatchlist,
+                privacyActivity: current.privacyActivity,
+                spoilerFree: current.spoilerFree,
+                onboardingCompleted: true,
+            })
+
+            return this.getSettings(userId)
+        } catch (error) {
+            if (error instanceof AppError) throw error
+            logger.error(`Error in completeOnboarding: ${(error as Error).message}`)
+            throw new AppError('Error al completar el onboarding', 500)
         }
     }
 }

@@ -163,6 +163,7 @@ export interface UserSettingsRow {
     privacy_watchlist: string
     privacy_activity: string
     spoiler_free: number | boolean
+    onboarding_completed: number | boolean
     updated_at: string
 }
 
@@ -176,6 +177,7 @@ export interface UserSettingsResponse {
     privacyWatchlist: PrivacyLevel
     privacyActivity: PrivacyLevel
     spoilerFree: boolean
+    onboardingCompleted: boolean
     updatedAt: string | null
 }
 
@@ -189,4 +191,16 @@ export interface UpdateUserSettingsDTO {
     privacyWatchlist?: PrivacyLevel
     privacyActivity?: PrivacyLevel
     spoilerFree?: boolean
+}
+
+export interface OnboardingDTO {
+    favoriteGenres: number[]
+    favoriteDirectors?: number[]
+}
+
+export interface OnboardingResult {
+    onboardingCompleted: true
+    seeded: boolean
+    favoriteGenres: number[]
+    favoriteDirectors: number[]
 }

@@ -11,6 +11,7 @@ export interface UserSettingsData {
     privacyWatchlist: string
     privacyActivity: string
     spoilerFree: boolean
+    onboardingCompleted: boolean
 }
 
 class UserSettingsRepository {
@@ -29,8 +30,9 @@ class UserSettingsRepository {
         await this.query(
             `INSERT INTO user_settings
              (user_id, language, theme, region, notify_email, notify_push,
-              privacy_reviews, privacy_watchlist, privacy_activity, spoiler_free)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+              privacy_reviews, privacy_watchlist, privacy_activity, spoiler_free,
+              onboarding_completed)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
              ON DUPLICATE KEY UPDATE
                 language = VALUES(language),
                 theme = VALUES(theme),
@@ -40,7 +42,8 @@ class UserSettingsRepository {
                 privacy_reviews = VALUES(privacy_reviews),
                 privacy_watchlist = VALUES(privacy_watchlist),
                 privacy_activity = VALUES(privacy_activity),
-                spoiler_free = VALUES(spoiler_free)`,
+                spoiler_free = VALUES(spoiler_free),
+                onboarding_completed = VALUES(onboarding_completed)`,
             [
                 userId,
                 data.language,
@@ -52,6 +55,7 @@ class UserSettingsRepository {
                 data.privacyWatchlist,
                 data.privacyActivity,
                 data.spoilerFree ? 1 : 0,
+                data.onboardingCompleted ? 1 : 0,
             ]
         )
     }

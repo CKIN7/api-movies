@@ -1,5 +1,7 @@
 # HU-12 / F0: User Profiles & Preferences 2.0 — Deuda técnica
 
+> **Tipo:** Feature · **HU:** HU-12 · **Fase:** F0 · **Estado:** Implementado · **Revisión:** 2026-10-21
+
 Como usuario de la API,
 quiero que mis preferencias se reflejen de inmediato en mis recomendaciones y que la API sea consistente y observable,
 para que la personalización no quede "congelada" ni falle en silencio.

@@ -1,5 +1,7 @@
 # HU-10: User Profiles & Preferences
 
+> **Tipo:** Feature · **HU:** HU-10 · **Estado:** Implementado · **Revisión:** 2026-10-21
+
 Como usuario de la API,
 quiero que la API conozca mis gustos (géneros, directores, actores favoritos),
 para personalizar mi experiencia.

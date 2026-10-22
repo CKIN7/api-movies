@@ -1,5 +1,7 @@
 # HU-12 / F3: Configuración de Usuario
 
+> **Tipo:** Feature · **HU:** HU-12 · **Fase:** F3 · **Estado:** Implementado · **Revisión:** 2026-10-21
+
 Como usuario de la API,
 quiero ajustar el idioma, tema, notificaciones y privacidad de mi cuenta,
 para que la experiencia respete mis preferencias.
@@ -24,6 +26,7 @@ Fase 3 de *User Profiles & Preferences 2.0*. Añade la tabla `user_settings` y d
   "privacyWatchlist": "public",
   "privacyActivity": "friends",
   "spoilerFree": false,
+  "onboardingCompleted": false,
   "updatedAt": null
 }
 ```
@@ -43,6 +46,10 @@ Actualización **parcial** con upsert. Valores por defecto si no existe fila:
 | `privacyWatchlist` | `public` | `public` \| `friends` \| `private` |
 | `privacyActivity` | `friends` | `public` \| `friends` \| `private` |
 | `spoilerFree` | `false` | boolean |
+| `onboardingCompleted` | `false` | boolean (**solo lectura**; lo marca `POST /users/me/onboarding`) |
+
+`onboardingCompleted` se devuelve en `GET` y `PATCH`, pero no se acepta en el body del
+`PATCH`: un `PATCH` posterior preserva el valor actual.
 
 ---
 
@@ -66,6 +73,10 @@ Actualización **parcial** con upsert. Valores por defecto si no existe fila:
 
 * **CA-F3-06 — Autenticación**
   Sin token válido → `401`.
+
+* **CA-F3-07 — Bandera de onboarding (F5)**
+  `onboardingCompleted` es `false` por defecto y solo lectura en settings; lo marca
+  `POST /users/me/onboarding`. Un `PATCH` posterior preserva el valor (`true`).
 
 ---
 

@@ -16,6 +16,7 @@ const fullRow = {
     privacy_watchlist: 'friends',
     privacy_activity: 'public',
     spoiler_free: 1,
+    onboarding_completed: 1,
     updated_at: '2026-01-01T00:00:00.000Z',
 }
 
@@ -36,6 +37,7 @@ describe('UserSettingsService (unit)', () => {
         expect(result.theme).toBe('system')
         expect(result.notifyEmail).toBe(true)
         expect(result.spoilerFree).toBe(false)
+        expect(result.onboardingCompleted).toBe(false)
         expect(result.updatedAt).toBeNull()
     })
 
@@ -47,6 +49,7 @@ describe('UserSettingsService (unit)', () => {
         expect(result.notifyEmail).toBe(false)
         expect(result.notifyPush).toBe(true)
         expect(result.spoilerFree).toBe(true)
+        expect(result.onboardingCompleted).toBe(true)
         expect(result.privacyReviews).toBe('private')
     })
 
@@ -62,7 +65,24 @@ describe('UserSettingsService (unit)', () => {
             theme: 'light',
             language: 'en',
             notifyPush: true,
+            onboardingCompleted: true,
         }))
+    })
+
+    test('completeOnboarding marca la bandera sin pisar el resto', async () => {
+        mockRepo.findByUserId
+            .mockResolvedValueOnce({ ...fullRow, onboarding_completed: 0 })
+            .mockResolvedValueOnce({ ...fullRow, onboarding_completed: 1 })
+        mockRepo.save.mockResolvedValue(undefined)
+
+        const result = await service.completeOnboarding('u1')
+
+        expect(mockRepo.save).toHaveBeenCalledWith('u1', expect.objectContaining({
+            theme: 'dark',
+            language: 'en',
+            onboardingCompleted: true,
+        }))
+        expect(result.onboardingCompleted).toBe(true)
     })
 
     test('usa defaults al crear la primera config', async () => {

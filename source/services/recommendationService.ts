@@ -1,5 +1,6 @@
 import { RecommendationRepository } from '../repositories/RecommendationRepository'
 import { UserPreferencesService } from './userPreferencesService'
+import { RecommendationFeedbackService } from './recommendationFeedbackService'
 import MovieRepository from '../repositories/MovieRepository'
 import { getCached, setCached, invalidatePattern } from '../utils/cache'
 import { getRedisClient, isRedisHealthy } from '../utils/redisClient'
@@ -236,6 +237,7 @@ export class RecommendationService {
         private recRepo: RecommendationRepository,
         private prefsService: UserPreferencesService,
         private movieRepo: MovieRepository,
+        private feedbackService: RecommendationFeedbackService,
     ) {}
 
     private cacheKey(userId: string, type: string): string {
@@ -280,16 +282,26 @@ export class RecommendationService {
     }
 
     private async compute(userId: string, query: RecommendationQueryDTO): Promise<RecommendationItem[]> {
-        const [interactions, prefs, rawCandidates] = await Promise.all([
+        const [interactions, prefs, rawCandidates, excludedMovieIds] = await Promise.all([
             this.recRepo.getUserInteractions(userId),
             this.prefsService.getPreferences(userId),
             this.recRepo.getCandidates(),
+            this.feedbackService.getExcludedMovieIds(userId),
         ])
 
+        const excludedIds = new Set(excludedMovieIds)
         const filters: ContentFilters = query.type === 'hybrid' ? (prefs.contentFilters ?? {}) : {}
-        const candidates = rawCandidates.filter(c => passesFilters(c, filters))
+        const candidates = rawCandidates.filter(c => passesFilters(c, filters) && !excludedIds.has(c.id))
 
         const watchedIds = new Set(interactions.map(i => i.movieId))
+        const prefInput = prefs as PreferenceInput
+
+        // Cold start híbrido: sin historial, combina popularidad con las señales
+        // de género del onboarding (favoritos + afinidad sembrada).
+        if (query.type === 'hybrid' && interactions.length === 0 && this.hasGenrePreferences(prefInput)) {
+            return this.popularFallback(prefInput, candidates, watchedIds, excludedIds, query.limit)
+        }
+
         const seeds = query.type !== 'collab'
             ? contentScores(candidates, interactions, watchedIds)
             : { scores: new Map<number, number>(), seeds: new Map<number, { title: string, shared: number }>() }
@@ -317,6 +329,7 @@ export class RecommendationService {
 
         const finalScores = new Map<number, number>()
         for (const [id, parts] of merged) {
+            if (excludedIds.has(id)) continue
             const score = query.type === 'hybrid'
                 ? parts.content * WEIGHTS.content + parts.collab * WEIGHTS.collab + parts.pref * WEIGHTS.pref
                 : query.type === 'content' ? parts.content : parts.collab
@@ -324,7 +337,18 @@ export class RecommendationService {
         }
 
         const ranked = [...finalScores.entries()].sort((a, b) => b[1] - a[1]).slice(0, query.limit)
-        if (ranked.length === 0) return []
+        if (ranked.length === 0) {
+            if (query.type === 'hybrid') {
+                return this.popularFallback(
+                    prefs as PreferenceInput,
+                    candidates,
+                    watchedIds,
+                    excludedIds,
+                    query.limit,
+                )
+            }
+            return []
+        }
 
         const rows = await this.movieRepo.findByIds(ranked.map(([id]) => id))
         const rowMap = new Map(rows.map(r => [r.id, r]))
@@ -343,6 +367,68 @@ export class RecommendationService {
                 },
                 score,
                 reason: this.buildReason(query.type, parts, seeds.seeds.get(id)),
+            }
+        })
+    }
+
+    private hasGenrePreferences(prefs: PreferenceInput): boolean {
+        return prefs.favoriteGenres.length > 0 || Object.keys(prefs.genreAffinity ?? {}).length > 0
+    }
+
+    // Fallback cold-start: sin señales suficientes, prioriza popularidad (rating)
+    // dentro de los géneros favoritos o con afinidad positiva.
+    private async popularFallback(
+        prefs: PreferenceInput,
+        candidates: RecommendationCandidateRow[],
+        watchedIds: Set<number>,
+        excludedIds: Set<number>,
+        limit: number,
+    ): Promise<RecommendationItem[]> {
+        const affinity = prefs.genreAffinity ?? {}
+        if (prefs.favoriteGenres.length === 0 && Object.keys(affinity).length === 0) return []
+
+        const favoriteGenres = new Set(prefs.favoriteGenres)
+        const scored = candidates
+            .filter(c => !watchedIds.has(c.id) && !excludedIds.has(c.id))
+            .map(c => {
+                const genres = parseIdList(c.genreIds)
+                const favoriteMatches = genres.filter(g => favoriteGenres.has(g)).length
+                const affinityScore = genres.reduce(
+                    (sum, g) => sum + effectiveAffinity(affinity[String(g)]),
+                    0,
+                )
+                if (favoriteMatches === 0 && affinityScore <= 0) return null
+                return {
+                    id: c.id,
+                    favoriteMatches,
+                    score: round1(Number(c.rating) + favoriteMatches * 2 + affinityScore * 0.5),
+                }
+            })
+            .filter((entry): entry is { id: number, favoriteMatches: number, score: number } => entry !== null)
+            .sort((a, b) => b.score - a.score || b.favoriteMatches - a.favoriteMatches || a.id - b.id)
+            .slice(0, limit)
+
+        if (scored.length === 0) return []
+
+        const rows = await this.movieRepo.findByIds(scored.map(entry => entry.id))
+        const rowMap = new Map(rows.map(r => [r.id, r]))
+        const reason = prefs.favoriteGenres.length > 0
+            ? 'Popular en tus géneros favoritos'
+            : 'Popular en tus géneros de interés'
+
+        return scored.map(({ id, score }) => {
+            const row = rowMap.get(id)
+            return {
+                movie: {
+                    id,
+                    title: row?.title ?? '',
+                    year: row?.year ?? 0,
+                    rating: Number(row?.rating ?? 0),
+                    director: row?.director ?? '',
+                    genres: (row?.genres ?? '').split(', ').filter(Boolean),
+                },
+                score,
+                reason,
             }
         })
     }

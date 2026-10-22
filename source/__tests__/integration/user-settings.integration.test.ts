@@ -33,6 +33,7 @@ describe('User Settings API (integración real con DB)', () => {
         expect(res.status).toBe(200)
         expect(res.body.theme).toBe('system')
         expect(res.body.notifyEmail).toBe(true)
+        expect(res.body.onboardingCompleted).toBe(false)
         expect(res.body.updatedAt).toBeNull()
     })
 

@@ -48,7 +48,9 @@ import { UserPreferencesService } from './services/userPreferencesService'
 import { UserPreferencesController } from './controllers/userPreferencesController'
 import { createUserPreferencesRoutes } from './routes/userPreferencesRoutes'
 import { RecommendationRepository } from './repositories/RecommendationRepository'
+import { RecommendationFeedbackRepository } from './repositories/RecommendationFeedbackRepository'
 import { RecommendationService } from './services/recommendationService'
+import { RecommendationFeedbackService } from './services/recommendationFeedbackService'
 import { RecommendationController } from './controllers/recommendationController'
 import { createRecommendationRoutes } from './routes/recommendationRoutes'
 import UserProfileRepository from './repositories/UserProfileRepository'
@@ -59,6 +61,9 @@ import UserSettingsRepository from './repositories/UserSettingsRepository'
 import { UserSettingsService } from './services/userSettingsService'
 import { UserSettingsController } from './controllers/userSettingsController'
 import { createUserSettingsRoutes } from './routes/userSettingsRoutes'
+import { OnboardingService } from './services/onboardingService'
+import { OnboardingController } from './controllers/onboardingController'
+import { createOnboardingRoutes } from './routes/onboardingRoutes'
 
 // ═══════════════════════════════════════════════════════════════
 //  Patrones: Dependency Injection + Factory + Chain of Resp.
@@ -144,13 +149,19 @@ export function createApp(
 
     const userSettingsRepository = new UserSettingsRepository(conn)
     const userSettingsService = new UserSettingsService(userSettingsRepository)
-    const userSettingsController = new UserSettingsController(userSettingsService)
-    const userSettingsRouter = createUserSettingsRoutes(userSettingsController)
+const userSettingsController = new UserSettingsController(userSettingsService)
+const userSettingsRouter = createUserSettingsRoutes(userSettingsController)
 
-    const recommendationRepository = new RecommendationRepository(conn)
-    const recommendationService = new RecommendationService(recommendationRepository, userPreferencesService, movieRepo)
-    const recommendationController = new RecommendationController(recommendationService)
-    const recommendationRouter = createRecommendationRoutes(recommendationController)
+const onboardingService = new OnboardingService(userPreferencesService, userSettingsService)
+const onboardingController = new OnboardingController(onboardingService)
+const onboardingRouter = createOnboardingRoutes(onboardingController)
+
+const recommendationRepository = new RecommendationRepository(conn)
+const recommendationFeedbackRepository = new RecommendationFeedbackRepository(conn)
+const recommendationFeedbackService = new RecommendationFeedbackService(recommendationFeedbackRepository, userPreferencesService, movieRepo)
+const recommendationService = new RecommendationService(recommendationRepository, userPreferencesService, movieRepo, recommendationFeedbackService)
+const recommendationController = new RecommendationController(recommendationService, recommendationFeedbackService)
+const recommendationRouter = createRecommendationRoutes(recommendationController)
 
     app.use('/movies/search', searchRouter)
     app.use('/movies', exportRouter)
@@ -159,6 +170,7 @@ export function createApp(
     app.use('/users', watchlistRouter)
     app.use('/users', userProfileRouter)
     app.use('/users', userSettingsRouter)
+    app.use('/users', onboardingRouter)
     app.use('/users', userRouter)
     app.use('/users', userPreferencesRouter)
     app.use('/users', recommendationRouter)
