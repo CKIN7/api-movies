@@ -103,7 +103,7 @@ describe('MovieService - getMovies con sort/order (servicio)', () => {
     }
 
     function createService(repos: ReturnType<typeof createMockRepos>) {
-        return new MovieService(repos.movieRepo as any, repos.directorRepo as any, repos.genreRepo as any, repos.auditRepo as any, repos.castRepo as any)
+        return new MovieService(repos.movieRepo as any, repos.directorRepo as any, repos.genreRepo as any, repos.auditRepo as any, repos.castRepo as any, null as any)
     }
 
     test('debe pasar sort y order al repositorio', async () => {
