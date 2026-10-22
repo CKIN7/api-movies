@@ -29,6 +29,8 @@ docs/
 | HU-11 | [Motor de recomendaciones](./features/hu-11-recommendation-engine.md) | Implementado |
 | HU-12 | [User Profiles & Preferences 2.0](./features/hu-12-user-profiles-2.0/README.md) | F0–F5 implementadas |
 
+Herramienta de desarrollo: [Laboratorio frontend F4/F5](./features/hu-12-user-profiles-2.0/frontend-lab.md).
+
 ## Cross-cutting
 
 | Documento | Alcance | Estado |

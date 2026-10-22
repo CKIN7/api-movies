@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Movies API — Preferencias y Recomendaciones</title>
+<title>Movies API — Preferencias, Feedback y Onboarding</title>
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   body {
@@ -130,6 +130,53 @@
   .sim-row .field input { width: 90px; }
   .sim-note { font-size: 0.72rem; color: #666; margin-top: 10px; }
 
+  /* ── Settings / onboarding ── */
+  .settings-row { display: flex; justify-content: center; margin: -18px 0 18px; }
+  .settings-badge {
+    font-size: 0.72rem; padding: 3px 10px; border-radius: 999px;
+    border: 1px solid #444; color: #aaa; background: #1a1a1a;
+  }
+  .settings-badge.done { border-color: #3d5c33; color: #b7e1a3; background: #1e2a1a; }
+  .settings-badge.pending { border-color: #5c4a2a; color: #fdd835; background: #2a2610; }
+  .settings-badge.error { border-color: #8b2e2e; color: #f28b82; }
+  .lab-toggle { text-align: center; margin: -8px 0 24px; font-size: 0.78rem; }
+  .lab-toggle a { color: #8ab4f8; text-decoration: none; }
+  .lab-toggle a:hover { text-decoration: underline; }
+  .onboarding-copy { color: #888; font-size: 0.82rem; margin-bottom: 12px; }
+  .onboarding-result { margin-top: 12px; font-size: 0.8rem; color: #b7e1a3; }
+  .onboarding-result.error { color: #f28b82; }
+
+  /* ── Feedback ── */
+  .rec-actions { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px; }
+  .btn-xs { padding: 4px 8px; font-size: 0.68rem; }
+
+  /* ── Laboratorio ── */
+  .lab-panel .panel { border-color: #3a4a5c; }
+  .lab-checklist { list-style: none; display: grid; gap: 6px; margin: 10px 0 16px; }
+  .lab-checklist li { font-size: 0.78rem; color: #888; }
+  .lab-checklist li::before { content: '○'; margin-right: 6px; color: #666; }
+  .lab-checklist li.done { color: #b7e1a3; }
+  .lab-checklist li.done::before { content: '●'; color: #81c995; }
+  .lab-note { color: #666; font-size: 0.7rem; }
+  .lab-panel h3 { font-size: 0.9rem; color: #ccc; margin-bottom: 8px; }
+  .lab-log {
+    background: #111; border: 1px solid #333; border-radius: 6px;
+    max-height: 220px; overflow: auto; padding: 8px;
+    font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: 0.7rem;
+  }
+  .lab-log-row {
+    display: grid; grid-template-columns: 48px 1fr 42px 55px; gap: 8px;
+    padding: 2px 0; border-bottom: 1px solid #222;
+  }
+  .lab-log-row:last-child { border-bottom: none; }
+  .lab-method { color: #8ab4f8; }
+  .lab-path { color: #aaa; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .lab-status.ok { color: #81c995; }
+  .lab-status.warn { color: #fdd835; }
+  .lab-status.err { color: #f28b82; }
+  .lab-ms { color: #666; text-align: right; }
+  .lab-actions { display: flex; gap: 8px; margin-top: 12px; }
+
   /* ── Toasts ── */
   .toast-container {
     position: fixed; bottom: 20px; right: 20px; display: flex;
@@ -191,14 +238,19 @@
 </header>
 
 <div class="container">
-  <h1>Preferencias y Recomendaciones</h1>
-  <p class="subtitle">Features 1 y 2 — perfil de gustos + motor de recomendaciones</p>
+  <h1>Preferencias, Feedback y Onboarding</h1>
+  <p class="subtitle">F2 preferencias · F4 feedback · F5 onboarding · motor de recomendaciones</p>
 
   <div id="login-required" class="login-required hidden">
     Iniciá sesión para ver tus preferencias y recomendaciones.
   </div>
 
   <div id="app" class="hidden">
+
+    <div class="settings-row">
+      <span id="settings-status" class="settings-badge">Consultando settings…</span>
+    </div>
+    <p class="lab-toggle"><a id="lab-toggle-link" href="?lab=1">Abrir modo laboratorio</a></p>
 
     <!-- ══ Preferencias ══ -->
     <section id="section-preferences">
@@ -230,6 +282,25 @@
           <span class="affinity-empty">Sin interacciones aún</span>
         </div>
         <div class="prefs-meta" id="prefs-updated"></div>
+      </div>
+    </section>
+
+    <!-- ══ Onboarding ══ -->
+    <section id="section-onboarding">
+      <h2 class="section-title">Onboarding</h2>
+      <div class="panel">
+        <p class="onboarding-copy">
+          Elegí entre 1 y 10 géneros favoritos. La primera vez se aplica un seed de afinidad (+5 por género).
+        </p>
+        <div class="genre-chips" id="onboarding-genre-chips">
+          <span class="affinity-empty">Cargando géneros…</span>
+        </div>
+        <div class="field" style="margin-top:12px;">
+          <label for="onboarding-directors">Directores favoritos (IDs separados por coma, opcional, máx. 10)</label>
+          <input type="text" id="onboarding-directors" placeholder="10, 20">
+        </div>
+        <button class="btn" id="btn-onboarding">Completar onboarding</button>
+        <div class="onboarding-result" id="onboarding-result"></div>
       </div>
     </section>
 
@@ -299,7 +370,32 @@
             </div>
             <button class="btn btn-danger" id="btn-sim-unwatch">Quitar de watchlist</button>
           </div>
-          <p class="sim-note">Cada acción recalcula genreAffinity (F1) y invalida la caché de recomendaciones (F2).</p>
+          <p class="sim-note">Cada acción recalcula genreAffinity (F2) e invalida la caché de recomendaciones (HU-11).</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══ Laboratorio F4/F5 ══ -->
+    <section id="lab-panel" class="lab-panel hidden">
+      <h2 class="section-title">Laboratorio F4/F5</h2>
+      <div class="panel">
+        <p class="onboarding-copy">
+          Checklist de pruebas. El feedback queda registrado en la cuenta actual y no se puede borrar.
+        </p>
+        <ul class="lab-checklist">
+          <li data-lab-step="settings">Settings consultado <span class="lab-note"></span></li>
+          <li data-lab-step="onboarding">Onboarding completado <span class="lab-note"></span></li>
+          <li data-lab-step="affinity">Afinidad renderizada <span class="lab-note"></span></li>
+          <li data-lab-step="like">Feedback "like" aplicado <span class="lab-note"></span></li>
+          <li data-lab-step="duplicate">Feedback duplicado detectado <span class="lab-note"></span></li>
+          <li data-lab-step="not-interested">"No me interesa" verificado <span class="lab-note"></span></li>
+          <li data-lab-step="cold-start">Cold start observado <span class="lab-note"></span></li>
+        </ul>
+        <h3>Log de peticiones</h3>
+        <div class="lab-log" id="lab-log"></div>
+        <div class="lab-actions">
+          <button class="btn btn-outline" id="btn-lab-clear">Limpiar log</button>
+          <button class="btn btn-danger" id="btn-lab-logout">Cerrar sesión</button>
         </div>
       </div>
     </section>
