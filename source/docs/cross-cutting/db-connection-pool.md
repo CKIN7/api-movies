@@ -1,5 +1,7 @@
 # HU-12: Pool de Conexiones MySQL + Ciclo de Vida en Tests
 
+> **Tipo:** Infra · **Alcance:** Base de datos · **Estado:** Implementado · **Revisión:** 2026-10-21
+
 Como desarrollador de la API,
 quiero que la aplicación use un pool de conexiones MySQL con ciclo de vida explícito y que los tests de integración no bloqueen la base de datos con DDL,
 para que las transacciones sigan siendo correctas, no se filtren conexiones huérfanas y la suite de integración sea estable (sin cuelgues ni timeouts).

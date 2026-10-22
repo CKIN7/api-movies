@@ -1,7 +1,9 @@
 import connection from '../db/connection'
 import { connectRedis, disconnectRedis } from '../utils/redisClient'
 import { RecommendationRepository } from '../repositories/RecommendationRepository'
+import { RecommendationFeedbackRepository } from '../repositories/RecommendationFeedbackRepository'
 import { RecommendationService } from '../services/recommendationService'
+import { RecommendationFeedbackService } from '../services/recommendationFeedbackService'
 import MovieRepository from '../repositories/MovieRepository'
 import { UserPreferencesService } from '../services/userPreferencesService'
 import { UserPreferencesRepository } from '../repositories/UserPreferencesRepository'
@@ -22,7 +24,9 @@ async function recompute(): Promise<void> {
     const recRepo = new RecommendationRepository(connection)
     const prefsRepo = new UserPreferencesRepository(connection)
     const prefsService = new UserPreferencesService(prefsRepo)
-    const service = new RecommendationService(recRepo, prefsService, movieRepo)
+    const feedbackRepo = new RecommendationFeedbackRepository(connection)
+    const feedbackService = new RecommendationFeedbackService(feedbackRepo, prefsService, movieRepo)
+    const service = new RecommendationService(recRepo, prefsService, movieRepo, feedbackService)
 
     const processed = await service.recomputeCollabForAllUsers()
 

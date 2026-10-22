@@ -15,6 +15,18 @@ export interface RecommendationItem {
 
 export type RecommendationType = 'content' | 'collab' | 'hybrid'
 
+export const FEEDBACK_ACTIONS = ['view', 'hide', 'like', 'not_interested'] as const
+export type FeedbackAction = (typeof FEEDBACK_ACTIONS)[number]
+
+export interface RecommendationFeedbackDTO {
+    movieId: number
+    action: FeedbackAction
+}
+
+export interface RecommendationFeedbackResult extends RecommendationFeedbackDTO {
+    applied: boolean
+}
+
 export interface RecommendationQueryDTO {
     type: RecommendationType
     limit: number
@@ -30,6 +42,8 @@ export interface RecommendationCandidateRow {
     title: string
     year: number
     rating: number
+    duration: number
+    age_rating: string
     id_director: number
     genreIds: string
     genreNames: string

@@ -49,14 +49,22 @@ const mockMovieResponse = {
 }
 
 describe('SearchService', () => {
+    const originalMeilisearchEnabled = process.env.MEILISEARCH_ENABLED
     let mockIndex: Index
     let mockMovieRepo: ReturnType<typeof createMockMovieRepo>
     let service: SearchService
 
     beforeEach(() => {
+        process.env.MEILISEARCH_ENABLED = 'true'
         mockIndex = createMockIndex()
         mockMovieRepo = createMockMovieRepo()
+        mockMovieRepo.findMany.mockResolvedValue({ rows: [], total: 0 })
         service = new SearchService(mockIndex, mockMovieRepo as any)
+    })
+
+    afterAll(() => {
+        if (originalMeilisearchEnabled === undefined) delete process.env.MEILISEARCH_ENABLED
+        else process.env.MEILISEARCH_ENABLED = originalMeilisearchEnabled
     })
 
     describe('search', () => {

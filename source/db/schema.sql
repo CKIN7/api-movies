@@ -131,9 +131,46 @@ CREATE TABLE `user_preferences` (
   `favorite_directors` json DEFAULT NULL,
   `favorite_actors` json DEFAULT NULL,
   `genre_affinity` json DEFAULT NULL,
+  `disliked_genres` json DEFAULT NULL,
+  `disliked_directors` json DEFAULT NULL,
+  `disliked_actors` json DEFAULT NULL,
+  `content_filters` json DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`user_id`),
   CONSTRAINT `fk_user_preferences_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+DROP TABLE IF EXISTS `user_profiles`;
+CREATE TABLE `user_profiles` (
+  `user_id` char(36) NOT NULL,
+  `display_name` varchar(50) DEFAULT NULL,
+  `bio` varchar(300) DEFAULT NULL,
+  `avatar_url` varchar(500) DEFAULT NULL,
+  `country` char(2) DEFAULT NULL,
+  `birth_year` int DEFAULT NULL,
+  `is_public` tinyint(1) NOT NULL DEFAULT '0',
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`user_id`),
+  CONSTRAINT `fk_user_profiles_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+DROP TABLE IF EXISTS `user_settings`;
+CREATE TABLE `user_settings` (
+  `user_id` char(36) NOT NULL,
+  `language` varchar(10) NOT NULL DEFAULT 'es',
+  `theme` varchar(10) NOT NULL DEFAULT 'system',
+  `region` varchar(2) DEFAULT NULL,
+  `notify_email` tinyint(1) NOT NULL DEFAULT '1',
+  `notify_push` tinyint(1) NOT NULL DEFAULT '0',
+  `privacy_reviews` varchar(20) NOT NULL DEFAULT 'public',
+  `privacy_watchlist` varchar(20) NOT NULL DEFAULT 'public',
+  `privacy_activity` varchar(20) NOT NULL DEFAULT 'friends',
+  `spoiler_free` tinyint(1) NOT NULL DEFAULT '0',
+  `onboarding_completed` tinyint(1) NOT NULL DEFAULT '0',
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`user_id`),
+  CONSTRAINT `fk_user_settings_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 DROP TABLE IF EXISTS `user_watchlists`;
@@ -164,5 +201,19 @@ CREATE TABLE `users` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `uq_users_email` (`email`),
   CONSTRAINT `chk_users_role` CHECK ((`role` in ('admin','premium','user')))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+DROP TABLE IF EXISTS `recommendation_feedback`;
+CREATE TABLE `recommendation_feedback` (
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `user_id` char(36) NOT NULL,
+  `movie_id` int NOT NULL,
+  `action` enum('view','hide','like','not_interested') NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uniq_user_movie_action` (`user_id`,`movie_id`,`action`),
+  KEY `idx_feedback_excluded` (`user_id`,`action`),
+  CONSTRAINT `fk_feedback_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_feedback_movie` FOREIGN KEY (`movie_id`) REFERENCES `movies` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 SET FOREIGN_KEY_CHECKS = 1;

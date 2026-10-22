@@ -70,7 +70,10 @@ export async function clearAll(conn: Connection): Promise<void> {
     await conn.execute('DELETE FROM refresh_tokens')
     await conn.execute('DELETE FROM email_verifications')
     await conn.execute('DELETE FROM reviews')
+    await conn.execute('DELETE FROM recommendation_feedback')
     await conn.execute('DELETE FROM user_preferences')
+    await conn.execute('DELETE FROM user_profiles')
+    await conn.execute('DELETE FROM user_settings')
     await conn.execute('DELETE FROM user_watchlists')
     await conn.execute('DELETE FROM users')
     await conn.execute('DELETE FROM movie_actors')
@@ -89,6 +92,7 @@ export async function clearAll(conn: Connection): Promise<void> {
     await conn.execute('ALTER TABLE refresh_tokens AUTO_INCREMENT = 1')
     await conn.execute('ALTER TABLE email_verifications AUTO_INCREMENT = 1')
     await conn.execute('ALTER TABLE reviews AUTO_INCREMENT = 1')
+    await conn.execute('ALTER TABLE recommendation_feedback AUTO_INCREMENT = 1')
     await conn.execute('SET FOREIGN_KEY_CHECKS = 1')
 }
 

@@ -1,5 +1,7 @@
 # Fix: Fallos de test pre-existentes
 
+> **Tipo:** Fix · **Alcance:** Tests · **Estado:** Implementado · **Revisión:** 2026-10-21
+
 Como desarrollador de la API,
 quiero eliminar los fallos de test que ya existían antes de las mejoras de infraestructura,
 para que la suite completa quede totalmente en verde, determinista y sin depender de estado previo.
@@ -8,7 +10,7 @@ para que la suite completa quede totalmente en verde, determinista y sin depende
 
 ## Contexto y problema
 
-Tras aislar el rate limiter (ver `feature-rate-limiter-test-isolation.md`), la suite completa seguía con **13 suites / 24 tests fallidos** ajenos al limiter. Los fallos se agrupaban en seis causas independientes:
+Tras aislar el rate limiter (ver [`rate-limiter-test-isolation.md`](./rate-limiter-test-isolation.md)), la suite completa seguía con **13 suites / 24 tests fallidos** ajenos al limiter. Los fallos se agrupaban en seis causas independientes:
 
 | # | Causa | Suites afectadas |
 |---|-------|------------------|
@@ -155,7 +157,7 @@ source/
 │   ├── auth.verify.integration.test.ts                     ✎ contrato user
 │   ├── auth.resend.integration.test.ts                     ✎ contrato user
 │   └── movies.suggest.integration.test.ts                  ✎ timeout de seed 30 s
-└── docs/features/feature-pre-existing-test-failures.md     ✧
+└── docs/cross-cutting/pre-existing-test-failures.md        ✧
 ```
 
 ---

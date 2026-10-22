@@ -4,7 +4,7 @@ import type { ReviewRow } from '../types/review'
 export interface ReviewResponse {
     id: number
     movieId: number
-    email: string
+    userId: string
     rating: number
     comment: string | null
     createdAt: string
@@ -22,7 +22,7 @@ export class Review {
     constructor(
         public readonly id: number,
         public readonly movieId: number,
-        public readonly email: string,
+        public readonly userId: string,
         public readonly rating: number,
         public readonly comment: string | null,
         public readonly createdAt: string,
@@ -33,7 +33,7 @@ export class Review {
         return new Review(
             row.id,
             row.movie_id,
-            row.email!,
+            row.user_id,
             Number(row.rating),
             row.comment,
             row.created_at,
@@ -45,7 +45,7 @@ export class Review {
         return {
             id: this.id,
             movieId: this.movieId,
-            email: this.email,
+            userId: this.userId,
             rating: this.rating,
             comment: this.comment,
             createdAt: this.createdAt,

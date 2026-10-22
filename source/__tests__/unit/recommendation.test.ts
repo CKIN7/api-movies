@@ -1,18 +1,19 @@
 import { RecommendationService } from '../../services/recommendationService'
 import { RecommendationRepository } from '../../repositories/RecommendationRepository'
 import { UserPreferencesService } from '../../services/userPreferencesService'
+import { RecommendationFeedbackService } from '../../services/recommendationFeedbackService'
 import MovieRepository from '../../repositories/MovieRepository'
 import type { RecommendationCandidateRow } from '../../types/recommendation'
 
 const candidates: RecommendationCandidateRow[] = [
     // vista por el usuario
-    { id: 1, title: 'Inception', year: 2010, rating: 8.8, id_director: 10, genreIds: '1,2', genreNames: 'action,sci-fi', actorIds: '100' },
+    { id: 1, title: 'Inception', year: 2010, rating: 8.8, id_director: 10, genreIds: '1,2', genreNames: 'action,sci-fi', actorIds: '100', duration: 148, age_rating: 'PG-13' },
     // candidata: comparte ambos géneros con Inception
-    { id: 2, title: 'Interstellar', year: 2014, rating: 8.6, id_director: 10, genreIds: '1,2', genreNames: 'action,sci-fi', actorIds: '100' },
+    { id: 2, title: 'Interstellar', year: 2014, rating: 8.6, id_director: 10, genreIds: '1,2', genreNames: 'action,sci-fi', actorIds: '100', duration: 169, age_rating: 'PG-13' },
     // candidata: solo comparte género 2
-    { id: 3, title: 'The Matrix', year: 1999, rating: 8.7, id_director: 20, genreIds: '2', genreNames: 'sci-fi', actorIds: '200' },
+    { id: 3, title: 'The Matrix', year: 1999, rating: 8.7, id_director: 20, genreIds: '2', genreNames: 'sci-fi', actorIds: '200', duration: 136, age_rating: 'R' },
     // candidata sin relación
-    { id: 4, title: 'Titanic', year: 1997, rating: 7.9, id_director: 30, genreIds: '3', genreNames: 'drama', actorIds: '300' },
+    { id: 4, title: 'Titanic', year: 1997, rating: 7.9, id_director: 30, genreIds: '3', genreNames: 'drama', actorIds: '300', duration: 194, age_rating: 'PG-13' },
 ]
 
 function makeService(overrides: {
@@ -20,6 +21,7 @@ function makeService(overrides: {
     allInteractions?: { userId: string, movieId: number, weight: number }[]
     prefs?: any
     movieRows?: any[]
+    excludedMovieIds?: number[]
 } = {}) {
     const recRepo = {
         getUserInteractions: jest.fn().mockResolvedValue(overrides.interactions ?? []),
@@ -39,12 +41,17 @@ function makeService(overrides: {
         ),
     }
 
+    const feedbackService = {
+        getExcludedMovieIds: jest.fn().mockResolvedValue(overrides.excludedMovieIds ?? []),
+    }
+
     const service = new RecommendationService(
         recRepo as unknown as RecommendationRepository,
         prefsService as unknown as UserPreferencesService,
         movieRepo as unknown as MovieRepository,
+        feedbackService as unknown as RecommendationFeedbackService,
     )
-    return { service, recRepo, prefsService, movieRepo }
+    return { service, recRepo, prefsService, movieRepo, feedbackService }
 }
 
 describe('RecommendationService (unit)', () => {
@@ -152,5 +159,70 @@ describe('RecommendationService (unit)', () => {
         expect(withMatrix).toBeDefined()
         expect(withoutMatrix).toBeDefined()
         expect(withMatrix!.score).toBeGreaterThan(withoutMatrix!.score)
+    })
+
+    test('excluye películas marcadas como not_interested en todos los tipos', async () => {
+        const { service } = makeService({
+            interactions: [{ movieId: 1, weight: 5 }],
+            allInteractions: [
+                { userId: 'user-1', movieId: 1, weight: 5 },
+                { userId: 'user-2', movieId: 1, weight: 4 },
+                { userId: 'user-2', movieId: 3, weight: 5 },
+            ],
+            excludedMovieIds: [3],
+        })
+
+        const contentItems = await service.getRecommendations('user-1', { type: 'content', limit: 10 })
+        const collabItems = await service.getRecommendations('user-1', { type: 'collab', limit: 10 })
+
+        expect(contentItems.find(i => i.movie.id === 3)).toBeUndefined()
+        expect(collabItems.find(i => i.movie.id === 3)).toBeUndefined()
+    })
+
+    test('cold start con favoritos: fallback popular en géneros favoritos', async () => {
+        const { service } = makeService({
+            prefs: {
+                favoriteGenres: [3], favoriteDirectors: [], favoriteActors: [],
+                genreAffinity: {},
+            },
+        })
+
+        const items = await service.getRecommendations('user-new', { type: 'hybrid', limit: 10 })
+
+        expect(items.map(i => i.movie.id)).toEqual([4])
+        expect(items[0].score).toBeGreaterThan(0)
+        expect(items[0].reason).toBe('Popular en tus géneros favoritos')
+    })
+
+    test('cold start solo con afinidad: fallback por géneros de interés', async () => {
+        const { service } = makeService({
+            prefs: {
+                favoriteGenres: [], favoriteDirectors: [], favoriteActors: [],
+                genreAffinity: { '3': { score: 5, updatedAt: new Date().toISOString() } },
+            },
+        })
+
+        const items = await service.getRecommendations('user-new', { type: 'hybrid', limit: 10 })
+
+        expect(items.map(i => i.movie.id)).toEqual([4])
+        expect(items[0].reason).toBe('Popular en tus géneros de interés')
+    })
+
+    test('fallback no recomienda lo visto ni lo marcado not_interested', async () => {
+        const prefs = {
+            favoriteGenres: [3], favoriteDirectors: [], favoriteActors: [],
+            genreAffinity: {},
+        }
+
+        const { service: watched } = makeService({
+            prefs,
+            interactions: [{ movieId: 4, weight: 5 }],
+        })
+        const { service: excluded } = makeService({ prefs, excludedMovieIds: [4] })
+
+        await expect(watched.getRecommendations('user-1', { type: 'hybrid', limit: 10 }))
+            .resolves.toEqual([])
+        await expect(excluded.getRecommendations('user-1', { type: 'hybrid', limit: 10 }))
+            .resolves.toEqual([])
     })
 })

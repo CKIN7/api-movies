@@ -10,7 +10,11 @@ dotenv.config({ path: path.resolve(__dirname, '../../.env') })
 // si es seguro hacer DROP DATABASE: todavia no hay conexiones abiertas.
 // Garantiza que la BD de tests existe con su esquema base (db/schema.sql).
 module.exports = async function globalSetup() {
-    const name = process.env.DB_NAME_TEST || process.env.DB_NAME + '_test'
+    const name = process.env.DB_NAME_TEST || `${process.env.DB_NAME}_test`
+    if (!process.env.DB_NAME || !name.endsWith('_test') || name === process.env.DB_NAME) {
+        throw new Error(`DB de tests insegura: "${name}". Debe terminar en _test y ser distinta de DB_NAME.`)
+    }
+
     const conn = await mysql.createConnection({
         host: process.env.DB_HOST,
         user: process.env.DB_USER,
