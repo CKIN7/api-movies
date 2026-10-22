@@ -4,7 +4,7 @@
 
 - `main`: solo releases estables. No recibe commits directos.
 - `develop`: rama de integracion. Recibe features, fixes y hotfixes.
-- `feature/*`, `fix/*`, `hotfix/*`: nacen de `develop` y se integran en `develop`.
+- `feature/*`, `fix/*`, `hotfix/*` y `docs/*`: nacen de `develop` y se integran en `develop`. Las ramas `docs/*` son solo para cambios documentales.
 
 ```text
 main      ●──────────────────●  (vX.Y.Z)
@@ -41,7 +41,7 @@ develop     ●──●──●──●──●──●
    git push origin develop
    ```
 
-4. Esperar a que CI quede verde en `develop`. Si falla, corregir en la rama de origen y volver a fusionar, o hacer un fix-forward explicito.
+4. Esperar a que CI quede verde en `develop`. Si falla, corregir en la rama de origen y volver a fusionar, o hacer un fix-forward explicito. Para cambios exclusivamente documentales se puede omitir CI con el atajo descrito en [CI para cambios de documentacion](#ci-para-cambios-de-documentacion).
 
 ## Releases
 
@@ -105,3 +105,18 @@ Jobs:
 - `migrations`: aplica `db/migrations` desde cero y verifica que sea idempotente.
 
 La proteccion de ramas se aplica solo a `main`: PR obligatorio, checks obligatorios y merge commits habilitados.
+
+### CI para cambios de documentacion
+
+Para cambios exclusivamente documentales se puede evitar el CI del push a `develop` usando `[skip ci]` en el mensaje del merge commit:
+
+```powershell
+git switch develop
+git pull --ff-only
+git merge --no-ff docs/mi-cambio -m "Merge branch 'docs/mi-cambio' into develop [skip ci]"
+git push origin develop
+```
+
+Esto no evita el CI del PR `develop` a `main`. Si el HEAD de `develop` sigue siendo el merge commit con `[skip ci]`, GitHub tambien omite el workflow del PR y los checks requeridos quedan pendientes, bloqueando el merge. Antes del PR, el HEAD debe ser un commit sin la instruccion. Si no se agregaron features despues, hay que pushear un commit nuevo, y ese push si ejecuta CI en `develop`.
+
+No usar este atajo en codigo, tests, migraciones ni workflows. Guia completa: [`source/docs/cross-cutting/skip-ci-develop.md`](source/docs/cross-cutting/skip-ci-develop.md).
