@@ -37,6 +37,7 @@ docs/
 | [Pool de conexiones MySQL](./cross-cutting/db-connection-pool.md) | Infra DB | Implementado |
 | [Aislamiento del rate limiter en tests](./cross-cutting/rate-limiter-test-isolation.md) | Tests | Implementado |
 | [Fallos de test pre-existentes](./cross-cutting/pre-existing-test-failures.md) | Tests | Implementado |
+| [Omitir CI en develop para docs](./cross-cutting/skip-ci-develop.md) | Tests / CI | Guia |
 
 ## Fixes
 
