@@ -52,6 +52,7 @@ npm run seed
 - `docs/*`: cambios exclusivamente documentales. Se integran en `develop` con `--no-ff`.
 - No se hacen commits directos a `main`.
 - No se usa squash ni rebase para integrar.
+- Un commit por archivo creado o modificado. No agrupar varios archivos en un mismo commit.
 - Las ramas existentes no se borran.
 
 ## CI

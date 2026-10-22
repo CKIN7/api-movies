@@ -85,6 +85,7 @@ develop     ●──●──●──●──●──●
 
 - No hacer commits directos a `main`.
 - No usar squash ni rebase para integrar.
+- Un commit por archivo creado o modificado. No agrupar varios archivos en un mismo commit.
 - No reescribir commits ya publicados.
 - No usar `git push --force` en `develop` ni en `main`.
 - No borrar ramas existentes.
