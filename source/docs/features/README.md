@@ -22,6 +22,7 @@ Specs funcionales y técnicas agrupadas por historia de usuario.
 | F4 | [Feedback de recomendaciones](./hu-12-user-profiles-2.0/f4-recommendation-feedback.md) | Implementado |
 | F5 | [Onboarding & cold-start](./hu-12-user-profiles-2.0/f5-onboarding.md) | Implementado |
 | — | [Perfil de usuario frontend](./hu-12-user-profiles-2.0/frontend-profile.md) | Implementado |
+| — | [Configuración de usuario frontend](./hu-12-user-profiles-2.0/frontend-settings.md) | Implementado |
 | — | [Laboratorio frontend F4/F5](./hu-12-user-profiles-2.0/frontend-lab.md) | Implementado |
 | — | [Contrato de autor en reviews](./hu-12-user-profiles-2.0/review-author-contract.md) | Implementado |
 
