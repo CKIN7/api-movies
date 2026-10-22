@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "API Movies",
-    "description": "Colección completa de la API Movies (Express, puerto 8089).\n\n## Requisitos\n- API corriendo en `http://localhost:8089` (MySQL + Redis activos, y opcionalmente Meilisearch).\n- Importa también el environment `api-movies.postman_environment.json` y selecciónalo.\n\n## Autenticación\n- JWT Bearer. Ejecuta primero **Auth → Login (admin seed)** para obtener `accessToken` (15 min) y `refreshToken` (7 días).\n- El pre-request de la colección renueva el access token vía `/auth/refresh` automáticamente cuando está por expirar. Si ambos tokens faltan, puedes habilitar `autoLogin=true` en el environment (¡ojo con el rate limit de /auth!).\n- Roles: `user` < `premium` < `admin`. Export requiere premium+; CRUD de películas, audit-log, users y metrics requieren admin.\n\n## Rate limits\n- `/auth/*`: 10 req/min por IP. Ejecuta login pocas veces.\n- Escrituras en `/movies*` (POST/PATCH/DELETE): 30 req/min por IP.\n- Global: 100 req/min por IP. Headers `X-RateLimit-*`, `Retry-After` en 429.",
+    "description": "Colección completa de la API Movies (Express, puerto 8089).\n\n## Requisitos\n- API corriendo en `http://localhost:8089` (MySQL + Redis activos, y opcionalmente Meilisearch).\n- Importa también el environment `api-movies.postman_environment.json` y selecciónalo.\n\n## Autenticación\n- JWT Bearer. Ejecuta primero **Auth → Login (admin seed)** para obtener `accessToken` (15 min) y `refreshToken` (7 días).\n- El pre-request de la colección renueva el access token vía `/auth/refresh` automáticamente cuando está por expirar. Si ambos tokens faltan, puedes habilitar `autoLogin=true` en el environment (¡ojo con el rate limit de /auth!).\n- Roles: `user` < `premium` < `admin`. Export requiere premium+; CRUD de películas, audit-log, users y metrics requieren admin.\n\n## Rate limits\n- `/auth/*`: 10 req/min por IP. Ejecuta login pocas veces.\n- Escrituras en `/movies*` (POST/PATCH/DELETE): 30 req/min por IP.\n- Global: 100 req/min por IP. Headers `X-RateLimit-*`, `Retry-After` en 429.\n\n## Cobertura\n- Perfil y ajustes (F1/F3) ya incluidos; feedback de recomendaciones (F4) y onboarding (F5) se agregan al cerrar esas fases.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
@@ -1011,7 +1011,7 @@
                 "preferences"
               ]
             },
-            "description": "Devuelve las preferencias del usuario autenticado. Si no existe registro, lo crea con valores vacíos y responde 200 (cold start)."
+            "description": "Devuelve las preferencias del usuario autenticado. Si no existe registro, responde 200 con defaults vacíos y `updatedAt: null` (no crea fila)."
           },
           "event": [
             {
@@ -1063,7 +1063,7 @@
                 "preferences"
               ]
             },
-            "description": "Reemplaza los favoritos declarados (PUT completo, no merge). `favoriteGenres`, `favoriteDirectors` y `favoriteActors` son arrays de IDs numéricos. `genreAffinity` es de solo lectura: la deriva la API de reviews/watchlist, no se puede enviar acá."
+            "description": "Reemplaza los campos enviados y conserva los omitidos (merge por campo). `favoriteGenres`, `favoriteDirectors` y `favoriteActors` son arrays de IDs numéricos. `contentFilters` se reemplaza completo. `genreAffinity` es de solo lectura: la deriva la API de reviews/watchlist, no se puede enviar acá."
           },
           "event": [
             {
@@ -1076,6 +1076,182 @@
                   "pm.test('Favoritos persistidos', function () {",
                   "    pm.expect(json.favoriteGenres).to.include.members([1, 2]);",
                   "    pm.expect(json.favoriteDirectors).to.include(10);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Profile",
+      "description": "Perfil del usuario autenticado y perfil público. `isPublic` es privado por defecto; el perfil público nunca expone `email` ni `birthYear`.",
+      "item": [
+        {
+          "name": "Obtener mi perfil",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/users/me/profile",
+              "host": ["{{baseUrl}}"],
+              "path": ["users", "me", "profile"]
+            },
+            "description": "Perfil completo del usuario autenticado. Sin fila devuelve defaults (`isPublic: false`, `createdAt`/`updatedAt` vacíos), nunca 404."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+                  "const json = pm.response.json();",
+                  "pm.test('Campos de perfil', function () {",
+                  "    pm.expect(json).to.have.property('displayName');",
+                  "    pm.expect(json).to.have.property('isPublic');",
+                  "    pm.expect(json).to.not.have.property('email');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Actualizar mi perfil",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"displayName\": \"Ana\",\n  \"bio\": \"Fan del sci-fi de los 90\",\n  \"country\": \"ES\",\n  \"birthYear\": 1990,\n  \"isPublic\": true\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users/me/profile",
+              "host": ["{{baseUrl}}"],
+              "path": ["users", "me", "profile"]
+            },
+            "description": "Actualización parcial (merge). `null` borra el campo; `{}` → 400. `bio: \"\"` se guarda como cadena vacía. La caché de recomendaciones solo se invalida si cambian `birthYear` o `country`."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+                  "const json = pm.response.json();",
+                  "pm.test('Cambios persistidos', function () {",
+                  "    pm.expect(json.displayName).to.eql('Ana');",
+                  "    pm.expect(json.country).to.eql('ES');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Ver perfil público",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/users/{{userId}}/profile",
+              "host": ["{{baseUrl}}"],
+              "path": ["users", "{{userId}}", "profile"]
+            },
+            "description": "Perfil público. `:id` inexistente → 404; perfil privado o sin fila → 200 con tarjeta minimal (`isPublic: false`); perfil público → incluye `stats`. Configura `userId` en el environment (por ejemplo, el UUID de un usuario creado con Register)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200 o 404', function () { pm.expect(pm.response.code).to.be.oneOf([200, 404]); });",
+                  "if (pm.response.code === 200) {",
+                  "    const json = pm.response.json();",
+                  "    pm.test('Sin email en perfil público', function () {",
+                  "        pm.expect(json).to.not.have.property('email');",
+                  "        pm.expect(json).to.have.property('isPublic');",
+                  "    });",
+                  "}"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Settings",
+      "description": "Configuración del usuario autenticado. Sin fila devuelve defaults (`updatedAt: null`); el primer PATCH hace upsert.",
+      "item": [
+        {
+          "name": "Obtener mis ajustes",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/users/me/settings",
+              "host": ["{{baseUrl}}"],
+              "path": ["users", "me", "settings"]
+            },
+            "description": "Ajustes del usuario. Si no existe fila responde 200 con defaults: `language: es`, `theme: system`, `notifyEmail: true`, `notifyPush: false`, privacidad `public`/`public`/`friends`, `spoilerFree: false`, `updatedAt: null`."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+                  "const json = pm.response.json();",
+                  "pm.test('Campos de settings', function () {",
+                  "    pm.expect(json).to.have.property('language');",
+                  "    pm.expect(json).to.have.property('theme');",
+                  "    pm.expect(json).to.have.property('notifyEmail');",
+                  "    pm.expect(json).to.have.property('notifyPush');",
+                  "    pm.expect(json).to.have.property('privacyReviews');",
+                  "    pm.expect(json).to.have.property('spoilerFree');",
+                  "    pm.expect(json).to.have.property('updatedAt');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Actualizar mis ajustes",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"theme\": \"dark\",\n  \"notifyPush\": true,\n  \"spoilerFree\": true\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users/me/settings",
+              "host": ["{{baseUrl}}"],
+              "path": ["users", "me", "settings"]
+            },
+            "description": "Actualización parcial: solo cambia los campos enviados y hace upsert si no había fila. Enums: `theme` system|light|dark; `language` ISO-639-1; `privacy*` public|friends|private."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+                  "const json = pm.response.json();",
+                  "pm.test('Cambios persistidos', function () {",
+                  "    pm.expect(json.theme).to.eql('dark');",
+                  "    pm.expect(json.notifyPush).to.eql(true);",
+                  "    pm.expect(json.spoilerFree).to.eql(true);",
                   "});"
                 ]
               }
@@ -1115,7 +1291,7 @@
                 }
               ]
             },
-            "description": "Recomendaciones personalizadas.\n\n- **content**: similitud con tu historial (reviews + watchlist).\n- **collab**: usuarios similares (item-item coseno).\n- **hybrid** (default): `content*0.4 + collab*0.4 + pref*0.2` donde `pref` usa tus preferencias (Feature 1).\n\nSin historial ni preferencias → `[]` (cold start, no error). Caché Redis 24h; se invalida al mutar reviews/watchlist."
+            "description": "Recomendaciones personalizadas.\n\n- **content**: similitud con tu historial (reviews + watchlist).\n- **collab**: usuarios similares (item-item coseno).\n- **hybrid** (default): `content*0.4 + collab*0.4 + pref*0.2` donde `pref` usa tus preferencias (Feature 1).\n\nSin historial ni preferencias → `[]` (cold start, no error). Caché Redis 24h; se invalida al mutar reviews/watchlist/preferencias y al cambiar `birthYear`/`country` del perfil."
           },
           "event": [
             {

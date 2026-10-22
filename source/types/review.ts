@@ -6,13 +6,12 @@ export interface ReviewRow {
     comment: string | null;
     created_at: string;       // DATETIME → ISO string
     updated_at: string;       // DATETIME → ISO string
-    email?: string;           // JOIN users.email (para respuesta)
 }
 
 export interface ReviewResponse {
     id: number;
     movieId: number;
-    email: string;            // email del usuario (actual users.email)
+    userId: string;           // id público del autor (UUID)
     rating: number;           // 1.0 - 5.0
     comment: string | null;
     createdAt: string;        // ISO string

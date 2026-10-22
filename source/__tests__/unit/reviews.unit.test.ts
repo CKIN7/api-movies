@@ -25,21 +25,21 @@ const mockReviewRepo = {
 mockMovieRepo.findById.mockResolvedValue({ id: 1 })
 
 mockReviewRepo.upsert.mockResolvedValue({
-    review: { id: 1, movieId: 1, userId: 'user-123', rating: 4.5, comment: 'Excelente', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), email: 'user@test.com' },
+    review: { id: 1, movie_id: 1, user_id: 'user-123', rating: 4.5, comment: 'Excelente', created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
     isNew: true,
 })
 
 mockReviewRepo.findByMovieId.mockResolvedValue([
-    { id: 1, movieId: 1, userId: 'u1', rating: 4.5, comment: 'Genial', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), email: 'u1@test.com' },
+    { id: 1, movie_id: 1, user_id: 'u1', rating: 4.5, comment: 'Genial', created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
 ])
 
 mockReviewRepo.summaryByMovieId.mockResolvedValue({ average: 4.5, count: 1 })
 
-mockReviewRepo.findByUserAndMovie.mockResolvedValue({ id: 1, movieId: 1, userId: 'user-123', rating: 4.5, comment: 'Buena', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), email: 'user@test.com' })
+mockReviewRepo.findByUserAndMovie.mockResolvedValue({ id: 1, movie_id: 1, user_id: 'user-123', rating: 4.5, comment: 'Buena', created_at: new Date().toISOString(), updated_at: new Date().toISOString() })
 
-mockReviewRepo.findById.mockResolvedValue({ id: 1, movieId: 1, userId: 'user-123', rating: 4.5, comment: 'Buena', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), email: 'user@test.com' })
+mockReviewRepo.findById.mockResolvedValue({ id: 1, movie_id: 1, user_id: 'user-123', rating: 4.5, comment: 'Buena', created_at: new Date().toISOString(), updated_at: new Date().toISOString() })
 
-mockReviewRepo.update.mockResolvedValue({ id: 1, movieId: 1, userId: 'user-123', rating: 5, comment: 'Actualizada', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), email: 'user@test.com' })
+mockReviewRepo.update.mockResolvedValue({ id: 1, movie_id: 1, user_id: 'user-123', rating: 5, comment: 'Actualizada', created_at: new Date().toISOString(), updated_at: new Date().toISOString() })
 
 mockReviewRepo.delete.mockResolvedValue(true)
 
@@ -69,7 +69,7 @@ describe('ReviewService (unit)', () => {
         test('debe crear review nueva y devolver isNew=true', async () => {
             mockMovieRepo.findById.mockResolvedValueOnce({ id: movieId })
             mockReviewRepo.upsert.mockResolvedValueOnce({
-                review: { id: 1, movieId, userId, rating: 4.5, comment: 'Excelente', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), email: 'user@test.com' },
+                review: { id: 1, movie_id: movieId, user_id: userId, rating: 4.5, comment: 'Excelente', created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
                 isNew: true,
             })
 
@@ -83,7 +83,7 @@ describe('ReviewService (unit)', () => {
         test('debe hacer upsert y devolver isNew=false si review ya existe', async () => {
             mockMovieRepo.findById.mockResolvedValueOnce({ id: movieId })
             mockReviewRepo.upsert.mockResolvedValueOnce({
-                review: { id: 1, movieId, userId, rating: 5, comment: 'Actualizada', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), email: 'user@test.com' },
+                review: { id: 1, movie_id: movieId, user_id: userId, rating: 5, comment: 'Actualizada', created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
                 isNew: false,
             })
 
@@ -108,7 +108,7 @@ describe('ReviewService (unit)', () => {
         test('debe devolver reviews paginadas con summary', async () => {
             mockMovieRepo.findById.mockResolvedValueOnce({ id: movieId })
             mockReviewRepo.findByMovieId.mockResolvedValueOnce([
-                { id: 1, movieId, userId: 'u1', rating: 4.5, comment: 'Genial', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), email: 'u1@test.com' },
+                { id: 1, movie_id: movieId, user_id: 'u1', rating: 4.5, comment: 'Genial', created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
             ])
             mockReviewRepo.summaryByMovieId.mockResolvedValueOnce({ average: 4.5, count: 1 })
 
@@ -132,7 +132,7 @@ describe('ReviewService (unit)', () => {
         const movieId = 1
 
         test('debe devolver review del usuario', async () => {
-            const review = { id: 1, movieId, userId, rating: 4.5, comment: 'Buena', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), email: 'user@test.com' }
+            const review = { id: 1, movie_id: movieId, user_id: userId, rating: 4.5, comment: 'Buena', created_at: new Date().toISOString(), updated_at: new Date().toISOString() }
             mockMovieRepo.findById.mockResolvedValueOnce({ id: movieId })
             mockReviewRepo.findByUserAndMovie.mockResolvedValueOnce(review)
 
@@ -156,7 +156,7 @@ describe('ReviewService (unit)', () => {
         const movieId = 1
 
         test('debe actualizar review existente', async () => {
-            const updatedReview = { id: 1, movieId, userId, rating: 5, comment: 'Actualizada', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), email: 'user@test.com' }
+            const updatedReview = { id: 1, movie_id: movieId, user_id: userId, rating: 5, comment: 'Actualizada', created_at: new Date().toISOString(), updated_at: new Date().toISOString() }
             mockReviewRepo.update.mockResolvedValueOnce(updatedReview)
 
             const result = await mockReviewService.updateMyReview(userId, movieId, { rating: 5 })
