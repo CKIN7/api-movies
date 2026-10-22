@@ -1,6 +1,6 @@
 # Documentación
 
-> **Revisión:** 2026-10-21
+> **Revisión:** 2026-10-22
 
 Índice de la documentación técnica y funcional del proyecto.
 
@@ -50,6 +50,7 @@ docs/
 | Documento | Fecha |
 |-----------|-------|
 | [Propuestas para el Domain Model](./proposals/2026-07-29-domain-model.md) | 2026-07-29 |
+| [Dislikes de F2 y labels de feedback F4](./proposals/2026-10-22-f2-dislikes-y-labels-feedback.md) | 2026-10-22 |
 
 ## Convenciones
 
