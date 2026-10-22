@@ -1,6 +1,6 @@
 # HU-12: User Profiles & Preferences 2.0
 
-> **Tipo:** Epic · **Estado:** F0–F5 implementadas · **Revisión:** 2026-10-21
+> **Tipo:** Epic · **Estado:** F0–F5 implementadas · **Revisión:** 2026-10-22
 
 Fases F0–F5 entregadas: correcciones base (`F0`), perfil (`F1`),
 preferencias enriquecidas con dislikes/filtros/decay (`F2`), configuración (`F3`),
@@ -16,6 +16,7 @@ feedback de recomendaciones (`F4`) y onboarding/cold-start (`F5`).
 | F3 | [Configuración](./f3-settings.md) | Implementado |
 | F4 | [Feedback de recomendaciones](./f4-recommendation-feedback.md) | Implementado |
 | F5 | [Onboarding & cold-start](./f5-onboarding.md) | Implementado |
+| — | [Laboratorio frontend F4/F5](./frontend-lab.md) | Implementado |
 | — | [Contrato de autor en reviews](./review-author-contract.md) | Implementado |
 
 El roadmap original de F4–F5 se conserva abajo; las specs detalladas viven en cada
