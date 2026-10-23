@@ -2,6 +2,12 @@ import { Auth } from './auth.js';
 
 const API_BASE = 'http://localhost:8089';
 const labMode = new URLSearchParams(location.search).has('lab');
+const FEEDBACK_LABELS = {
+  view: 'Ya la vi',
+  hide: 'Menos como esta',
+  like: 'Me gusta',
+  not_interested: 'No recomendar',
+};
 let labPanel = null;
 
 // ═══════════════════════════════════════════════
@@ -25,6 +31,10 @@ function parseIds(value) {
 
 function uniqueIds(values) {
   return [...new Set(values)];
+}
+
+function feedbackLabel(action) {
+  return FEEDBACK_LABELS[action] || action;
 }
 
 function renderGenreChips(container, genres, selectedGenres, onToggle) {
@@ -60,6 +70,7 @@ class Preferences {
     this.auth = auth;
     this.genres = [];       // [{ id, name }]
     this.selectedGenres = new Set();
+    this.dislikedGenres = new Set();
     this.els = {};
   }
 
@@ -67,17 +78,39 @@ class Preferences {
     this.bindElements();
     this.genresPromise = this.loadGenres();
     this.els.saveBtn?.addEventListener('click', () => this.save());
+    this.els.favDirectors?.addEventListener('change', () => {
+      this.removeIdsFrom(this.els.dislikedDirectors, this.els.favDirectors);
+    });
+    this.els.favActors?.addEventListener('change', () => {
+      this.removeIdsFrom(this.els.dislikedActors, this.els.favActors);
+    });
+    this.els.dislikedDirectors?.addEventListener('change', () => {
+      this.removeIdsFrom(this.els.favDirectors, this.els.dislikedDirectors);
+    });
+    this.els.dislikedActors?.addEventListener('change', () => {
+      this.removeIdsFrom(this.els.favActors, this.els.dislikedActors);
+    });
   }
 
   bindElements() {
     this.els = {
       genreChips: document.getElementById('genre-chips'),
+      dislikedGenreChips: document.getElementById('disliked-genre-chips'),
       favDirectors: document.getElementById('fav-directors'),
       favActors: document.getElementById('fav-actors'),
+      dislikedDirectors: document.getElementById('disliked-directors'),
+      dislikedActors: document.getElementById('disliked-actors'),
       saveBtn: document.getElementById('btn-save-prefs'),
       affinityChips: document.getElementById('affinity-chips'),
       updatedAt: document.getElementById('prefs-updated'),
     };
+  }
+
+  removeIdsFrom(targetInput, sourceInput) {
+    if (!targetInput || !sourceInput) return;
+    const blocked = new Set(parseIds(sourceInput.value));
+    const remaining = uniqueIds(parseIds(targetInput.value).filter(id => !blocked.has(id)));
+    targetInput.value = remaining.join(', ');
   }
 
   async loadGenres() {
@@ -87,13 +120,22 @@ class Preferences {
       this.genres = await res.json();
       this.renderGenres();
     } catch (err) {
-      this.els.genreChips.innerHTML = `<span class="affinity-empty">Error cargando géneros: ${err.message}</span>`;
+      const message = `<span class="affinity-empty">Error cargando géneros: ${err.message}</span>`;
+      if (this.els.genreChips) this.els.genreChips.innerHTML = message;
+      if (this.els.dislikedGenreChips) this.els.dislikedGenreChips.innerHTML = message;
     }
     return this.genres;
   }
 
   renderGenres() {
-    renderGenreChips(this.els.genreChips, this.genres, this.selectedGenres);
+    renderGenreChips(this.els.genreChips, this.genres, this.selectedGenres, (id, selected) => {
+      if (selected) this.dislikedGenres.delete(id);
+      this.renderSelectedGenres();
+    });
+    renderGenreChips(this.els.dislikedGenreChips, this.genres, this.dislikedGenres, (id, selected) => {
+      if (selected) this.selectedGenres.delete(id);
+      this.renderSelectedGenres();
+    });
   }
 
   async load() {
@@ -103,9 +145,12 @@ class Preferences {
       const prefs = await res.json();
 
       this.selectedGenres = new Set(prefs.favoriteGenres || []);
+      this.dislikedGenres = new Set(prefs.dislikedGenres || []);
       this.renderSelectedGenres();
       this.els.favDirectors.value = (prefs.favoriteDirectors || []).join(', ');
       this.els.favActors.value = (prefs.favoriteActors || []).join(', ');
+      this.els.dislikedDirectors.value = (prefs.dislikedDirectors || []).join(', ');
+      this.els.dislikedActors.value = (prefs.dislikedActors || []).join(', ');
       this.renderAffinity(prefs.genreAffinity || {});
       this.els.updatedAt.textContent = prefs.updatedAt
         ? `Última actualización: ${new Date(prefs.updatedAt).toLocaleString()}`
@@ -116,9 +161,13 @@ class Preferences {
   }
 
   renderSelectedGenres() {
-    this.els.genreChips.querySelectorAll('.genre-chip').forEach(chip => {
+    this.els.genreChips?.querySelectorAll('.genre-chip').forEach(chip => {
       const id = Number(chip.dataset.id);
       chip.classList.toggle('selected', this.selectedGenres.has(id));
+    });
+    this.els.dislikedGenreChips?.querySelectorAll('.genre-chip').forEach(chip => {
+      const id = Number(chip.dataset.id);
+      chip.classList.toggle('selected', this.dislikedGenres.has(id));
     });
   }
 
@@ -155,10 +204,18 @@ class Preferences {
   }
 
   async save() {
+    for (const id of this.dislikedGenres) this.selectedGenres.delete(id);
+    this.removeIdsFrom(this.els.favDirectors, this.els.dislikedDirectors);
+    this.removeIdsFrom(this.els.favActors, this.els.dislikedActors);
+    this.renderSelectedGenres();
+
     const body = {
       favoriteGenres: [...this.selectedGenres],
-      favoriteDirectors: parseIds(this.els.favDirectors.value),
-      favoriteActors: parseIds(this.els.favActors.value),
+      favoriteDirectors: uniqueIds(parseIds(this.els.favDirectors.value)),
+      favoriteActors: uniqueIds(parseIds(this.els.favActors.value)),
+      dislikedGenres: [...this.dislikedGenres],
+      dislikedDirectors: uniqueIds(parseIds(this.els.dislikedDirectors.value)),
+      dislikedActors: uniqueIds(parseIds(this.els.dislikedActors.value)),
     };
 
     try {
@@ -380,10 +437,10 @@ class Recommendations {
 
       const actions = this.labMode ? `
         <div class="rec-actions">
-          <button type="button" class="btn btn-outline btn-xs" data-feedback-action="view" data-movie-id="${item.movie.id}">Vista</button>
-          <button type="button" class="btn btn-outline btn-xs" data-feedback-action="hide" data-movie-id="${item.movie.id}">Ocultar</button>
+          <button type="button" class="btn btn-outline btn-xs" data-feedback-action="view" data-movie-id="${item.movie.id}">Ya la vi</button>
+          <button type="button" class="btn btn-outline btn-xs" data-feedback-action="hide" data-movie-id="${item.movie.id}">Menos como esta</button>
           <button type="button" class="btn btn-outline btn-xs" data-feedback-action="like" data-movie-id="${item.movie.id}">Me gusta</button>
-          <button type="button" class="btn btn-outline btn-xs" data-feedback-action="not_interested" data-movie-id="${item.movie.id}">No me interesa</button>
+          <button type="button" class="btn btn-outline btn-xs" data-feedback-action="not_interested" data-movie-id="${item.movie.id}">No recomendar</button>
         </div>
       ` : '';
 
@@ -470,12 +527,12 @@ class Feedback {
       if (!res.ok) throw new Error(data.error || data.message || `Error ${res.status}`);
 
       if (data.applied) {
-        toast(`Feedback "${action}" aplicado`);
+        toast(`Feedback "${feedbackLabel(action)}" aplicado`);
         if (action === 'like') labPanel?.mark('like', 'aplicado');
         if (action === 'not_interested') labPanel?.mark('not-interested', 'aplicado');
         await this.onApplied?.(action, movieId);
       } else {
-        toast(`Ese feedback ya estaba registrado: "${action}"`);
+        toast(`Ese feedback ya estaba registrado: "${feedbackLabel(action)}"`);
         if (action === 'like') labPanel?.mark('duplicate', 'applied:false');
         buttons.forEach(button => { button.disabled = false; });
       }
