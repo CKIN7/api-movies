@@ -1,6 +1,6 @@
 # HU-12 / F2: Preferencias Enriquecidas (dislikes, filtros y decay)
 
-> **Tipo:** Feature · **HU:** HU-12 · **Fase:** F2 · **Estado:** Implementado · **Revisión:** 2026-10-21
+> **Tipo:** Feature · **HU:** HU-12 · **Fase:** F2 · **Estado:** Implementado · **Revisión:** 2026-10-23
 
 Como usuario de la API,
 quiero expresar tanto lo que me gusta como lo que **no** me gusta, y fijar filtros duros de contenido,
@@ -35,6 +35,17 @@ Respuesta extendida:
 
 Acepta `dislikedGenres`, `dislikedDirectors`, `dislikedActors`, `contentFilters`
 además de los favoritos existentes.
+
+### Frontend
+
+`public/preferences.html` expone los dislikes junto a los favoritos:
+
+- Chips de géneros a evitar, con selección excluyente respecto de favoritos.
+- Inputs de IDs separados por coma para directores y actores a evitar.
+- Un único botón “Guardar preferencias” envía `favorite*` y `disliked*` completos.
+- Si el usuario marca el mismo género o artista en ambos lados, la UI lo quita de
+  favoritos antes de guardar; el backend también valida el conflicto con `400`.
+- Los dislikes se consumen en `type=hybrid`; no son una exclusión dura.
 
 ---
 
