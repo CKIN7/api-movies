@@ -1,6 +1,6 @@
 # HU-12 / F4: Feedback de Recomendaciones
 
-> **Tipo:** Feature · **HU:** HU-12 · **Fase:** F4 · **Estado:** Implementado · **Revisión:** 2026-10-21
+> **Tipo:** Feature · **HU:** HU-12 · **Fase:** F4 · **Estado:** Implementado · **Revisión:** 2026-10-23
 
 Como usuario de la API,
 quiero indicar qué recomendaciones me gustan, no me interesan o ya vi,
@@ -81,6 +81,20 @@ Respuestas:
   `hide`/`not_interested` reducen afinidad existente pero no generan valores negativos.
 * La afinidad solo influye en el ranking de `type=hybrid`. En `content`/`collab` el
   efecto visible es la exclusión de `not_interested`.
+
+### Labels de UI
+
+Los botones de feedback se muestran solo en `?lab=1`:
+
+| Acción | Label |
+|--------|-------|
+| `view` | “Ya la vi” |
+| `hide` | “Menos como esta” |
+| `like` | “Me gusta” |
+| `not_interested` | “No recomendar” |
+
+“Menos como esta” comunica una señal suave: no promete que la película desaparezca.
+Solo “No recomendar” (`not_interested`) aplica exclusión.
 
 ### Invalidación de caché
 
