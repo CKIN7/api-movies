@@ -1,6 +1,6 @@
 # Dislikes de F2 y labels de feedback F4
 
-> **Tipo:** Propuesta · **Estado:** Pendiente de evaluación · **Fecha:** 2026-10-22
+> **Tipo:** Propuesta · **Estado:** Implementado (Opción A) · **Fecha:** 2026-10-22 · **Implementado:** 2026-10-23
 
 ## Contexto
 
@@ -56,13 +56,13 @@ evaluar la Opción B en una propuesta separada.
 
 ## Criterios de aceptación de la Opción A
 
-- [ ] CA-1: la página permite elegir géneros, directores y actores a evitar.
-- [ ] CA-2: al guardar, se envían `dislikedGenres`, `dislikedDirectors` y
+- [x] CA-1: la página permite elegir géneros, directores y actores a evitar.
+- [x] CA-2: al guardar, se envían `dislikedGenres`, `dislikedDirectors` y
       `dislikedActors` sin borrar los favoritos existentes.
-- [ ] CA-3: el feedback `hide` se muestra como “Menos como esta”.
-- [ ] CA-4: `not_interested` se muestra como “No recomendar”.
-- [ ] CA-5: los textos no prometen exclusión para `hide`.
-- [ ] CA-6: no hay cambios de backend, migraciones ni tests de API.
+- [x] CA-3: el feedback `hide` se muestra como “Menos como esta”.
+- [x] CA-4: `not_interested` se muestra como “No recomendar”.
+- [x] CA-5: los textos no prometen exclusión para `hide`.
+- [x] CA-6: no hay cambios de backend, migraciones ni tests de API.
 
 ## Fuera de alcance
 
@@ -71,12 +71,20 @@ evaluar la Opción B en una propuesta separada.
 - Exponer `contentFilters` en la UI.
 - Rediseñar la página de preferencias.
 
-## Implementación si se acepta
+## Implementación aplicada
 
 ```text
 public/preferences.html
 public/preferences.js
+docs/features/hu-12-user-profiles-2.0/f2-preferences-v2.md
+docs/features/hu-12-user-profiles-2.0/f4-recommendation-feedback.md
+docs/features/hu-12-user-profiles-2.0/frontend-lab.md
 ```
+
+La UI agrega chips de géneros a evitar e inputs de IDs para directores y actores. El
+guardado envía los seis campos de preferencias en un único `PUT`; si un ID aparece en
+favoritos y dislikes, se elimina de favoritos antes de enviar para respetar la validación
+del backend. Los labels de feedback se aplican solo en `?lab=1`.
 
 Referencias actuales:
 
