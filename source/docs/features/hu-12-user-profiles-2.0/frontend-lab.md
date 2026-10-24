@@ -1,6 +1,6 @@
 # Laboratorio frontend F4/F5
 
-> **Tipo:** Herramienta de desarrollo · **HU:** HU-12 · **Estado:** Implementado · **Revisión:** 2026-10-22
+> **Tipo:** Herramienta de desarrollo · **HU:** HU-12 · **Estado:** Implementado · **Revisión:** 2026-10-23
 
 ## Contexto
 
@@ -11,9 +11,11 @@ F4 (feedback de recomendaciones) y F5 (onboarding/cold-start) ya estaban impleme
 Incluye:
 
 - Modo laboratorio activado con `?lab=1`.
+- Preferencias F2 con favoritos y dislikes de géneros, directores y actores.
 - Onboarding F5 con selección de géneros y directores.
 - Badge de estado de settings F3 (`onboardingCompleted`).
 - Botones de feedback F4 en las tarjetas de recomendaciones, visibles solo en modo laboratorio.
+- Labels de feedback: “Ya la vi”, “Menos como esta”, “Me gusta” y “No recomendar”.
 - Checklist de escenarios y log de peticiones en modo laboratorio.
 - Enlace “Preferencias” en el menú de usuario de la landing.
 
@@ -54,6 +56,7 @@ Respuestas relevantes:
 - [x] CA-5: el feedback muestra `applied: true/false` y refresca preferencias/recomendaciones.
 - [x] CA-6: `not_interested` dispara la verificación de exclusión en `hybrid`, `content` y `collab`.
 - [x] CA-7: `genreAffinity` acepta el formato `{ score, updatedAt }` y el formato numérico legado.
+- [x] CA-8: los dislikes se guardan con favoritos y la UI resuelve conflictos antes del `PUT`.
 
 ## Casos
 
@@ -74,6 +77,8 @@ Respuestas relevantes:
 | Onboarding sin géneros | `favoriteGenres: []` | `400` |
 | Onboarding con más de 10 géneros | 11 géneros | `400` |
 | Directores duplicados | `10,10,20` | Se deduplican antes de enviar |
+| Género favorito y dislike | Mismo id en ambos chips | Se quita de favoritos |
+| Director favorito y dislike | Mismo id en ambos inputs | Se quita de favoritos |
 | Feedback duplicado | Mismo `movieId` + `action` | `200`, `applied: false` |
 | `not_interested` | Película marcada | Excluida en los tres tipos |
 | Sin señales | Cuenta sin historial ni onboarding | Estado de cold start |
@@ -91,7 +96,9 @@ Decisiones:
 
 - `?lab=1` es una convención de UI, no un mecanismo de seguridad.
 - El feedback no se muestra en modo normal para no mezclar controles de prueba con la UI de producto.
+- Los labels de feedback también quedan limitados a modo laboratorio.
 - El onboarding sí queda visible en modo normal cuando está pendiente.
+- Los dislikes se guardan con favoritos en un único `PUT`; ante conflicto, gana el dislike.
 - El usuario de prueba es una cuenta existente; no se modifican seed ni migraciones.
 - El feedback es persistente y no se puede borrar desde la API: para reiniciar un escenario se usa otra cuenta o `npm run seed`.
 

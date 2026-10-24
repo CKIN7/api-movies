@@ -69,6 +69,13 @@
   }
   .genre-chip:hover { border-color: #888; color: #eee; }
   .genre-chip.selected { background: #0066cc; border-color: #0066cc; color: #fff; }
+  .genre-chips.avoid .genre-chip:hover { border-color: #c05050; }
+  .genre-chips.avoid .genre-chip.selected { background: #8b2e2e; border-color: #8b2e2e; color: #fff; }
+
+  .prefs-actions {
+    display: flex; justify-content: flex-end; align-items: center; gap: 12px;
+    margin-top: 16px;
+  }
 
   .field { margin-bottom: 14px; }
   .field label { display: block; font-size: 0.75rem; color: #aaa; margin-bottom: 4px; }
@@ -275,8 +282,32 @@
             <label for="fav-actors">Actores (IDs separados por coma)</label>
             <input type="text" id="fav-actors" placeholder="100, 101">
           </div>
-          <button class="btn" id="btn-save-prefs">Guardar preferencias</button>
         </div>
+      </div>
+      <div class="prefs-grid" style="margin-top:16px;">
+        <div class="panel">
+          <h3>Géneros a evitar</h3>
+          <div class="genre-chips avoid" id="disliked-genre-chips">
+            <span class="affinity-empty">Cargando géneros…</span>
+          </div>
+          <div class="hint">Se quitan de favoritos si coinciden.</div>
+        </div>
+        <div class="panel">
+          <h3>Artistas a evitar</h3>
+          <div class="field">
+            <label for="disliked-directors">Directores (IDs separados por coma)</label>
+            <input type="text" id="disliked-directors" placeholder="10, 20">
+            <div class="hint">Se quitan de favoritos si coinciden.</div>
+          </div>
+          <div class="field">
+            <label for="disliked-actors">Actores (IDs separados por coma)</label>
+            <input type="text" id="disliked-actors" placeholder="100, 101">
+          </div>
+        </div>
+      </div>
+      <div class="prefs-actions">
+        <span class="prefs-meta">Favoritos y dislikes se guardan juntos.</span>
+        <button class="btn" id="btn-save-prefs">Guardar preferencias</button>
       </div>
       <div class="panel" style="margin-top:16px;">
         <h3>Géneros derivados de tu actividad (genreAffinity)</h3>
@@ -390,7 +421,7 @@
           <li data-lab-step="affinity">Afinidad renderizada <span class="lab-note"></span></li>
           <li data-lab-step="like">Feedback "like" aplicado <span class="lab-note"></span></li>
           <li data-lab-step="duplicate">Feedback duplicado detectado <span class="lab-note"></span></li>
-          <li data-lab-step="not-interested">"No me interesa" verificado <span class="lab-note"></span></li>
+          <li data-lab-step="not-interested">"No recomendar" verificado <span class="lab-note"></span></li>
           <li data-lab-step="cold-start">Cold start observado <span class="lab-note"></span></li>
         </ul>
         <h3>Log de peticiones</h3>
