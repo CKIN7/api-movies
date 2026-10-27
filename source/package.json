@@ -12,15 +12,22 @@
     "start": "node dist/api.js",
     "test": "jest",
     "test:ratelimit": "jest rate penaltyBox",
+    "test:queues": "jest --testPathPattern=queues",
     "migrate": "tsx db/migrate.ts",
     "migrate:status": "tsx db/migrate.ts status",
     "seed": "tsx db/seed.ts",
     "seed:append": "tsx db/seed.ts --keep-data",
     "reindex": "tsx scripts/reindex.ts",
-    "recs:compute": "tsx scripts/recomputeRecommendations.ts"
+    "recs:compute": "tsx scripts/recomputeRecommendations.ts",
+    "worker:dev": "tsx watch workers/index.ts",
+    "worker:prod": "node dist/workers/index.js"
   },
   "dependencies": {
+    "@bull-board/api": "^9.10.5",
+    "@bull-board/express": "^9.10.5",
+    "@bull-board/ui": "^9.10.5",
     "bcryptjs": "^3.0.3",
+    "bullmq": "^5.15.0",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "ioredis": "^5.11.1",
@@ -32,6 +39,7 @@
   },
   "devDependencies": {
     "@fast-check/jest": "^2.2.0",
+    "@testcontainers/redis": "^10.0.0",
     "@types/bcryptjs": "^2.4.6",
     "@types/express": "^5",
     "@types/ioredis-mock": "^8.2.8",
@@ -43,6 +51,7 @@
     "ioredis-mock": "^8.13.1",
     "jest": "^30.4.2",
     "supertest": "^7.2.2",
+    "testcontainers": "^10.13.0",
     "ts-jest": "^29.4.11",
     "tsx": "^4.19",
     "typescript": "^5.7"
