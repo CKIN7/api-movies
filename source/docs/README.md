@@ -28,6 +28,7 @@ docs/
 | HU-10 | [User Profiles & Preferences](./features/hu-10-user-profiles-preferences.md) | Implementado |
 | HU-11 | [Motor de recomendaciones](./features/hu-11-recommendation-engine.md) | Implementado |
 | HU-12 | [User Profiles & Preferences 2.0](./features/hu-12-user-profiles-2.0/README.md) | F0–F5 implementadas |
+| HU-13 | [BullMQ Job Queue System](./features/hu-13-bullmq-job-queue.md) | F1 en curso (F2–F4 planificadas) |
 
 Herramienta de desarrollo: [Laboratorio frontend F4/F5](./features/hu-12-user-profiles-2.0/frontend-lab.md).
 
@@ -53,6 +54,7 @@ Herramienta de desarrollo: [Laboratorio frontend F4/F5](./features/hu-12-user-pr
 |-----------|-------|
 | [Propuestas para el Domain Model](./proposals/2026-07-29-domain-model.md) | 2026-07-29 |
 | [Dislikes de F2 y labels de feedback F4](./proposals/2026-10-22-f2-dislikes-y-labels-feedback.md) | 2026-10-22 |
+| [Otros casos de uso para BullMQ](./proposals/2026-10-24-bullmq-use-cases.md) | 2026-10-24 |
 
 ## Convenciones
 

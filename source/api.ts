@@ -64,6 +64,10 @@ import { createUserSettingsRoutes } from './routes/userSettingsRoutes'
 import { OnboardingService } from './services/onboardingService'
 import { OnboardingController } from './controllers/onboardingController'
 import { createOnboardingRoutes } from './routes/onboardingRoutes'
+import { createBullBoard } from '@bull-board/api'
+import { BullMQAdapter } from '@bull-board/api/bullMQAdapter'
+import { ExpressAdapter } from '@bull-board/express'
+import { allQueues, closeAllQueues } from './queues'
 
 // ═══════════════════════════════════════════════════════════════
 //  Patrones: Dependency Injection + Factory + Chain of Resp.
@@ -177,6 +181,14 @@ const recommendationRouter = createRecommendationRoutes(recommendationController
     app.use('/auth', authRouter)
     app.use('/metrics', metricsRouter)
 
+    const bullBoardAdapter = new ExpressAdapter()
+    bullBoardAdapter.setBasePath('/admin/queues')
+    createBullBoard({
+      queues: allQueues.map((q) => new BullMQAdapter(q)),
+      serverAdapter: bullBoardAdapter,
+    })
+    app.use('/admin/queues', bullBoardAdapter.getRouter())
+
     app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
         const statusCode = err instanceof AppError ? err.statusCode : err instanceof ZodError ? 400 : 500
         logger.error(`Error handler: ${err.message}`, { statusCode, stack: err.stack })
@@ -207,6 +219,7 @@ if (require.main === module) {
 
     process.on('SIGTERM', async () => {
         logger.info('SIGTERM received, shutting down gracefully')
+        await closeAllQueues()
         await disconnectRedis()
         await closeDb()
         process.exit(0)
@@ -214,6 +227,7 @@ if (require.main === module) {
 
     process.on('SIGINT', async () => {
         logger.info('SIGINT received, shutting down gracefully')
+        await closeAllQueues()
         await disconnectRedis()
         await closeDb()
         process.exit(0)
