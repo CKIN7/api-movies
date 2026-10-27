@@ -20,9 +20,13 @@ Actualmente la API ejecuta tareas pesadas en el request HTTP:
 **Decisiones tomadas:**
 1. **Email provider:** Resend (3,000 emails/mes gratis, React Email templates)
 2. **Notificaciones F3:** Solo email + in-app (push post-F4)
-3. **Tests:** Testcontainers con Redis real (BullMQ requiere Lua scripts/streams)
-4. **Deploy:** Mismo repo, procesos PM2 separados (`api`, `worker-email`, `worker-notif`, `worker-recs`)
+3. **Tests:** Redis real con resolución en cascada: `REDIS_URL_TEST` → Testcontainers → `skip`
+4. **Deploy:** Mismo repo, procesos PM2 separados (F1: `api` + `worker`; F2–F4 agregan `worker-email`, `worker-notif`, `worker-recs`)
 5. **Métricas:** Bull Board UI en F1 → Prometheus/Grafana en F2+
+6. **Conexión Redis:** BullMQ recibe **opciones** de conexión (`host`/`port`/`db`), no una instancia
+   compartida de ioredis. Compartir cliente provoca `MaxListenersExceededWarning` y un `error`
+   no capturado (`Connection is closed`) al cerrarlo.
+7. **Nombres de cola:** BullMQ 5 rechaza `:`; se usa kebab-case (`email-critical`, `recs-recompute-all`).
 
 ---
 
@@ -52,13 +56,17 @@ Actualmente la API ejecuta tareas pesadas en el request HTTP:
 
 | Cola | Prioridad | Job Payload | Worker | Fase |
 |------|-----------|-------------|--------|------|
-| `email:critical` | 10 | `{ template, to, data, jobId }` | emailWorker | F2 |
-| `email:transactional` | 5 | `{ template, to, data }` | emailWorker | F2 |
-| `email:marketing` | 1 | `{ template, to, data }` | emailWorker | F2 |
-| `notification:fanout` | 5 | `{ event, userId, payload }` | notificationWorker | F3 |
-| `notification:inapp` | 3 | `{ userId, type, payload }` | notificationWorker | F3 |
-| `recs:recompute-user` | 5 | `{ userId }` | recommendationWorker | F4 |
-| `recs:recompute-all` | 1 | `{}` | recommendationWorker | F4 |
+| `email-critical` | 10 | `{ template, to, data, jobId }` | emailWorker | F2 |
+| `email-transactional` | 5 | `{ template, to, data }` | emailWorker | F2 |
+| `email-marketing` | 1 | `{ template, to, data }` | emailWorker | F2 |
+| `notification-fanout` | 5 | `{ event, userId, payload }` | notificationWorker | F3 |
+| `notification-inapp` | 3 | `{ userId, type, payload }` | notificationWorker | F3 |
+| `recs-recompute-user` | 5 | `{ userId }` | recommendationWorker | F4 |
+| `recs-recompute-all` | 1 | `{}` | recommendationWorker | F4 |
+
+> **Nota:** BullMQ 5 rechaza `:` en el nombre de la cola (`Queue name cannot contain :`),
+> por eso los nombres usan kebab-case. Los prefijos con `:` que aparecen en claves de
+> cache (`recs:user:{id}:*`) son otra cosa y no se ven afectados.
 
 ### Job Options (default)
 ```ts
@@ -109,9 +117,9 @@ Actualmente la API ejecuta tareas pesadas en el request HTTP:
 - [ ] CA-5: Evento `recs.ready` opcional → notificación "Nuevas recomendaciones"
 
 ### F4: Recs Recompute
-- [ ] CA-1: `npm run recs:compute` → encola job `recs:recompute-all` (no bloquea)
+- [ ] CA-1: `npm run recs:compute` → encola job `recs-recompute-all` (no bloquea)
 - [ ] CA-2: Cron nocturno (3 AM) ejecuta recompute para todos los usuarios con interacciones
-- [ ] CA-3: Invalidación cache (review/watchlist/feedback) → encola `recs:recompute-user`
+- [ ] CA-3: Invalidación cache (review/watchlist/feedback) → encola `recs-recompute-user`
 - [ ] CA-4: Métricas Bull Board: jobs completados, tiempo medio, fallos
 - [ ] CA-5: Cache hit rate > 95% tras recompute nocturno
 
@@ -123,11 +131,11 @@ Actualmente la API ejecuta tareas pesadas en el request HTTP:
 
 | # | Flujo | Resultado esperado |
 |---|-------|---------------------|
-| H1 | Usuario registra cuenta | 201 + email verification encolado en `email:critical` |
+| H1 | Usuario registra cuenta | 201 + email verification encolado en `email-critical` |
 | H2 | Worker email procesa job | Resend API llamado, email entregado, job completado |
 | H3 | Usuario crea review | Notificación in-app creada + email si `notify_email=true` |
 | H4 | Usuario consulta notificaciones | 200 + lista paginada con `read_at` null/fecha |
-| H5 | Cron nocturno ejecuta | `recs:recompute-all` procesa todos los usuarios, cache repoblado |
+| H5 | Cron nocturno ejecuta | `recs-recompute-all` procesa todos los usuarios, cache repoblado |
 
 ### Boundary / Corner / Edge Cases
 
@@ -138,7 +146,7 @@ Actualmente la API ejecuta tareas pesadas en el request HTTP:
 | B3 | Resend devuelve 429 (rate limit) | Job reencolado con backoff, no falla definitivamente |
 | B4 | Mismo `jobId` enviado 2x | Solo 1 email enviado (idempotencia BullMQ) |
 | B5 | Usuario con `notify_email=false` crea review | Solo notificación in-app, sin email |
-| B6 | `recs:recompute-user` para usuario sin interacciones | Job completa rápido, cache no se actualiza (no-op) |
+| B6 | `recs-recompute-user` para usuario sin interacciones | Job completa rápido, cache no se actualiza (no-op) |
 | B7 | Job tarda > 30s (recs recompute) | Worker sigue vivo, Bull Board muestra progreso |
 | B8 | SIGTERM en medio de job | Worker termina job actual, no toma nuevos, cierra limpio |
 
@@ -157,7 +165,7 @@ source/
 │   ├── queueFactory.ts           # F1: createQueue(name, opts)
 │   ├── emailQueue.ts             # F2: 3 colas con prioridades y limiters
 │   ├── notificationQueue.ts      # F3: fanout, inapp
-│   └── recommendationQueue.ts    # F4: recs:recompute-user, recs:recompute-all
+│   └── recommendationQueue.ts    # F4: recs-recompute-user, recs-recompute-all
 ├── workers/
 │   ├── baseWorker.ts             # F1: Clase base: process, shutdown, error handling
 │   ├── index.ts                  # F1: Exporta workers
@@ -190,7 +198,7 @@ source/
 ├── scripts/
 │   └── recomputeRecommendations.ts  # F4: ✎ Deprecado → wrapper que encola job
 ├── api.ts                        # ✎ wiring DI + mount /users/me/notifications + /admin/queues
-├── ecosystem.config.js           # F1: PM2: api + 3 workers
+├── ecosystem.config.js           # F1: PM2 api + worker genérico
 ├── db/migrations/
 │   └── 202610240001_notifications.sql  # F3
 ├── types/
@@ -226,15 +234,22 @@ source/
 
 ### PM2 Ecosystem (ecosystem.config.js)
 
+En F1 solo existen `api` y un worker genérico; cada fase agrega su app cuando el
+worker concreto existe (evita que `pm2 start` falle por scripts inexistentes).
+
 ```js
+// F1
 module.exports = {
   apps: [
     { name: 'api', script: 'dist/api.js', instances: 'max', exec_mode: 'cluster' },
-    { name: 'worker-email', script: 'dist/workers/emailWorker.js', instances: 2 },
-    { name: 'worker-notif', script: 'dist/workers/notificationWorker.js', instances: 1 },
-    { name: 'worker-recs', script: 'dist/workers/recommendationWorker.js', instances: 1 },
+    { name: 'worker', script: 'dist/workers/index.js', instances: 1, exec_mode: 'fork' },
   ]
 }
+
+// F2/F3/F4 agregan:
+// { name: 'worker-email', script: 'dist/workers/emailWorker.js', instances: 2 },
+// { name: 'worker-notif', script: 'dist/workers/notificationWorker.js', instances: 1 },
+// { name: 'worker-recs', script: 'dist/workers/recommendationWorker.js', instances: 1 },
 ```
 
 ---
@@ -258,11 +273,26 @@ npm run test -- --testPathPattern=notifications
 
 # F4
 npm run recs:compute  # Debe encolar job, no bloquear
-# Verificar en Bull Board: recs:recompute-all procesado
+# Verificar en Bull Board: recs-recompute-all procesado
 ```
 
+### Redis de integración (resolución en cascada)
+
+`__tests__/integration/bullmq.integration.test.ts` usa, en este orden:
+
+1. `REDIS_URL_TEST` si está definido (Redis real local, hoy `redis://localhost:6379/15`).
+2. Testcontainers (`redis:7-alpine`) si Docker está disponible (CI).
+3. `describe.skip` si no hay ninguno de los dos, para no romper `npm test` en máquinas sin Docker.
+
+### Resultado F1 (2026-10-27)
+
+* `npm run build` → sin errores.
+* `npm run test:queues` → 4 unit + 6 integración, todos en verde.
+* `npm test` completo → **84 suites / 836 tests** en verde.
+* `GET /admin/queues` → 200 (Bull Board montado).
+
 ### CI/CD
-- Tests de integración usan Testcontainers (Redis real)
+- Tests de integración usan Redis real (REDIS_URL_TEST o Testcontainers)
 - `npm run build` + `npm test` deben pasar en `develop` antes de merge
 - Bull Board solo expuesto en desarrollo (detrás de auth en producción)
 
