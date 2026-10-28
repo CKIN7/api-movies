@@ -195,8 +195,19 @@ npm run test:queues    # 9 unit (queueFactory) + 7 integración (bullmq)
 npm test               # suite completa
 ```
 
+Resultado en la rama `fix/bullmq-f1-corrections`:
+
+| Comando | Resultado |
+|---------|-----------|
+| `npm run build` | Sin errores |
+| `npm run typecheck` | Sin errores |
+| `npm run test:queues` | **2 suites / 16 tests** en verde (9 unit + 7 integración, 18.9 s) |
+| `npm test` | **84 suites / 842 tests** en verde (162.9 s) |
+
+La suite completa pasó de 837 a 842 tests: los 5 nuevos son los de orden de prioridad.
+
 El soporte `.tsx` se comprobó con un componente de prueba temporal en `source/services/`,
-validado con `tsc --noEmit` y eliminado después.
+validado con `tsc --noEmit` (sin errores) y eliminado después.
 
 ---
 
