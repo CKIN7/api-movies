@@ -342,6 +342,8 @@ completo en [`fixes/bullmq-f1-corrections.md`](../fixes/bullmq-f1-corrections.md
 * Prioridades de cola corregidas al sentido real de BullMQ (menor = se procesa primero).
 * `tsconfig.json` con soporte `jsx` para los templates `.tsx` de F2.
 * Índices de documentación actualizados al estado real de F1.
+* Verificación: `npm run build` y `npm run typecheck` sin errores, `npm run test:queues` con
+  2 suites / 16 tests, `npm test` completo con **84 suites / 842 tests** en verde.
 
 ### CI/CD
 - Tests de integración usan Redis real (REDIS_URL_TEST o Testcontainers)
