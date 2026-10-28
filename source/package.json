@@ -20,12 +20,15 @@
     "reindex": "tsx scripts/reindex.ts",
     "recs:compute": "tsx scripts/recomputeRecommendations.ts",
     "worker:dev": "tsx watch workers/index.ts",
-    "worker:prod": "node dist/workers/index.js"
+    "worker:prod": "node dist/workers/index.js",
+    "worker:email:dev": "tsx watch workers/emailWorker.ts",
+    "worker:email:prod": "node dist/workers/emailWorker.js"
   },
   "dependencies": {
     "@bull-board/api": "^9.10.5",
     "@bull-board/express": "^9.10.5",
     "@bull-board/ui": "^9.10.5",
+    "@react-email/components": "^1.0.12",
     "bcryptjs": "^3.0.3",
     "bullmq": "^5.15.0",
     "dotenv": "^17.4.2",
@@ -36,6 +39,7 @@
     "mysql2": "^3.22.5",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
+    "resend": "^6.35.0",
     "winston": "^3.19.0",
     "zod": "^4.4.3"
   },
