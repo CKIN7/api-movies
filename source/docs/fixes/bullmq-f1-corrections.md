@@ -13,7 +13,7 @@ para no arrastrar errores silenciosos hacia las fases siguientes.
 
 F1 (`feature/bullmq-infra`) quedó integrada en `develop`. Al revisar el resultado contra el
 contrato de [`hu-13-bullmq-job-queue.md`](../features/hu-13-bullmq-job-queue.md) aparecieron
-cinco defectos reales y una decisión de producto que sigue abierta:
+cinco defectos reales y una decisión de producto que quedó resuelta:
 
 | # | Defecto | Impacto |
 |---|---------|---------|
@@ -22,7 +22,7 @@ cinco defectos reales y una decisión de producto que sigue abierta:
 | 3 | `tsconfig.json` sin `jsx` y sin incluir `.tsx` | Los templates de React Email de F2 no compilaban |
 | 4 | Los índices de documentación decían "F1 en curso" | Estado real incorrecto en `docs/README.md` y `docs/features/README.md` |
 | 5 | El doc declaraba `bull-board ^6.x` | Lo instalado es `@bull-board/* ^9.10.5`: tres paquetes, no uno |
-| 6 | F2 CA-1 (`202`) vs. fix de registro atómico | Decisión de producto pendiente, sin código afectado todavía |
+| 6 | F2 CA-1 (`202`) vs. fix de registro atómico | Resuelto el 2026-10-28: best-effort conservando el `201` |
 
 El defecto 2 era el más silencioso: no rompía nada hasta que existiera un worker real
 consumiendo las colas de email (F2).
@@ -154,12 +154,12 @@ consumiendo las colas de email (F2).
    `BullMQAdapter` desde `@bull-board/api/bullMQAdapter` y el router desde
    `@bull-board/express`. El doc de HU-13 declaraba `bull-board ^6.x`.
 
-8. **Decisión de producto pendiente (F2).** El CA-1 de F2 pide `POST /auth/register` → `202` con
+8. **Decisión de producto resuelta (F2).** El CA-1 de F2 pedía `POST /auth/register` → `202` con
    el email encolado, mientras que el fix de registro atómico mantiene el `201` con el notificador
-   fuera de la transacción y su fallo no fatal. Se documentaron dos opciones (A: encolar
-   best-effort y aplicar el atomicidad aparte; B: F2 absorbe el fix) en la sección "Decisión
-   pendiente para F2" del doc de HU-13. **No se implementó ninguna**: es una decisión de
-   producto.
+   fuera de la transacción y su fallo no fatal. **Resuelto el 2026-10-28: opción (A) — encolar
+   best-effort conservando el `201`**, con F2 absorbiendo S1+S2+S3 del fix de atomicidad. Ver
+   "Decisión resuelta para F2" en el doc de HU-13. En esta rama solo cambia la documentación: ni
+   el código ni el contrato público se tocan.
 
 ---
 
@@ -223,4 +223,5 @@ validado con `tsc --noEmit` (sin errores) y eliminado después.
 * **Las prioridades no tienen prueba de integración.** El orden se cubre a nivel de
   configuración; un test end-to-end con dos colas reales quedaría para F2, cuando exista un
   worker consumiendo.
-* **La decisión de producto de F2 sigue abierta** (ver punto 8).
+* **La decisión de producto de F2 está resuelta** (ver punto 8): best-effort conservando el `201`.
+  Queda pendiente implementarla, que es trabajo de F2.
