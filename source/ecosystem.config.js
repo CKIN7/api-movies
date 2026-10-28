@@ -38,5 +38,24 @@ module.exports = {
       kill_timeout: 30000,
       listen_timeout: 10000,
     },
+    {
+      // F2: procesa email-critical / email-transactional / email-marketing.
+      name: 'worker-email',
+      script: 'dist/workers/emailWorker.js',
+      instances: 1,
+      exec_mode: 'fork',
+      env: {
+        NODE_ENV: 'production',
+      },
+      env_development: {
+        NODE_ENV: 'development',
+      },
+      error_file: 'logs/worker-email-error.log',
+      out_file: 'logs/worker-email-out.log',
+      log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
+      // BullMQ drena el job en curso antes de salir.
+      kill_timeout: 30000,
+      listen_timeout: 10000,
+    },
   ],
 };
