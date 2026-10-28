@@ -1,6 +1,6 @@
 # HU-13: BullMQ Job Queue System
 
-> **Tipo:** Feature · **HU:** HU-13 · **Estado:** En progreso (F1 implementada) · **Revisión:** 2026-10-28
+> **Tipo:** Feature · **HU:** HU-13 · **Estado:** En progreso (F1 y F2 implementadas) · **Revisión:** 2026-10-28
 
 Como equipo de desarrollo,
 quiero una infraestructura de colas de trabajos asíncronos (BullMQ + Redis)
@@ -116,12 +116,12 @@ Actualmente la API ejecuta tareas pesadas en el request HTTP:
 - [x] CA-5: Retry exponencial + DLQ funcionando (job falla 3 veces → dead letter)
 
 ### F2: Emails
-- [ ] CA-1: `POST /auth/register` → **201** + email encolado en `email-critical` (el response no espera al envío)
-- [ ] CA-2: Email verification llega en < 5s (Resend API)
-- [ ] CA-3: Reintentos: fallo temporal → reintenta 3x con backoff exponencial
-- [ ] CA-4: Rate limit: >10 req/s → jobs esperan en cola (no 429 de Resend)
-- [ ] CA-5: Idempotencia: mismo `jobId` no duplica envío
-- [ ] CA-6: Registro atómico: `users` + `email_verifications` se persisten en una transacción; si el encolado falla, la respuesta sigue siendo `201` (fail-open) con `logger.error`
+- [x] CA-1: `POST /auth/register` → **201** + email encolado en `email-critical` (el response no espera al envío)
+- [x] CA-2: Email verification llega en < 5s (Resend API)
+- [x] CA-3: Reintentos: fallo temporal → reintenta 3x con backoff exponencial
+- [x] CA-4: Rate limit: >10 req/s → jobs esperan en cola (no 429 de Resend)
+- [x] CA-5: Idempotencia: mismo `jobId` no duplica envío
+- [x] CA-6: Registro atómico: `users` + `email_verifications` se persisten en una transacción; si el encolado falla, la respuesta sigue siendo `201` (fail-open) con `logger.error`
 
 ### F3: Notificaciones In-App + Fan-out
 - [ ] CA-1: Crear review → notificación in-app creada + email si `notify_email=true`
@@ -183,7 +183,7 @@ source/
 ├── workers/
 │   ├── baseWorker.ts             # F1: Clase base: process, shutdown, error handling
 │   ├── index.ts                  # F1: Exporta workers
-│   ├── emailWorker.ts            # F2: Procesa emailQueue, usa EmailService; aquí va el limiter (opción del Worker, no de la Queue)
+│   ├── emailWorker.ts            # F2: 3 workers de email (critical/transactional/marketing); aquí va el limiter (opción del Worker, no de la Queue)
 │   ├── notificationWorker.ts     # F3: Procesa fanout + inapp
 │   └── recommendationWorker.ts   # F4: Procesa recs queues
 ├── jobs/
@@ -209,8 +209,7 @@ source/
 │   └── notificationRoutes.ts     # F3
 ├── notifiers/
 │   ├── QueuedEmailVerificationNotifier.ts  # F2: Encola en email-critical (implementa EmailVerificationNotifier)
-│   ├── QueuedPasswordResetNotifier.ts      # F2: Encola en email-critical (implementa PasswordResetNotifier)
-│   └── ResendEmailNotifier.ts    # F2: Entrega real, corre en el worker (sustituye al notificador dev)
+│   └── QueuedPasswordResetNotifier.ts      # F2: Encola en email-critical (implementa PasswordResetNotifier)
 ├── scripts/
 │   └── recomputeRecommendations.ts  # F4: ✎ Deprecado → wrapper que encola job
 ├── api.ts                        # ✎ wiring DI + mount /users/me/notifications + /admin/queues
@@ -230,6 +229,18 @@ source/
         ├── EmailService.test.ts       # F2
         └── NotificationService.test.ts  # F3
 ```
+
+> **Desvíos de implementación de F2 (2026-10-28):**
+> * No se creó `ResendEmailNotifier`: la entrega real vive en `EmailService` (adapter Resend +
+>   registry de templates) y el worker la invoca vía `jobs/sendEmailJob.ts`. Un notificador por
+>   template duplicaba lógica que el registry ya resuelve.
+> * Los templates se renderizan con `react-dom/server` (`renderToStaticMarkup`), no con
+>   `@react-email/render`: ese paquete usa `import()` dinámico y no corre bajo el VM de Jest
+>   sin `--experimental-vm-modules`.
+> * `queueFactory` conserva las 7 colas del contrato (3 de email). La prioridad ordena jobs
+>   **dentro** de cada cola; **entre** colas no compiten (ver "Deuda conocida").
+> * Sin `RESEND_API_KEY` el worker entra en modo dev (loguea en vez de enviar), así los tests y
+>   el entorno local no dependen del proveedor ni gastan cuota.
 
 ### Dependencias Nuevas (package.json)
 
@@ -306,7 +317,7 @@ cd source && npm run build && npm run test:queues
 # Bull Board: http://localhost:8089/admin/queues
 
 # F2
-npm run test -- --testPathPatterns=emailQueue
+npm run test:queues
 # Verificar email real en Resend dashboard
 
 # F3
@@ -319,10 +330,10 @@ npm run recs:compute  # Debe encolar job, no bloquear
 ```
 
 > **Nota — flag de Jest:** en Jest 30 la opción `--testPathPattern` se renombró a
-> `--testPathPatterns`. El valor es una regex contra la ruta del test, y se pueden repetir
-> varios flags para sumar patrones. `npm run test:queues` ya usa
-> `--testPathPatterns=bullmq --testPathPatterns=queue` y cubre a la vez
-> `__tests__/unit/queueFactory.test.ts` y `__tests__/integration/bullmq.integration.test.ts`.
+> `--testPathPatterns`. El valor es una regex contra la ruta del test (se pueden sumar
+> patrones). `npm run test:queues` usa `--testPathPatterns="bullmq|queue|EmailService|emailQueue"`
+> y cubre las 5 suites de colas/email: `queueFactory`, `queuedEmailNotifiers`, `EmailService`,
+> `bullmq.integration` y `emailQueue.integration`.
 
 ### Redis de integración (resolución en cascada)
 
@@ -341,7 +352,7 @@ npm run recs:compute  # Debe encolar job, no bloquear
 
 ### Correcciones post-F1 (2026-10-28)
 
-Rama `fix/bullmq-f1-corrections` (sin merge a `develop`: pendiente de revisión). Detalle
+Rama `fix/bullmq-f1-corrections`, integrada en `develop` (`92fb4d4`). Detalle
 completo en [`fixes/bullmq-f1-corrections.md`](../fixes/bullmq-f1-corrections.md).
 
 * `npm run test:queues` reparado: `--testPathPattern` ya no existe en Jest 30.
@@ -350,6 +361,18 @@ completo en [`fixes/bullmq-f1-corrections.md`](../fixes/bullmq-f1-corrections.md
 * Índices de documentación actualizados al estado real de F1.
 * Verificación: `npm run build` y `npm run typecheck` sin errores, `npm run test:queues` con
   2 suites / 16 tests, `npm test` completo con **84 suites / 842 tests** en verde.
+
+### Resultado F2 (2026-10-28)
+
+Rama `feature/bullmq-emails`. Incluye el registro atómico de
+[`fixes/register-atomicity.md`](../fixes/register-atomicity.md) (S1 + S2 + S3).
+
+* `npm run build` y `npm run typecheck` → sin errores.
+* `npm run test:queues` → 5 suites / 27 tests en verde (incluye `EmailService`,
+  `queuedEmailNotifiers` y `emailQueue.integration`).
+* `npm test` completo → **87 suites / 856 tests** en verde (+3 suites / +14 tests vs. `develop`).
+* `POST /auth/register` → `201` y job encolado en `email-critical`. Con `RESEND_API_KEY` la
+  entrega sale por Resend; sin la key el worker loguea el correo (modo dev).
 
 ### CI/CD
 - Tests de integración usan Redis real (REDIS_URL_TEST o Testcontainers)
@@ -368,15 +391,19 @@ completo en [`fixes/bullmq-f1-corrections.md`](../fixes/bullmq-f1-corrections.md
 | **In-app polling (no real-time)** | SSE/WebSocket post-F4 si métricas lo piden |
 | **Job cleanup manual** | `removeOnComplete: 100`, `removeOnFail: 50` en config |
 | **Migración `recs:compute` gradual** | F4 puede coexistir con script antiguo temporalmente |
+| **Limiter de email por cola (F2)** | Los 3 limiters (uno por cola) no representan el límite global de Resend. F2+ necesita cupo diario compartido (`INCR emails:sent:YYYY-MM-DD`) y una métrica de fallos de enqueue |
+| **Prioridad solo intra-cola (F2)** | La prioridad ordena jobs dentro de una cola; entre `email-critical` y `email-marketing` el orden lo dan los workers/concurrencia, no el número |
+| **Bull Board sin auth (F1/F2)** | `GET /admin/queues` está montado en todos los entornos; proteger tras auth/rol antes de producción |
 
 ---
 
 ## Próximos Pasos
 
-1. **F1:** Hecha (integrada en `develop`). Correcciones de la rama `fix/bullmq-f1-corrections` pendientes de revisión.
-2. **F2+F3:** Implementar en paralelo `feature/bullmq-emails` + `feature/bullmq-notifications`
-3. **F4:** Implementar `feature/bullmq-recs-recompute`
-4. Actualizar este doc a **Estado: Implementado** al completar cada fase
+1. **F1:** Hecha. Correcciones de `fix/bullmq-f1-corrections` integradas en `develop` (`92fb4d4`).
+2. **F2:** Hecha en `feature/bullmq-emails` (emails críticos/transaccionales/marketing + registro atómico).
+3. **F3:** Implementar `feature/bullmq-notifications`
+4. **F4:** Implementar `feature/bullmq-recs-recompute`
+5. Actualizar este doc a **Estado: Implementado** al completar cada fase
 
 ### Decisión resuelta para F2 (2026-10-28)
 
