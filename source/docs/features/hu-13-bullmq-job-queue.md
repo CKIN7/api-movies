@@ -1,6 +1,6 @@
 # HU-13: BullMQ Job Queue System
 
-> **Tipo:** Feature · **HU:** HU-13 · **Estado:** Propuesta · **Revisión:** 2026-10-24
+> **Tipo:** Feature · **HU:** HU-13 · **Estado:** En progreso (F1 implementada) · **Revisión:** 2026-10-28
 
 Como equipo de desarrollo,
 quiero una infraestructura de colas de trabajos asíncronos (BullMQ + Redis)
@@ -27,6 +27,10 @@ Actualmente la API ejecuta tareas pesadas en el request HTTP:
    compartida de ioredis. Compartir cliente provoca `MaxListenersExceededWarning` y un `error`
    no capturado (`Connection is closed`) al cerrarlo.
 7. **Nombres de cola:** BullMQ 5 rechaza `:`; se usa kebab-case (`email-critical`, `recs-recompute-all`).
+8. **Prioridad de cola:** en BullMQ el número **menor** se procesa **primero**
+   (`lower numbers are processed before higher numbers`). El valor `0` significa "sin
+   prioridad explícita" y esos jobs se procesan **antes** que cualquier priorizado, así que
+   todas las prioridades arrancan en `1`. Ver [`fixes/bullmq-f1-corrections.md`](../fixes/bullmq-f1-corrections.md).
 
 ---
 
@@ -56,17 +60,22 @@ Actualmente la API ejecuta tareas pesadas en el request HTTP:
 
 | Cola | Prioridad | Job Payload | Worker | Fase |
 |------|-----------|-------------|--------|------|
-| `email-critical` | 10 | `{ template, to, data, jobId }` | emailWorker | F2 |
+| `email-critical` | 1 | `{ template, to, data, jobId }` | emailWorker | F2 |
 | `email-transactional` | 5 | `{ template, to, data }` | emailWorker | F2 |
-| `email-marketing` | 1 | `{ template, to, data }` | emailWorker | F2 |
-| `notification-fanout` | 5 | `{ event, userId, payload }` | notificationWorker | F3 |
+| `email-marketing` | 10 | `{ template, to, data }` | emailWorker | F2 |
+| `notification-fanout` | 1 | `{ event, userId, payload }` | notificationWorker | F3 |
 | `notification-inapp` | 3 | `{ userId, type, payload }` | notificationWorker | F3 |
-| `recs-recompute-user` | 5 | `{ userId }` | recommendationWorker | F4 |
-| `recs-recompute-all` | 1 | `{}` | recommendationWorker | F4 |
+| `recs-recompute-user` | 1 | `{ userId }` | recommendationWorker | F4 |
+| `recs-recompute-all` | 10 | `{}` | recommendationWorker | F4 |
 
 > **Nota:** BullMQ 5 rechaza `:` en el nombre de la cola (`Queue name cannot contain :`),
 > por eso los nombres usan kebab-case. Los prefijos con `:` que aparecen en claves de
 > cache (`recs:user:{id}:*`) son otra cosa y no se ven afectados.
+
+> **Nota — sentido de la prioridad:** el número **menor se procesa primero**. `1` es lo más
+> urgente y `10` lo menos. Por eso `email-critical` va antes que `email-marketing`, y
+> `recs-recompute-user` (dirigido a un usuario) va antes que `recs-recompute-all` (batch
+> nocturno). El valor `0` queda reservado para "sin prioridad explícita" y no se usa.
 
 ### Job Options (default)
 ```ts
@@ -75,6 +84,7 @@ Actualmente la API ejecuta tareas pesadas en el request HTTP:
   backoff: { type: 'exponential', delay: 2000 },
   removeOnComplete: 100,
   removeOnFail: 50,
+  // priority: 1 = más urgente (ver "Colas y Prioridades")
   // rate limiting por cola donde aplique
 }
 ```
@@ -96,11 +106,11 @@ Actualmente la API ejecuta tareas pesadas en el request HTTP:
 ## Criterios de Aceptación
 
 ### F1: Infra Base
-- [ ] CA-1: `npm run worker:dev` levanta worker que procesa jobs de prueba
-- [ ] CA-2: Bull Board accesible en `http://localhost:8089/admin/queues`
-- [ ] CA-3: Tests de integración pasan con Testcontainers (Redis real)
-- [ ] CA-4: Graceful shutdown (SIGTERM) drena jobs activos antes de cerrar
-- [ ] CA-5: Retry exponencial + DLQ funcionando (job falla 3 veces → dead letter)
+- [x] CA-1: `npm run worker:dev` levanta worker que procesa jobs de prueba
+- [x] CA-2: Bull Board accesible en `http://localhost:8089/admin/queues`
+- [x] CA-3: Tests de integración pasan con Testcontainers (Redis real)
+- [x] CA-4: Graceful shutdown (SIGTERM) drena jobs activos antes de cerrar
+- [x] CA-5: Retry exponencial + DLQ funcionando (job falla 3 veces → dead letter)
 
 ### F2: Emails
 - [ ] CA-1: `POST /auth/register` → 202 + email encolado (no bloquea response)
@@ -220,17 +230,32 @@ source/
 ```json
 {
   "dependencies": {
-    "bullmq": "^5.x",
-    "resend": "^3.x",
-    "@react-email/components": "^0.x",
-    "bull-board": "^6.x"
+    "bullmq": "^5.15.0",
+    "resend": "^6.x",
+    "@react-email/components": "^1.x",
+    "react": "^19.x",
+    "react-dom": "^19.x",
+    "@bull-board/api": "^9.10.5",
+    "@bull-board/express": "^9.10.5",
+    "@bull-board/ui": "^9.10.5"
   },
   "devDependencies": {
     "testcontainers": "^10.x",
-    "@testcontainers/redis": "^10.x"
+    "@testcontainers/redis": "^10.x",
+    "@types/react": "^19.x",
+    "@types/react-dom": "^19.x"
   }
 }
 ```
+
+> **Nota — Bull Board:** la v9 no se distribuye como un paquete `bull-board` único, sino como
+> `@bull-board/api` + `@bull-board/express` + `@bull-board/ui`. El adapter de BullMQ se importa
+> como `BullMQAdapter` desde `@bull-board/api/bullMQAdapter` y el router desde
+> `@bull-board/express`. Los tres paquetes ya están instalados (F1).
+>
+> **Nota — React:** `@react-email/components` declara `react` como peer dependency
+> (`^18 || ^19`). `react`, `react-dom` y sus tipos se instalaron en F1 para que los templates
+> `.tsx` de `services/emailTemplates/` compilen (`tsconfig.json` con `jsx: react-jsx`).
 
 ### PM2 Ecosystem (ecosystem.config.js)
 
@@ -275,17 +300,23 @@ cd source && npm run build && npm run test:queues
 # Bull Board: http://localhost:8089/admin/queues
 
 # F2
-npm run test -- --testPathPattern=emailQueue
+npm run test -- --testPathPatterns=emailQueue
 # Verificar email real en Resend dashboard
 
 # F3
-npm run test -- --testPathPattern=notifications
+npm run test -- --testPathPatterns=notifications
 # POST /auth/register → verificar notificación in-app + email
 
 # F4
 npm run recs:compute  # Debe encolar job, no bloquear
 # Verificar en Bull Board: recs-recompute-all procesado
 ```
+
+> **Nota — flag de Jest:** en Jest 30 la opción `--testPathPattern` se renombró a
+> `--testPathPatterns`. El valor es una regex contra la ruta del test, y se pueden repetir
+> varios flags para sumar patrones. `npm run test:queues` ya usa
+> `--testPathPatterns=bullmq --testPathPatterns=queue` y cubre a la vez
+> `__tests__/unit/queueFactory.test.ts` y `__tests__/integration/bullmq.integration.test.ts`.
 
 ### Redis de integración (resolución en cascada)
 
@@ -301,6 +332,16 @@ npm run recs:compute  # Debe encolar job, no bloquear
 * `npm run test:queues` → 4 unit + 7 integración, todos en verde.
 * `npm test` completo → **84 suites / 837 tests** en verde.
 * `GET /admin/queues` → 200 (Bull Board montado).
+
+### Correcciones post-F1 (2026-10-28)
+
+Rama `fix/bullmq-f1-corrections` (sin merge a `develop`: pendiente de revisión). Detalle
+completo en [`fixes/bullmq-f1-corrections.md`](../fixes/bullmq-f1-corrections.md).
+
+* `npm run test:queues` reparado: `--testPathPattern` ya no existe en Jest 30.
+* Prioridades de cola corregidas al sentido real de BullMQ (menor = se procesa primero).
+* `tsconfig.json` con soporte `jsx` para los templates `.tsx` de F2.
+* Índices de documentación actualizados al estado real de F1.
 
 ### CI/CD
 - Tests de integración usan Redis real (REDIS_URL_TEST o Testcontainers)
@@ -324,7 +365,25 @@ npm run recs:compute  # Debe encolar job, no bloquear
 
 ## Próximos Pasos
 
-1. **F1:** Implementar `feature/bullmq-infra` → merge a `develop`
+1. **F1:** Hecha (integrada en `develop`). Correcciones de la rama `fix/bullmq-f1-corrections` pendientes de revisión.
 2. **F2+F3:** Implementar en paralelo `feature/bullmq-emails` + `feature/bullmq-notifications`
 3. **F4:** Implementar `feature/bullmq-recs-recompute`
 4. Actualizar este doc a **Estado: Implementado** al completar cada fase
+
+### Decisión pendiente para F2
+
+`POST /auth/register` y el fix de registro atómico
+([`fixes/register-atomicity.md`](../fixes/register-atomicity.md), spec sin implementar) se
+solapan: el fix mantiene el `201` actual con el notificador **fuera** de la transacción y su
+fallo no fatal, mientras que el CA-1 de F2 pide `202` con el email encolado.
+
+Hay que decidir antes de arrancar F2:
+
+* **(A) Encolar best-effort.** Se mantiene el `201`: el registro persiste `users` +
+  `email_verifications` en una transacción, el email se encola y su fallo no afecta la
+  respuesta. El fix de atomicidad se aplica como un cambio aparte.
+* **(B) F2 absorbe el fix.** `202` con el email encolado, la transacción cubre los dos
+  `INSERT` y el envío ocurre en el worker.
+
+(A) es la que menos superficie de contrato cambia; (B) cumple el CA-1 de F2 al pie de la
+letra, pero mezcla dos specs en una sola fase.
