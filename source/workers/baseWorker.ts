@@ -107,7 +107,8 @@ export abstract class BaseWorker<T extends string = string> {
 
     /**
      * Drena el job en curso y cierra el worker. Idempotente.
-     * `close(true)` espera a que termine el job activo antes de salir.
+     * `close()` sin `force` espera a que termine el job activo; el limite
+     * duro lo pone `kill_timeout` de PM2 (30s).
      */
     async shutdown(signal = 'manual'): Promise<void> {
         if (this.isShuttingDown) return
@@ -120,7 +121,7 @@ export abstract class BaseWorker<T extends string = string> {
         this.worker.off('stalled', this.onStalled)
 
         try {
-            await this.worker.close(true)
+            await this.worker.close()
             logger.info(`[${this.queueName}] Worker closed gracefully`)
         } catch (err) {
             logger.error(`[${this.queueName}] Error closing worker`, {
