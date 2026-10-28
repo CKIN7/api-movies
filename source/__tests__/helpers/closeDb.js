@@ -6,9 +6,10 @@ const { disconnectRedis } = require('../../utils/redisClient')
 // dejar conexiones huérfanas entre suites (Jest no termina si queda un socket abierto).
 //
 // Solo cierra las colas si el archivo de test las cargó (require.cache), para no
-// instanciarlas en suites que no usan BullMQ.
+// instanciarlas en suites que no usan BullMQ. Se mira el factory y no el
+// indice porque `queues/emailQueue.ts` importa el factory directamente.
 afterAll(async () => {
-    if (require.cache[require.resolve('../../queues')]) {
+    if (require.cache[require.resolve('../../queues/queueFactory')]) {
         const { closeAllQueues } = require('../../queues')
         await closeAllQueues().catch(() => {})
     }
