@@ -31,6 +31,9 @@ Actualmente la API ejecuta tareas pesadas en el request HTTP:
    (`lower numbers are processed before higher numbers`). El valor `0` significa "sin
    prioridad explícita" y esos jobs se procesan **antes** que cualquier priorizado, así que
    todas las prioridades arrancan en `1`. Ver [`fixes/bullmq-f1-corrections.md`](../fixes/bullmq-f1-corrections.md).
+9. **Envío best-effort:** `POST /auth/register` conserva el `201`; el email se encola después del
+   commit y su fallo no es fatal (se loguea y `POST /auth/resend` es la vía de recuperación). F2
+   absorbe S1+S2+S3 del fix de registro atómico. Ver "Decisión resuelta para F2".
 
 ---
 
@@ -113,11 +116,12 @@ Actualmente la API ejecuta tareas pesadas en el request HTTP:
 - [x] CA-5: Retry exponencial + DLQ funcionando (job falla 3 veces → dead letter)
 
 ### F2: Emails
-- [ ] CA-1: `POST /auth/register` → 202 + email encolado (no bloquea response)
+- [ ] CA-1: `POST /auth/register` → **201** + email encolado en `email-critical` (el response no espera al envío)
 - [ ] CA-2: Email verification llega en < 5s (Resend API)
 - [ ] CA-3: Reintentos: fallo temporal → reintenta 3x con backoff exponencial
 - [ ] CA-4: Rate limit: >10 req/s → jobs esperan en cola (no 429 de Resend)
 - [ ] CA-5: Idempotencia: mismo `jobId` no duplica envío
+- [ ] CA-6: Registro atómico: `users` + `email_verifications` se persisten en una transacción; si el encolado falla, la respuesta sigue siendo `201` (fail-open) con `logger.error`
 
 ### F3: Notificaciones In-App + Fan-out
 - [ ] CA-1: Crear review → notificación in-app creada + email si `notify_email=true`
@@ -151,7 +155,7 @@ Actualmente la API ejecuta tareas pesadas en el request HTTP:
 
 | Caso | Entrada | Resultado esperado |
 |------|---------|--------------------|
-| B1 | Redis caído al encolar | Fail-fast: 500 en API, job no perdido (transacción BD no commit) |
+| B1 | Redis caído al encolar | Best-effort: `201` + `logger.error`; el registro queda persistido y `POST /auth/resend` completa la verificación |
 | B2 | Worker muere procesando job | Job vuelve a cola (retry), otro worker lo toma |
 | B3 | Resend devuelve 429 (rate limit) | Job reencolado con backoff, no falla definitivamente |
 | B4 | Mismo `jobId` enviado 2x | Solo 1 email enviado (idempotencia BullMQ) |
@@ -173,13 +177,13 @@ source/
 ├── queues/
 │   ├── index.ts                  # F1: Exporta todas las colas (factory)
 │   ├── queueFactory.ts           # F1: createQueue(name, opts)
-│   ├── emailQueue.ts             # F2: 3 colas con prioridades y limiters
+│   ├── emailQueue.ts             # F2: 3 colas de email (prioridades en config/bullmq.ts)
 │   ├── notificationQueue.ts      # F3: fanout, inapp
 │   └── recommendationQueue.ts    # F4: recs-recompute-user, recs-recompute-all
 ├── workers/
 │   ├── baseWorker.ts             # F1: Clase base: process, shutdown, error handling
 │   ├── index.ts                  # F1: Exporta workers
-│   ├── emailWorker.ts            # F2: Procesa emailQueue, usa EmailService
+│   ├── emailWorker.ts            # F2: Procesa emailQueue, usa EmailService; aquí va el limiter (opción del Worker, no de la Queue)
 │   ├── notificationWorker.ts     # F3: Procesa fanout + inapp
 │   └── recommendationWorker.ts   # F4: Procesa recs queues
 ├── jobs/
@@ -204,7 +208,9 @@ source/
 ├── routes/
 │   └── notificationRoutes.ts     # F3
 ├── notifiers/
-│   └── ResendEmailNotifier.ts    # F2: Reemplaza DevEmailVerificationNotifier
+│   ├── QueuedEmailVerificationNotifier.ts  # F2: Encola en email-critical (implementa EmailVerificationNotifier)
+│   ├── QueuedPasswordResetNotifier.ts      # F2: Encola en email-critical (implementa PasswordResetNotifier)
+│   └── ResendEmailNotifier.ts    # F2: Entrega real, corre en el worker (sustituye al notificador dev)
 ├── scripts/
 │   └── recomputeRecommendations.ts  # F4: ✎ Deprecado → wrapper que encola job
 ├── api.ts                        # ✎ wiring DI + mount /users/me/notifications + /admin/queues
@@ -372,20 +378,37 @@ completo en [`fixes/bullmq-f1-corrections.md`](../fixes/bullmq-f1-corrections.md
 3. **F4:** Implementar `feature/bullmq-recs-recompute`
 4. Actualizar este doc a **Estado: Implementado** al completar cada fase
 
-### Decisión pendiente para F2
+### Decisión resuelta para F2 (2026-10-28)
 
 `POST /auth/register` y el fix de registro atómico
-([`fixes/register-atomicity.md`](../fixes/register-atomicity.md), spec sin implementar) se
-solapan: el fix mantiene el `201` actual con el notificador **fuera** de la transacción y su
-fallo no fatal, mientras que el CA-1 de F2 pide `202` con el email encolado.
+([`fixes/register-atomicity.md`](../fixes/register-atomicity.md)) se solapaban: el fix mantiene el
+`201` actual con el notificador **fuera** de la transacción y su fallo no fatal, mientras que el
+CA-1 de F2 pedía `202` con el email encolado.
 
-Hay que decidir antes de arrancar F2:
+**Resolución: opción (A) — encolar best-effort, conservando `201`.**
 
-* **(A) Encolar best-effort.** Se mantiene el `201`: el registro persiste `users` +
-  `email_verifications` en una transacción, el email se encola y su fallo no afecta la
-  respuesta. El fix de atomicidad se aplica como un cambio aparte.
-* **(B) F2 absorbe el fix.** `202` con el email encolado, la transacción cubre los dos
-  `INSERT` y el envío ocurre en el worker.
+* La respuesta de `POST /auth/register` sigue siendo **`201 { message, user }`**. No hay cambio de
+  contrato: ni el controller, ni los tests de integración, ni la colección de Postman, ni los
+  clientes existentes se tocan.
+* F2 absorbe **S1** (los dos `INSERT` en una transacción), **S2** (el encolado va después del
+  commit y su fallo no es fatal) y **S3** (`ER_DUP_ENTRY` → `409`) del spec de atomicidad.
+* El envío es best-effort: si el encolado falla, la respuesta sigue siendo `201`, se registra
+  `logger.error` y `POST /auth/resend` completa la verificación.
 
-(A) es la que menos superficie de contrato cambia; (B) cumple el CA-1 de F2 al pie de la
-letra, pero mezcla dos specs en una sola fase.
+**Por qué `201` y no `202`:** el `202` no aporta nada funcional — el `add()` a Redis sigue siendo
+síncrono dentro del request; lo asíncrono es la *entrega*, no la *aceptación*. A cambio, el `202`
+rompe el contrato en seis puntos (`authController.ts:22`, los cuatro asserts de
+`auth.register.integration.test.ts`, el assert de Postman y el CA-04 del spec de atomicidad) y
+choca con el H1 de este mismo doc, que ya decía `201`.
+
+> **Nota:** la semántica de fallo best-effort ya estaba especificada en S2 del fix de atomicidad
+> (`register-atomicity.md:73`) y en su CA-02. Lo que quedaba abierto era solo el status code.
+
+**Consecuencias operativas del best-effort** (obligatorias en F2):
+
+1. El fallo de encolado queda **silencioso** para el cliente → hace falta una métrica de fallos de
+   enqueue (Prometheus) y un job de barrido que re-encole los emails pendientes
+   (`verifications:cleanup`, ya contemplado en el proposal de use-cases).
+2. `POST /auth/resend` es la vía de recuperación y debe encolar igual, con el mismo trato
+   best-effort que `register`.
+3. `POST /auth/forgot-password` también encola, y arrastra el cooldown de 5 min ya existente.
