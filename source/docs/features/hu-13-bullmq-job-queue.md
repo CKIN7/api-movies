@@ -252,6 +252,17 @@ module.exports = {
 // { name: 'worker-recs', script: 'dist/workers/recommendationWorker.js', instances: 1 },
 ```
 
+### Apagado graceful
+
+`BaseWorker.shutdown()` usa `worker.close()` **sin** `force`: espera a que termine el job
+activo antes de cerrar la conexión. `close(true)` no sirve para esto: cortocircuita la
+espera (`return force || this.whenCurrentJobsFinished(false)` en BullMQ) y aborta el job,
+que después se reintenta por el stall check.
+
+El límite duro lo pone PM2 con `kill_timeout: 30000`: si un job tarda más, el proceso se
+mata y el job vuelve por el stall check. La regresión está cubierta por el test
+`shutdown espera al job en curso antes de cerrar el worker`.
+
 ---
 
 ## Verificación
@@ -287,8 +298,8 @@ npm run recs:compute  # Debe encolar job, no bloquear
 ### Resultado F1 (2026-10-27)
 
 * `npm run build` → sin errores.
-* `npm run test:queues` → 4 unit + 6 integración, todos en verde.
-* `npm test` completo → **84 suites / 836 tests** en verde.
+* `npm run test:queues` → 4 unit + 7 integración, todos en verde.
+* `npm test` completo → **84 suites / 837 tests** en verde.
 * `GET /admin/queues` → 200 (Bull Board montado).
 
 ### CI/CD
