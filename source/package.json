@@ -12,7 +12,7 @@
     "start": "node dist/api.js",
     "test": "jest",
     "test:ratelimit": "jest rate penaltyBox",
-    "test:queues": "jest --testPathPatterns=bullmq --testPathPatterns=queue",
+    "test:queues": "jest --testPathPatterns=\"bullmq|queue|EmailService|emailQueue\"",
     "migrate": "tsx db/migrate.ts",
     "migrate:status": "tsx db/migrate.ts status",
     "seed": "tsx db/seed.ts",
