@@ -46,7 +46,7 @@ Herramienta de desarrollo: [Laboratorio frontend F4/F5](./features/hu-12-user-pr
 
 | Documento | Estado |
 |-----------|--------|
-| [Registro atómico (`users` + `email_verifications`)](./fixes/register-atomicity.md) | Spec (no implementado) |
+| [Registro atómico (`users` + `email_verifications`)](./fixes/register-atomicity.md) | Spec (se implementa en F2 de HU-13) |
 | [Correcciones de la infraestructura BullMQ (F1)](./fixes/bullmq-f1-corrections.md) | Implementado |
 
 ## Propuestas
