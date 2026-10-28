@@ -1,6 +1,15 @@
 # Fix: registro atómico (`users` + `email_verifications`)
 
-> **Tipo:** Fix · **Estado:** Spec (no implementado) · **Revisión:** 2026-10-21
+> **Tipo:** Fix · **Estado:** Spec (decidido: se implementa en F2 de HU-13) · **Revisión:** 2026-10-28
+
+> **Decisión (2026-10-28):** este fix **se implementa dentro de la fase F2** de
+> [`hu-13-bullmq-job-queue.md`](../features/hu-13-bullmq-job-queue.md), no como un cambio
+> aparte. F2 absorbe **S1**, **S2** y **S3** tal como están especificados acá. El contrato
+> público **no cambia**: `POST /auth/register` sigue respondiendo `201 { message, user }`.
+> La única diferencia respecto del diseño original es que el notificador pasa a ser un
+> *encolador* (`QueuedEmailVerificationNotifier`) en vez de un envío directo, de modo que el
+> fallo sigue siendo no fatal pero la entrega pasa a ser asíncrona.
+> Ver "Decisión resuelta para F2" en el doc de HU-13.
 
 Como usuario nuevo,
 quiero que un fallo a mitad del registro no me deje una cuenta inutilizable,
@@ -235,6 +244,8 @@ async register(email: string, password: string) {
 source/
 ├── services/
 │   └── authService.ts                      ✎ transaction + notifier fuera + ER_DUP_ENTRY
+├── notifiers/
+│   └── QueuedEmailVerificationNotifier.ts  ✧ F2: encola en email-critical
 └── __tests__/
     ├── unit/
     │   └── authService.register.test.ts    ✎ mock de transaction; rollback, notifier, carrera
@@ -264,6 +275,10 @@ POST /auth/register
   │
   └─ 201 { message, user }
 ```
+
+> Con F2, `sendVerificationEmail(...)` es el `QueuedEmailVerificationNotifier`, que **encola** en
+> `email-critical` en vez de entregar el correo. La semántica del `try/catch` no cambia: si el
+> encolado falla, se loguea y la respuesta sigue siendo `201`.
 
 ---
 

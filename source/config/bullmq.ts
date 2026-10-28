@@ -49,26 +49,40 @@ export const QueueNames = {
 
 export type QueueName = (typeof QueueNames)[keyof typeof QueueNames]
 
+// ═══════════════════════════════════════════════════════════════
+//  Prioridad
+// ═══════════════════════════════════════════════════════════════
+//  En BullMQ el numero MENOR se procesa PRIMERO ("lower numbers
+//  are processed before higher numbers"). Ademas `0` significa
+//  "sin prioridad explicita" y esos jobs se procesan antes que
+//  cualquier job priorizado, asi que todas las prioridades
+//  explicitas arrancan en 1.
+//
+//  Regla del proyecto: critical=1 < transactional=5 < marketing=10.
+//  No invertir estos valores: el correo de verificacion debe salir
+//  antes que el correo de marketing.
+// ═══════════════════════════════════════════════════════════════
+
 export const queueOptions: Record<QueueName, Partial<QueueOptions>> = {
   [QueueNames.EMAIL_CRITICAL]: {
-    defaultJobOptions: { ...defaultJobOptions, priority: 10 },
+    defaultJobOptions: { ...defaultJobOptions, priority: 1 },
   },
   [QueueNames.EMAIL_TRANSACTIONAL]: {
     defaultJobOptions: { ...defaultJobOptions, priority: 5 },
   },
   [QueueNames.EMAIL_MARKETING]: {
-    defaultJobOptions: { ...defaultJobOptions, priority: 1 },
+    defaultJobOptions: { ...defaultJobOptions, priority: 10 },
   },
   [QueueNames.NOTIFICATION_FANOUT]: {
-    defaultJobOptions: { ...defaultJobOptions, priority: 5 },
+    defaultJobOptions: { ...defaultJobOptions, priority: 1 },
   },
   [QueueNames.NOTIFICATION_INAPP]: {
     defaultJobOptions: { ...defaultJobOptions, priority: 3 },
   },
   [QueueNames.RECS_RECOMPUTE_USER]: {
-    defaultJobOptions: { ...defaultJobOptions, priority: 5 },
+    defaultJobOptions: { ...defaultJobOptions, priority: 1 },
   },
   [QueueNames.RECS_RECOMPUTE_ALL]: {
-    defaultJobOptions: { ...defaultJobOptions, priority: 1 },
+    defaultJobOptions: { ...defaultJobOptions, priority: 10 },
   },
 }
