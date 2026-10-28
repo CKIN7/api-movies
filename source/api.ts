@@ -27,6 +27,8 @@ import { createAuthRoutes } from './routes/authRoutes'
 import EmailVerificationRepository from './repositories/EmailVerificationRepository'
 import DevEmailVerificationNotifier from './notifiers/DevEmailVerificationNotifier'
 import DevPasswordResetNotifier from './notifiers/DevPasswordResetNotifier'
+import QueuedEmailVerificationNotifier from './notifiers/QueuedEmailVerificationNotifier'
+import QueuedPasswordResetNotifier from './notifiers/QueuedPasswordResetNotifier'
 import ReviewRepository from './repositories/ReviewRepository'
 import ReviewService from './services/reviewService'
 import ReviewController from './controllers/reviewController'
@@ -114,8 +116,11 @@ export function createApp(
     const searchController = new SearchController(searchServiceInstance)
     const searchRouter = createSearchRoutes(searchController)
 
-    const notifier = new DevEmailVerificationNotifier()
-    const resetNotifier = new DevPasswordResetNotifier()
+    // F2: el API es productor, no entrega. Dev* queda disponible para
+    // entornos sin Redis; el default encola en email-critical.
+    const useQueuedNotifiers = process.env.EMAIL_DELIVERY_MODE !== 'dev'
+    const notifier = useQueuedNotifiers ? new QueuedEmailVerificationNotifier() : new DevEmailVerificationNotifier()
+    const resetNotifier = useQueuedNotifiers ? new QueuedPasswordResetNotifier() : new DevPasswordResetNotifier()
 
 
     const exportService = new ExportService(movieRepo)
