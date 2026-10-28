@@ -38,6 +38,17 @@ export interface JobPayloadMap {
 
 export type JobPayload<T extends QueueName> = JobPayloadMap[T];
 
+/** Las 3 colas de email (F2). */
+export type EmailQueueName =
+  | typeof QueueNames.EMAIL_CRITICAL
+  | typeof QueueNames.EMAIL_TRANSACTIONAL
+  | typeof QueueNames.EMAIL_MARKETING;
+
+export type EmailJobPayload =
+  | JobPayloadMap[typeof QueueNames.EMAIL_CRITICAL]
+  | JobPayloadMap[typeof QueueNames.EMAIL_TRANSACTIONAL]
+  | JobPayloadMap[typeof QueueNames.EMAIL_MARKETING];
+
 export type TypedJob<T extends QueueName> = Job<JobPayload<T>, void, string>;
 
 export type TypedQueue<T extends QueueName> = Queue<JobPayload<T>, void, string>;
