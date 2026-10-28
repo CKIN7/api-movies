@@ -40,15 +40,16 @@ consumiendo las colas de email (F2).
 * `source/package.json` + `source/package-lock.json` — `react`, `react-dom`, `@types/react` y
   `@types/react-dom`, para que el soporte `.tsx` compile de verdad.
 * `source/docs/features/hu-13-bullmq-job-queue.md` — prioridades, dependencias, comandos de
-  verificación, criterios de F1 marcados y decisión pendiente de F2.
+  verificación, criterios de F1 marcados y decisión de F2 resuelta.
+* `source/docs/fixes/register-atomicity.md` — la decisión de F2 (F2 absorbe S1+S2+S3).
 * `source/docs/README.md`, `source/docs/features/README.md` — estado real de F1.
 
 ### No alcance
 
 * No se implementa la fase F2 (colas de email, Resend, templates).
 * No se implementa el fix de registro atómico: su spec sigue en
-  [`register-atomicity.md`](./register-atomicity.md) y el solapamiento con F2 se documentó como
-  decisión abierta.
+  [`register-atomicity.md`](./register-atomicity.md) y queda a cargo de F2, que absorbe S1+S2+S3
+  con la decisión best-effort conservando el `201`.
 * No se cambia el contrato HTTP de ningún endpoint.
 * No se toca la estrategia de reintentos ni el apagado graceful, que ya estaban correctos.
 
