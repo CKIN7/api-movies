@@ -28,7 +28,7 @@ docs/
 | HU-10 | [User Profiles & Preferences](./features/hu-10-user-profiles-preferences.md) | Implementado |
 | HU-11 | [Motor de recomendaciones](./features/hu-11-recommendation-engine.md) | Implementado |
 | HU-12 | [User Profiles & Preferences 2.0](./features/hu-12-user-profiles-2.0/README.md) | F0–F5 implementadas |
-| HU-13 | [BullMQ Job Queue System](./features/hu-13-bullmq-job-queue.md) | F1 en curso (F2–F4 planificadas) |
+| HU-13 | [BullMQ Job Queue System](./features/hu-13-bullmq-job-queue.md) | F1 implementada (F2–F4 planificadas) |
 
 Herramienta de desarrollo: [Laboratorio frontend F4/F5](./features/hu-12-user-profiles-2.0/frontend-lab.md).
 
@@ -47,6 +47,7 @@ Herramienta de desarrollo: [Laboratorio frontend F4/F5](./features/hu-12-user-pr
 | Documento | Estado |
 |-----------|--------|
 | [Registro atómico (`users` + `email_verifications`)](./fixes/register-atomicity.md) | Spec (no implementado) |
+| [Correcciones de la infraestructura BullMQ (F1)](./fixes/bullmq-f1-corrections.md) | Implementado |
 
 ## Propuestas
 
