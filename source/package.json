@@ -34,6 +34,8 @@
     "jsonwebtoken": "^9.0.3",
     "meilisearch": "^0.41.0",
     "mysql2": "^3.22.5",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
     "winston": "^3.19.0",
     "zod": "^4.4.3"
   },
@@ -46,6 +48,8 @@
     "@types/jest": "^30.0.0",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^22",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
     "@types/supertest": "^7.2.0",
     "fast-check": "^4.9.0",
     "ioredis-mock": "^8.13.1",
