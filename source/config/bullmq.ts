@@ -63,6 +63,27 @@ export type QueueName = (typeof QueueNames)[keyof typeof QueueNames]
 //  antes que el correo de marketing.
 // ═══════════════════════════════════════════════════════════════
 
+// ═══════════════════════════════════════════════════════════════
+//  Email (F2)
+// ═══════════════════════════════════════════════════════════════
+//  `emailLimiter` es una opcion del Worker (no de la Queue): BullMQ
+//  cuenta el despacho en Redis, asi que el limite es compartido entre
+//  instancias del mismo worker-email, pero NO entre las 3 colas de
+//  email (cada cola tiene su propio limiter). Resend free son 2 req/s
+//  globales; por eso los defaults son conservadores y configurables.
+// ═══════════════════════════════════════════════════════════════
+
+export const emailLimiter = {
+  max: Number(process.env.EMAIL_RATE_LIMIT_MAX ?? 10),
+  duration: Number(process.env.EMAIL_RATE_LIMIT_DURATION_MS ?? 1000),
+}
+
+export const emailWorkerConcurrency = Number(process.env.EMAIL_WORKER_CONCURRENCY ?? 2)
+
+// El encolado es best-effort (register sigue devolviendo 201). Si Redis
+// no responde, no queremos que el request cuelgue: se corta a los N ms.
+export const emailEnqueueTimeoutMs = Number(process.env.EMAIL_ENQUEUE_TIMEOUT_MS ?? 3000)
+
 export const queueOptions: Record<QueueName, Partial<QueueOptions>> = {
   [QueueNames.EMAIL_CRITICAL]: {
     defaultJobOptions: { ...defaultJobOptions, priority: 1 },
