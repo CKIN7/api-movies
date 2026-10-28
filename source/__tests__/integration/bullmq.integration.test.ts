@@ -1,6 +1,7 @@
 import { execSync } from 'node:child_process'
 import { GenericContainer, StartedTestContainer } from 'testcontainers'
 import { Queue, Worker, QueueEvents, Job } from 'bullmq'
+import { BaseWorker } from '../../workers/baseWorker'
 
 /**
  * Resolucion del Redis de integracion, en orden de preferencia:
@@ -166,5 +167,36 @@ describeIfRedis('BullMQ Integration (Redis real)', () => {
 
         expect(second.id).toBe(first.id)
         expect(await queue.getCompletedCount()).toBe(1)
+    }, 20000)
+
+    test('shutdown espera al job en curso antes de cerrar el worker', async () => {
+        class SlowWorker extends BaseWorker {
+            async processJob(job: Job): Promise<void> {
+                void job
+                await new Promise((resolve) => setTimeout(resolve, 300))
+            }
+        }
+
+        const slowWorker = new SlowWorker({ queueName, concurrency: 1 })
+
+        try {
+            await slowWorker.getWorker().waitUntilReady()
+
+            const active = new Promise<void>((resolve) => {
+                slowWorker.getWorker().once('active', () => resolve())
+            })
+            const job = await queue.add('slow', { value: 1 })
+            await active
+
+            const startedAt = Date.now()
+            await slowWorker.shutdown('test')
+            const elapsed = Date.now() - startedAt
+
+            // Con close(true) el worker abortaba el job y retornaba al instante.
+            expect(elapsed).toBeGreaterThanOrEqual(250)
+            expect(await job.getState()).toBe('completed')
+        } finally {
+            await slowWorker.close().catch(() => {})
+        }
     }, 20000)
 })
