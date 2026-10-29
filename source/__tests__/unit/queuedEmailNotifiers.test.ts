@@ -20,8 +20,10 @@ describe('QueuedEmailVerificationNotifier', () => {
         expect(enqueueEmail).toHaveBeenCalledWith(
             'critical',
             expect.objectContaining({ template: 'verification', to: 'user@example.com' }),
-            { jobId: 'verification:tok-1' },
+            { jobId: 'verification-tok-1' },
         )
+        // Regresión: BullMQ lanza `Custom Id cannot contain :`.
+        expect(enqueueEmail.mock.calls[0][2].jobId).not.toContain(':')
         const message = enqueueEmail.mock.calls[0][1]
         expect(message.data.url).toContain('/auth/verify/tok-1')
     })
@@ -36,8 +38,10 @@ describe('QueuedPasswordResetNotifier', () => {
         expect(enqueueEmail).toHaveBeenCalledWith(
             'critical',
             expect.objectContaining({ template: 'password-reset', to: 'user@example.com' }),
-            { jobId: 'password-reset:tok-2' },
+            { jobId: 'password-reset-tok-2' },
         )
+        // Regresión: BullMQ lanza `Custom Id cannot contain :`.
+        expect(enqueueEmail.mock.calls[0][2].jobId).not.toContain(':')
         const message = enqueueEmail.mock.calls[0][1]
         expect(message.data.url).toContain('/auth/reset/tok-2')
     })
