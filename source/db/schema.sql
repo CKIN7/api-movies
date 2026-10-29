@@ -216,4 +216,20 @@ CREATE TABLE `recommendation_feedback` (
   CONSTRAINT `fk_feedback_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
   CONSTRAINT `fk_feedback_movie` FOREIGN KEY (`movie_id`) REFERENCES `movies` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+DROP TABLE IF EXISTS `notifications`;
+CREATE TABLE `notifications` (
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `user_id` char(36) NOT NULL,
+  `type` varchar(40) NOT NULL,
+  `dedupe_key` varchar(120) NOT NULL,
+  `payload` json NOT NULL,
+  `read_at` timestamp NULL DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_notifications_dedupe` (`user_id`,`type`,`dedupe_key`),
+  KEY `idx_notifications_user_created` (`user_id`,`created_at`),
+  KEY `idx_notifications_user_read` (`user_id`,`read_at`),
+  CONSTRAINT `fk_notifications_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 SET FOREIGN_KEY_CHECKS = 1;
