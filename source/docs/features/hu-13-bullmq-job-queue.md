@@ -45,7 +45,7 @@ Actualmente la API ejecuta tareas pesadas en el request HTTP:
 |------|------|---------------------|
 | **F1** | `feature/bullmq-infra` | Infra base: queues, workers, Bull Board, Testcontainers, PM2 |
 | **F2** | `feature/bullmq-emails` | Colas email (critical/transactional/marketing), Resend adapter, templates |
-| **F3** | `feature/bullmq-notifications` | Notificaciones in-app, fan-out, endpoints CRUD, integración review/watchlist/recs |
+| **F3** | `feature/bullmq-notifications` | Notificaciones in-app, fan-out, endpoints CRUD, integración review/watchlist/recs · [contrato cerrado](./hu-13-f3-notifications.md) |
 | **F4** | `feature/bullmq-recs-recompute` | Migración `recs:compute` a worker + cron nocturno + on-demand |
 
 ### Queda fuera
