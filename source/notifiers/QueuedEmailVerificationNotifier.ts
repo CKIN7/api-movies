@@ -23,7 +23,9 @@ class QueuedEmailVerificationNotifier implements EmailVerificationNotifier {
                 to,
                 data: { url: `${APP_URL}/auth/verify/${verificationToken}` },
             },
-            { jobId: `verification:${verificationToken}` },
+            // BullMQ rechaza ":" en jobId salvo el formato legado de 3 partes
+            // (`Custom Id cannot contain :`), por eso separamos con "-".
+            { jobId: `verification-${verificationToken}` },
         )
     }
 }
