@@ -387,6 +387,7 @@ best-effort, el error se silenciaba y **ningún email se encolaba**.
 * Tests: `__tests__/unit/emailQueue.test.ts` (guard) y un caso en
   `emailQueue.integration.test.ts` que usa el notificador real contra Redis.
 * `npm run test:queues` → 6 suites / 31 tests en verde.
+* `npm test` completo → **88 suites / 860 tests** en verde.
 
 El *nombre* del job (`critical:verification`) sigue llevando `:` a propósito: BullMQ
 solo valida `jobId`, y el prefijo sirve para filtrar en Bull Board.
