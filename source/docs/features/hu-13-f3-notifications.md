@@ -1,6 +1,6 @@
 # HU-13 · F3 — Contrato de notificaciones in-app
 
-> **Tipo:** Contrato de diseño · **HU:** HU-13 (fase F3) · **Estado:** Contrato cerrado, implementación en curso · **Revisión:** 2026-10-29 · **Rama:** `feature/bullmq-notifications`
+> **Tipo:** Contrato de diseño · **HU:** HU-13 (fase F3) · **Estado:** Implementado · **Revisión:** 2026-10-29 · **Rama:** `feature/bullmq-notifications`
 
 Este documento fija el contrato de F3 **antes** de escribir código, porque el doc de
 [`hu-13`](./hu-13-bullmq-job-queue.md) solo enumera endpoints y criterios. Acá está el DDL, los
