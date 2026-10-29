@@ -17,6 +17,12 @@ import type { EmailJobPayload } from '../types/bullmq'
 //
 //  `jobId` es opcional y da idempotencia: BullMQ ignora un `add` con
 //  un `jobId` que ya existe (ver CA-5 de F2).
+//
+//  Ojo: BullMQ lanza `Custom Id cannot contain :` si el jobId lleva ":"
+//  y no tiene exactamente 3 segmentos separados por ":". El nombre del
+//  job sí puede llevarlo; el que no puede es el jobId. Por eso acá se
+//  valida antes de llamar a `add`, así el error es explícito en vez de
+//  perderse en el catch best-effort de register/resend.
 // ═══════════════════════════════════════════════════════════════
 
 export type EmailCategory = 'critical' | 'transactional' | 'marketing'
@@ -60,6 +66,12 @@ export async function enqueueEmail(
     message: EmailMessage,
     options: EnqueueEmailOptions = {},
 ): Promise<string> {
+    if (options.jobId?.includes(':')) {
+        throw new Error(
+            `jobId no puede contener ":" (BullMQ lo reserva para jobs repetibles): "${options.jobId}"`,
+        )
+    }
+
     const queue = queues[category]
     const job = await withTimeout(
         queue.add(`${category}:${message.template}`, message as EmailJobPayload, {
