@@ -374,6 +374,23 @@ Rama `feature/bullmq-emails`. Incluye el registro atómico de
 * `POST /auth/register` → `201` y job encolado en `email-critical`. Con `RESEND_API_KEY` la
   entrega sale por Resend; sin la key el worker loguea el correo (modo dev).
 
+#### Corrección post-F2 (2026-10-29)
+
+`POST /auth/register` real fallaba con `Custom Id cannot contain :` en el log
+(`No se pudo enviar verificación a <userId>: ...`). Causa: los notifiers armaban
+`jobId` como `<template>:<token>`, y BullMQ rechaza `:` salvo el formato legado de
+3 segmentos (`node_modules/bullmq/.../classes/job.js:1073-1075`). Como el encolado es
+best-effort, el error se silenciaba y **ningún email se encolaba**.
+
+* Los `jobId` pasan a `<template>-<token>` (`verification-<uuid>`, `password-reset-<uuid>`).
+* `enqueueEmail` valida el `jobId` y lanza un error explícito si contiene `:`.
+* Tests: `__tests__/unit/emailQueue.test.ts` (guard) y un caso en
+  `emailQueue.integration.test.ts` que usa el notificador real contra Redis.
+* `npm run test:queues` → 6 suites / 31 tests en verde.
+
+El *nombre* del job (`critical:verification`) sigue llevando `:` a propósito: BullMQ
+solo valida `jobId`, y el prefijo sirve para filtrar en Bull Board.
+
 ### CI/CD
 - Tests de integración usan Redis real (REDIS_URL_TEST o Testcontainers)
 - `npm run build` + `npm test` deben pasar en `develop` antes de merge
