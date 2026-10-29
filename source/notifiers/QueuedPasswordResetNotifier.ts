@@ -22,7 +22,9 @@ class QueuedPasswordResetNotifier implements PasswordResetNotifier {
                 to,
                 data: { url: `${APP_URL}/auth/reset/${resetToken}`, expiresInMinutes: 5 },
             },
-            { jobId: `password-reset:${resetToken}` },
+            // BullMQ rechaza ":" en jobId salvo el formato legado de 3 partes
+            // (`Custom Id cannot contain :`), por eso separamos con "-".
+            { jobId: `password-reset-${resetToken}` },
         )
     }
 }
