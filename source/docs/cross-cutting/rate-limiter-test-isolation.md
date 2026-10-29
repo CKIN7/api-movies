@@ -76,7 +76,7 @@ Las mitigaciones previas no bastaban:
 | B2 | Test inyecta el limiter real | Se usa el real, aunque el flag esté en `false` |
 | C1 | Redis de tests venía sucio | `FLUSHDB` deja la DB 15 limpia antes del test |
 | C2 | Test del limiter deja penalty activa | `FLUSHDB` en `afterAll` evita filtrarla |
-| E1 | Redis no disponible | Se mantiene el fail-open del limiter real (`RATE_LIMIT_FAIL_OPEN`) |
+| E1 | Redis no disponible | Con `RATE_LIMIT_FAIL_OPEN` activo el limiter deja pasar la request (`next()`), sin `500`. Corregido en [`fixes/rate-limiter-fail-open.md`](../fixes/rate-limiter-fail-open.md): antes `checkPenalty` estaba fuera del `try` y las métricas propagaban el error, así que el fail-open no se cumplía |
 | E2 | `REDIS_URL_TEST` definido | Se respeta tal cual; si no, se reescribe el índice a `/15` |
 
 ---
