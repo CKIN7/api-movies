@@ -6,6 +6,7 @@ import type { CreateReviewDTO, CreateReviewResult, PaginatedReviewsResponse, Rev
 import { Review } from "../domain/Review";
 import { UserPreferencesService } from "./userPreferencesService";
 import { invalidateUserRecommendations } from "../utils/cache";
+import type ReviewPublishedNotifier from "../notifiers/ReviewPublishedNotifier";
 // import { UpdateReviewDTO } from "../schemas/reviews";
 
 function ratingDelta(rating: number): number {
@@ -16,7 +17,9 @@ class ReviewService {
     constructor(
         private reviewRepository: ReviewRepository,
         private movieRepository: MovieRepository,
-        private userPreferencesService: UserPreferencesService
+        private userPreferencesService: UserPreferencesService,
+        // Opcional para que los tests unitarios no dependan de Redis.
+        private reviewPublishedNotifier?: ReviewPublishedNotifier
     ) {}
 
     async getReviews(movieId: number, page: number, limit: number): Promise<PaginatedReviewsResponse>{
@@ -62,6 +65,7 @@ class ReviewService {
 
             if (isNew) {
                 await this.updateGenreAffinityForMovie(userId, movieId, ratingDelta(dto.rating))
+                await this.notifyReviewPublished(userId, movie.id, movie.title, review.id)
             } else if (previous && Number(previous.rating) !== Number(dto.rating)) {
                 await this.updateGenreAffinityForMovie(userId, movieId, -ratingDelta(Number(previous.rating)))
                 await this.updateGenreAffinityForMovie(userId, movieId, ratingDelta(dto.rating))
@@ -78,6 +82,29 @@ class ReviewService {
             if (error instanceof AppError) throw error
             logger.error(`Error en createReview: ${(error as Error).message}`)
             throw new AppError('Error al intentar crear una pelicula', 500)
+        }
+    }
+
+    // Best-effort: si Redis no responde, la review ya quedó persistida y
+    // la respuesta no cambia. El usuario recupera el aviso consultando
+    // la lista cuando el sistema se recupere.
+    private async notifyReviewPublished(
+        userId: string,
+        movieId: number,
+        movieTitle: string,
+        reviewId: number
+    ): Promise<void> {
+        if (!this.reviewPublishedNotifier) return
+
+        try {
+            await this.reviewPublishedNotifier.notifyReviewPublished({
+                userId,
+                movieId,
+                movieTitle,
+                reviewId: String(reviewId),
+            })
+        } catch (error) {
+            logger.error(`Error al encolar la notificacion de review: ${(error as Error).message}`)
         }
     }
 
