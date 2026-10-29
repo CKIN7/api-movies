@@ -1,10 +1,11 @@
 # Fix: registro atómico (`users` + `email_verifications`)
 
-> **Tipo:** Fix · **Estado:** Spec (decidido: se implementa en F2 de HU-13) · **Revisión:** 2026-10-28
+> **Tipo:** Fix · **Estado:** Implementado en F2 de HU-13 · **Revisión:** 2026-10-28
 
 > **Decisión (2026-10-28):** este fix **se implementa dentro de la fase F2** de
 > [`hu-13-bullmq-job-queue.md`](../features/hu-13-bullmq-job-queue.md), no como un cambio
-> aparte. F2 absorbe **S1**, **S2** y **S3** tal como están especificados acá. El contrato
+> aparte. **Implementado** en la rama `feature/bullmq-emails` (S1 + S2 + S3). F2 absorbe
+> **S1**, **S2** y **S3** tal como están especificados acá. El contrato
 > público **no cambia**: `POST /auth/register` sigue respondiendo `201 { message, user }`.
 > La única diferencia respecto del diseño original es que el notificador pasa a ser un
 > *encolador* (`QueuedEmailVerificationNotifier`) en vez de un envío directo, de modo que el

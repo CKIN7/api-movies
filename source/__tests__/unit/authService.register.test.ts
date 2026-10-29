@@ -1,5 +1,6 @@
 import AuthService from '../../services/authService'
 import AppError from '../../utils/AppError'
+import logger from '../../utils/logger'
 import bcrypt from 'bcryptjs'
 
 jest.mock('bcryptjs', () => ({
@@ -29,6 +30,7 @@ function createMockRepos() {
             findByToken: jest.fn(),
             markUsed: jest.fn(),
             revokeAllByUserId: jest.fn(),
+            transaction: jest.fn(async (fn: () => Promise<unknown>) => fn()),
         },
         emailVerificationNotifier: {
             sendVerificationEmail: jest.fn(),
@@ -62,6 +64,7 @@ describe('AuthService - register', () => {
         expect(result).toEqual({ id: 'uuid-123', email: 'nuevo@example.com', role: 'user' })
         expect(result).not.toHaveProperty('passwordHash')
         expect(mockedHash).toHaveBeenCalledWith('Password123!', 10)
+        expect(repos.emailVerificationRepository.transaction).toHaveBeenCalledTimes(1)
         expect(repos.userRepository.create).toHaveBeenCalledWith({
             email: 'nuevo@example.com',
             passwordHash: 'hashed-password',
@@ -97,5 +100,49 @@ describe('AuthService - register', () => {
 
         await expect(service.register('nuevo@example.com', 'Password123!'))
             .rejects.toMatchObject({ statusCode: 500 })
+    })
+
+    test('si falla el INSERT de verificación, la transacción aborta y no notifica', async () => {
+        const repos = createMockRepos()
+        mockedHash.mockResolvedValue('hashed-password')
+        repos.userRepository.findByEmail.mockResolvedValue(null)
+        repos.userRepository.create.mockResolvedValue({ id: 'uuid-123', email: 'nuevo@example.com', role: 'user' })
+        repos.emailVerificationRepository.transaction.mockRejectedValue(new Error('rollback'))
+        const service = buildService(repos)
+
+        await expect(service.register('nuevo@example.com', 'Password123!'))
+            .rejects.toMatchObject({ statusCode: 500 })
+        expect(repos.emailVerificationNotifier.sendVerificationEmail).not.toHaveBeenCalled()
+    })
+
+    test('un fallo del notificador no rompe el registro (best-effort)', async () => {
+        const repos = createMockRepos()
+        mockedHash.mockResolvedValue('hashed-password')
+        repos.userRepository.findByEmail.mockResolvedValue(null)
+        repos.userRepository.create.mockResolvedValue({ id: 'uuid-123', email: 'nuevo@example.com', role: 'user' })
+        repos.emailVerificationNotifier.sendVerificationEmail.mockRejectedValue(new Error('redis caido'))
+        const errorSpy = jest.spyOn(logger, 'error').mockImplementation(() => logger)
+        const service = buildService(repos)
+
+        const result = await service.register('nuevo@example.com', 'Password123!')
+
+        expect(result).toEqual({ id: 'uuid-123', email: 'nuevo@example.com', role: 'user' })
+        expect(errorSpy).toHaveBeenCalledWith(
+            expect.stringContaining('No se pudo enviar verificación a uuid-123'),
+        )
+        errorSpy.mockRestore()
+    })
+
+    test('mapea ER_DUP_ENTRY a 409 (carrera de emails)', async () => {
+        const repos = createMockRepos()
+        mockedHash.mockResolvedValue('hashed-password')
+        repos.userRepository.findByEmail.mockResolvedValue(null)
+        repos.emailVerificationRepository.transaction.mockRejectedValue(
+            Object.assign(new Error('dup'), { code: 'ER_DUP_ENTRY' }),
+        )
+        const service = buildService(repos)
+
+        await expect(service.register('nuevo@example.com', 'Password123!'))
+            .rejects.toMatchObject({ statusCode: 409 })
     })
 })
