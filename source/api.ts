@@ -70,6 +70,7 @@ import NotificationRepository from './repositories/NotificationRepository'
 import NotificationService from './services/NotificationService'
 import NotificationController from './controllers/notificationController'
 import { createNotificationRoutes } from './routes/notificationRoutes'
+import QueuedReviewPublishedNotifier from './notifiers/QueuedReviewPublishedNotifier'
 import { createBullBoard } from '@bull-board/api'
 import { BullMQAdapter } from '@bull-board/api/bullMQAdapter'
 import { ExpressAdapter } from '@bull-board/express'
@@ -139,7 +140,8 @@ export function createApp(
     const userPreferencesService = new UserPreferencesService(userPreferencesRepository)
 
     const reviewRepository = new ReviewRepository(conn)
-    const reviewService = new ReviewService(reviewRepository, movieRepo, userPreferencesService)
+    const reviewPublishedNotifier = new QueuedReviewPublishedNotifier()
+    const reviewService = new ReviewService(reviewRepository, movieRepo, userPreferencesService, reviewPublishedNotifier)
     const reviewController = new ReviewController(reviewService)
     const reviewRouter = createReviewRoutes(reviewController)
 
