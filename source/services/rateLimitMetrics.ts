@@ -97,9 +97,23 @@ async function getMetricsByScope(redis: ReturnType<typeof getRedisClient>): Prom
   return result
 }
 
+// ═══════════════════════════════════════════════════════════════
+//  Metricas (best-effort)
+// ═══════════════════════════════════════════════════════════════
+//  Las metricas son observabilidad, no parte de la decision del
+//  rate limiter: si Redis no responde, se pierde el incremento pero
+//  NUNCA se propaga el error al request. Antes `incrementMetric`
+//  lanzaba y rompia el fail-open del middleware (el `catch` que
+//  debia dejar pasar la request volvia a tirar).
+// ═══════════════════════════════════════════════════════════════
+
 export async function incrementMetric(key: keyof typeof METRICS_KEYS): Promise<void> {
-  const redis = getRedisClient()
-  await redis.incr(METRICS_KEYS[key])
+  try {
+    const redis = getRedisClient()
+    await redis.incr(METRICS_KEYS[key])
+  } catch {
+    // Sin Redis el contador se pierde; el request sigue su curso.
+  }
 }
 
 export async function recordRedisError(): Promise<void> {
