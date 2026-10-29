@@ -2,6 +2,7 @@ import { QueueEvents } from 'bullmq'
 import { bullmqConnection, QueueNames } from '../../config/bullmq'
 import { enqueueEmail, getEmailQueue } from '../../queues/emailQueue'
 import { createEmailWorkers, emailQueueNames } from '../../workers/emailWorker'
+import QueuedEmailVerificationNotifier from '../../notifiers/QueuedEmailVerificationNotifier'
 import type EmailService from '../../services/EmailService'
 import type { EmailMessage } from '../../services/EmailService'
 
@@ -87,6 +88,35 @@ describeIfRedis('EmailQueue + EmailWorker (Redis real)', () => {
             ([sentMessage]) => sentMessage.to === 'idem@example.com',
         )
         expect(forRecipient).toHaveLength(1)
+    }, 20000)
+
+    // Regresión: el notificador real genera el jobId. Antes usaba
+    // `<template>:<token>` y BullMQ lo rechazaba con `Custom Id cannot
+    // contain :`, dejando el registro sin email (fallo silencioso).
+    test('el notificador de verificación encola un jobId que BullMQ acepta', async () => {
+        const completed = new Promise<string>((resolve) => {
+            const queueEvents = events[QueueNames.EMAIL_CRITICAL]!
+            const handler = (payload: { jobId: string }) => {
+                if (payload.jobId.startsWith('verification-')) {
+                    queueEvents.off('completed', handler)
+                    resolve(payload.jobId)
+                }
+            }
+            queueEvents.on('completed', handler)
+        })
+
+        await new QueuedEmailVerificationNotifier().sendVerificationEmail(
+            'notifier@example.com',
+            `tok-${uniqueId()}`,
+        )
+
+        const jobId = await completed
+        expect(jobId).not.toContain(':')
+
+        const job = await getEmailQueue('critical').getJob(jobId)
+        expect(job?.data).toEqual(
+            expect.objectContaining({ template: 'verification', to: 'notifier@example.com' }),
+        )
     }, 20000)
 
     test('reintenta un email que falla y termina fallido tras agotar los intentos', async () => {
