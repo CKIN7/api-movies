@@ -49,6 +49,14 @@ export type EmailJobPayload =
   | JobPayloadMap[typeof QueueNames.EMAIL_TRANSACTIONAL]
   | JobPayloadMap[typeof QueueNames.EMAIL_MARKETING];
 
+/** Colas de notificaciones (F3). */
+export type NotificationQueueName =
+  | typeof QueueNames.NOTIFICATION_FANOUT
+  | typeof QueueNames.NOTIFICATION_INAPP;
+
+export type NotificationFanoutPayload = JobPayloadMap[typeof QueueNames.NOTIFICATION_FANOUT];
+export type NotificationInAppPayload = JobPayloadMap[typeof QueueNames.NOTIFICATION_INAPP];
+
 export type TypedJob<T extends QueueName> = Job<JobPayload<T>, void, string>;
 
 export type TypedQueue<T extends QueueName> = Queue<JobPayload<T>, void, string>;
