@@ -48,6 +48,7 @@ Herramienta de desarrollo: [Laboratorio frontend F4/F5](./features/hu-12-user-pr
 |-----------|--------|
 | [Registro atómico (`users` + `email_verifications`)](./fixes/register-atomicity.md) | Implementado en F2 de HU-13 |
 | [Correcciones de la infraestructura BullMQ (F1)](./fixes/bullmq-f1-corrections.md) | Implementado |
+| [Fail-open del rate limiter con Redis caído](./fixes/rate-limiter-fail-open.md) | Implementado |
 
 ## Propuestas
 
