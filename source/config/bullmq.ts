@@ -84,6 +84,17 @@ export const emailWorkerConcurrency = Number(process.env.EMAIL_WORKER_CONCURRENC
 // no responde, no queremos que el request cuelgue: se corta a los N ms.
 export const emailEnqueueTimeoutMs = Number(process.env.EMAIL_ENQUEUE_TIMEOUT_MS ?? 3000)
 
+// ═══════════════════════════════════════════════════════════════
+//  Notificaciones (F3)
+// ═══════════════════════════════════════════════════════════════
+//  Sin limiter: no hay proveedor externo que respetar. El email que
+//  dispara el fan-out va por su propia cola, con su limiter.
+export const notificationWorkerConcurrency = Number(process.env.NOTIFICATION_WORKER_CONCURRENCY ?? 5)
+
+// El productor es best-effort, igual que el email: si Redis no responde,
+// el aviso se pierde pero la review responde igual (ver contrato de F3).
+export const notificationEnqueueTimeoutMs = Number(process.env.NOTIFICATION_ENQUEUE_TIMEOUT_MS ?? 3000)
+
 export const queueOptions: Record<QueueName, Partial<QueueOptions>> = {
   [QueueNames.EMAIL_CRITICAL]: {
     defaultJobOptions: { ...defaultJobOptions, priority: 1 },
