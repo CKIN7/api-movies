@@ -19,7 +19,19 @@ export async function rateLimiter(req: Request, res: Response, next: NextFunctio
     const identifier = strategy.getIdentifier(req as unknown as RateLimitRequest)
     if (!identifier) continue
 
-    const penalty = await checkPenalty(identifier)
+    // La penalizacion vive en Redis: si no esta disponible se aplica la
+    // misma politica fail-open que en la ventana deslizante de abajo.
+    // Antes esta llamada estaba fuera del try y cualquier caida de Redis
+    // devolvia 500 en TODAS las rutas (el handler nunca corria).
+    let penalty: { blocked: boolean; retryAfter?: number }
+    try {
+      penalty = await checkPenalty(identifier)
+    } catch (err) {
+      await recordRedisError()
+      if (rateLimitConfig.failOpen) return next()
+      throw err
+    }
+
     if (penalty.blocked) {
       res.set({
         'Retry-After': (penalty.retryAfter ?? 900).toString(),
