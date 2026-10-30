@@ -18,6 +18,7 @@ Specs funcionales y técnicas agrupadas por historia de usuario.
 |------|-----------|--------|
 | F1–F2 | [BullMQ Job Queue System](./hu-13-bullmq-job-queue.md) | Implementado |
 | F3 | [Contrato de notificaciones in-app](./hu-13-f3-notifications.md) | Implementada |
+| — | [Laboratorio frontend F3](./hu-13-f3-notifications-lab.md) | Implementado |
 
 ## HU-12 — User Profiles & Preferences 2.0
 
