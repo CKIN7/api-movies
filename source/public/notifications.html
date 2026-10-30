@@ -144,23 +144,61 @@
     padding: 28px; text-align: center; color: var(--muted); font-size: 0.9rem;
   }
 
-  /* Flujo */
-  .flow { display: flex; align-items: stretch; gap: 10px; flex-wrap: wrap; }
-  .flow-node {
-    flex: 1 1 160px; background: var(--panel-soft); border: 1px solid var(--border);
-    border-radius: 8px; padding: 12px; font-size: 0.82rem; color: var(--text-soft);
+  /* Mapa de convergencia */
+  .map { display: flex; flex-direction: column; }
+  .map-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .map-branch { display: flex; flex-direction: column; gap: 8px; flex: 1; min-width: 260px; }
+  .map-connector {
+    display: flex; align-items: center; gap: 8px; padding: 6px 0 6px 22px;
+    color: var(--muted); font-size: 0.72rem;
+  }
+  .map-connector .line { width: 2px; height: 18px; background: var(--border-strong); }
+  .map-connector .badge-step {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 20px; height: 20px; border-radius: 50%; font-size: 0.68rem;
+    border: 1px solid var(--border-strong); color: var(--muted); background: var(--panel-soft);
+  }
+  .map-connector.ok .badge-step { border-color: var(--ok); color: var(--ok); }
+  .map-connector.active .badge-step { border-color: var(--accent); color: var(--accent); }
+  .map-connector.waiting .badge-step { border-color: var(--warn); color: var(--warn); }
+  .map-connector.error .badge-step { border-color: var(--error); color: var(--error); }
+  .map-connector.off .badge-step { border-color: var(--muted-soft); color: var(--muted-soft); }
+  .map-connector.off .label { color: var(--muted-soft); }
+
+  .map-node {
+    text-align: left; background: var(--panel-soft); border: 1px solid var(--border);
+    border-left: 3px solid var(--muted-soft); border-radius: 8px; padding: 10px 14px;
+    color: var(--text-soft); cursor: pointer; font-family: inherit; font-size: 0.84rem;
     min-width: 150px; transition: border-color .2s, box-shadow .2s, transform .2s;
   }
-  .flow-node small { display: block; color: var(--muted); font-size: 0.7rem; margin-top: 4px; }
-  .flow-node.active {
-    border-color: var(--accent); box-shadow: 0 0 0 2px rgba(0, 102, 204, .25);
-    transform: translateY(-2px);
+  .map-node small { display: block; color: var(--muted); font-size: 0.7rem; margin-top: 3px; }
+  .map-node:hover { border-color: var(--muted); }
+  .map-node:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .map-node.active { border-left-color: var(--accent); box-shadow: 0 0 0 2px rgba(0, 102, 204, .25); transform: translateY(-1px); }
+  .map-node.ok { border-left-color: var(--ok); }
+  .map-node.waiting { border-left-color: var(--warn); background: var(--warn-bg); }
+  .map-node.off { opacity: .45; }
+  .map-node.error { border-left-color: var(--error); }
+
+  .steps-chips { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+  .step-chip {
+    font-size: 0.72rem; border: 1px solid var(--border-strong); border-radius: 999px;
+    padding: 4px 10px; color: var(--muted); background: var(--panel-soft);
   }
-  .flow-node.ok { border-color: var(--ok); }
-  .flow-node.off { opacity: .45; }
-  .flow-arrow { align-self: center; color: var(--muted); font-size: 1.1rem; }
-  .flow-branch { flex: 1 1 200px; display: flex; flex-direction: column; gap: 8px; }
-  #flow-caption { margin-top: 14px; }
+  .step-chip.ok { border-color: var(--ok); color: var(--ok); }
+  .step-chip.active { border-color: var(--accent); color: var(--accent); }
+  .step-chip.waiting { border-color: var(--warn); color: var(--warn); }
+  .step-chip.off { opacity: .5; }
+
+  #map-caption {
+    margin-top: 14px; font-size: 0.82rem; color: var(--text-soft);
+    background: var(--panel-soft); border: 1px dashed var(--border-strong); border-radius: 8px; padding: 10px 12px;
+  }
+  #map-caption code { color: var(--link); }
+  #node-detail {
+    margin-top: 12px; font-size: 0.8rem; color: var(--muted);
+    border-left: 3px solid var(--accent); padding: 4px 0 4px 10px;
+  }
 
   /* Lista */
   .toolbar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
@@ -334,33 +372,63 @@
   <div id="app" class="hidden">
 
     <section class="panel" id="section-flow" data-step="1">
-      <h2 class="section-title">1 · Flujo del evento <span class="hint">el service no conoce canales</span></h2>
-      <div class="flow">
-        <div class="flow-node" data-node="review">
-          <strong>review.published</strong>
-          <small>ReviewService · solo si isNew</small>
+      <h2 class="section-title">1 · Mapa de convergencia <span class="hint">el service no conoce canales</span></h2>
+
+      <div class="map" id="map">
+        <div class="map-row">
+          <button type="button" class="map-node" data-node="browser">
+            Navegador
+            <small>página + Auth + polling</small>
+          </button>
         </div>
-        <div class="flow-arrow">→</div>
-        <div class="flow-node" data-node="fanout">
-          <strong>notification-fanout</strong>
-          <small>worker-notifications</small>
+        <div class="map-connector" data-step="1"><span class="line"></span><span class="badge-step">1</span><span class="label">HTTP (fetch con token)</span></div>
+        <div class="map-row">
+          <button type="button" class="map-node" data-node="api">
+            API Express
+            <small>route → controller → service → repository</small>
+          </button>
         </div>
-        <div class="flow-arrow">→</div>
-        <div class="flow-branch">
-          <div class="flow-node" data-node="inapp">
-            <strong>notification-inapp</strong>
-            <small>INSERT IGNORE · siempre</small>
+        <div class="map-row" style="align-items:flex-start;">
+          <div class="map-branch">
+            <div class="map-connector" data-step="2"><span class="line"></span><span class="badge-step">2</span><span class="label">SQL (reviews · notifications)</span></div>
+            <button type="button" class="map-node" data-node="mysql">
+              MySQL
+              <small>reviews · notifications</small>
+            </button>
           </div>
-          <div class="flow-node" data-node="email">
-            <strong>email-transactional</strong>
-            <small>solo si notify_email</small>
+          <div class="map-branch">
+            <div class="map-connector" data-step="3"><span class="line"></span><span class="badge-step">3</span><span class="label">encola fan-out</span></div>
+            <button type="button" class="map-node" data-node="redis">
+              Redis · BullMQ
+              <small>notification-fanout · notification-inapp</small>
+            </button>
+            <div class="map-connector" data-step="4"><span class="line"></span><span class="badge-step">4</span><span class="label">consume (worker)</span></div>
+            <button type="button" class="map-node" data-node="workers">
+              Workers
+              <small>notificationWorker.ts</small>
+            </button>
+            <div class="map-connector" data-step="5"><span class="line"></span><span class="badge-step">5</span><span class="label">insert in-app / email</span></div>
+            <button type="button" class="map-node" data-node="resend">
+              Resend
+              <small>email-transactional (opcional)</small>
+            </button>
           </div>
         </div>
       </div>
-      <p class="muted" id="flow-caption">
+
+      <div class="steps-chips" id="steps-chips">
+        <span class="step-chip" data-step-chip="1">1 HTTP</span>
+        <span class="step-chip" data-step-chip="2">2 SQL</span>
+        <span class="step-chip" data-step-chip="3">3 encolado</span>
+        <span class="step-chip" data-step-chip="4">4 consumo</span>
+        <span class="step-chip" data-step-chip="5">5 in-app / email</span>
+      </div>
+
+      <p id="map-caption">
         El fan-out lee <code>user_settings.notify_email</code> y decide los canales. El in-app es idempotente por
-        <code>UNIQUE (user_id, type, dedupe_key)</code>.
+        <code>UNIQUE (user_id, type, dedupe_key)</code>. Hacé click en un nodo para ver qué lo implementa.
       </p>
+      <p id="node-detail" class="hidden"></p>
     </section>
 
     <section class="panel" id="section-list" data-step="2">
