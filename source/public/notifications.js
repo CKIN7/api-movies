@@ -5,6 +5,7 @@ const API_BASE = 'http://localhost:8089';
 const params = new URLSearchParams(window.location.search);
 const DEMO = params.get('demo') === '1';
 const LAB = params.get('lab') === '1' || DEMO;
+const DEMO_WORKER_OFF = DEMO && params.get('worker') === 'off';
 
 const rawPoll = Number.parseInt(params.get('autopoll') ?? '', 10);
 const POLL_SECONDS = DEMO ? 0 : (Number.isFinite(rawPoll) && rawPoll >= 0 ? rawPoll : 30);
@@ -30,6 +31,8 @@ const state = {
   unread: 0,
   filter: 'all',
   loading: false,
+  simulating: false,
+  mapInitialized: false,
   log: [],
 };
 
@@ -39,7 +42,9 @@ const els = {
   app: document.getElementById('app'),
   badge: document.getElementById('badge-count'),
   authButtons: document.getElementById('auth-buttons'),
-  flowCaption: document.getElementById('flow-caption'),
+  map: document.getElementById('map'),
+  mapCaption: document.getElementById('map-caption'),
+  nodeDetail: document.getElementById('node-detail'),
   filterGroup: document.getElementById('filter-group'),
   listStatus: document.getElementById('list-status'),
   notifList: document.getElementById('notif-list'),
@@ -264,7 +269,7 @@ function demoRequest(method, path, body) {
     }
     const reviewId = String(9000 + demo.seq);
     demo.reviews.set(movieId, reviewId);
-    demo.notifications.push({
+    if (!DEMO_WORKER_OFF) demo.notifications.push({
       id: String(demo.seq),
       type: 'review.published',
       payload: {
@@ -421,6 +426,10 @@ async function refreshAll({ silent = false } = {}) {
     renderList();
     renderBadge();
     updateStatus();
+    if (!state.mapInitialized && !state.simulating) {
+      markRestingMap();
+      state.mapInitialized = true;
+    }
   } finally {
     state.loading = false;
   }
@@ -460,44 +469,84 @@ async function markAllRead() {
 }
 
 // ---------------------------------------------------------------------------
-// Flujo animado
+// Mapa de convergencia
 // ---------------------------------------------------------------------------
 
-function resetFlow() {
-  document.querySelectorAll('.flow-node').forEach((node) => {
-    node.classList.remove('active', 'ok', 'off');
-  });
-  if (els.flowCaption) {
-    els.flowCaption.innerHTML = 'El fan-out lee <code>user_settings.notify_email</code> y decide los canales. El in-app es idempotente por <code>UNIQUE (user_id, type, dedupe_key)</code>.';
-  }
+const DEFAULT_MAP_CAPTION = 'El fan-out lee <code>user_settings.notify_email</code> y decide los canales. El in-app es idempotente por <code>UNIQUE (user_id, type, dedupe_key)</code>. Hacé click en un nodo para ver qué lo implementa.';
+
+const NODE_DETAILS = {
+  browser: 'public/notifications.html + .js — Auth, polling, simulador y log de peticiones.',
+  api: 'routes/notificationRoutes.ts → controllers/notificationController.ts → services/NotificationService.ts → repositories/NotificationRepository.ts. requireAuth en todas.',
+  mysql: 'reviews (upsert del POST) y notifications (INSERT IGNORE, UNIQUE (user_id, type, dedupe_key)).',
+  redis: 'Colas BullMQ: notification-fanout y notification-inapp. El productor solo encola: no decide canales.',
+  workers: 'workers/notificationWorker.ts. Consume fan-out e in-app; necesita un proceso aparte (npm run worker:notifications:dev).',
+  resend: 'Cola email-transactional → workers/emailWorker.ts → Resend. Solo si user_settings.notify_email lo habilita.',
+};
+
+function setMapNode(name, status) {
+  const el = document.querySelector(`.map-node[data-node="${name}"]`);
+  if (!el) return;
+  el.classList.remove('active', 'ok', 'waiting', 'off', 'error');
+  if (status !== 'idle') el.classList.add(status);
 }
 
-async function animateFlow({ email = true } = {}) {
-  resetFlow();
-  const emailNode = document.querySelector('.flow-node[data-node="email"]');
-  if (!email && emailNode) emailNode.classList.add('off');
+function setMapConnector(step, status) {
+  const el = document.querySelector(`.map-connector[data-step="${step}"]`);
+  if (!el) return;
+  el.classList.remove('active', 'ok', 'waiting', 'off', 'error');
+  if (status !== 'idle') el.classList.add(status);
+}
 
-  if (els.flowCaption) {
-    els.flowCaption.innerHTML = email
-      ? 'Recorrido: <code>review.published</code> → fan-out → in-app <strong>y</strong> email transaccional.'
-      : 'Recorrido: <code>review.published</code> → fan-out → in-app. El email se omite porque <code>notify_email = false</code>.';
+function setMapChip(step, status) {
+  const el = document.querySelector(`[data-step-chip="${step}"]`);
+  if (!el) return;
+  el.classList.remove('active', 'ok', 'waiting', 'off');
+  if (status !== 'idle') el.classList.add(status);
+}
+
+function setMapCaption(html) {
+  if (els.mapCaption) els.mapCaption.innerHTML = html;
+}
+
+function resetMap() {
+  ['browser', 'api', 'mysql', 'redis', 'workers', 'resend'].forEach((name) => setMapNode(name, 'idle'));
+  [1, 2, 3, 4, 5].forEach((step) => {
+    setMapConnector(step, 'idle');
+    setMapChip(step, 'idle');
+  });
+  if (els.nodeDetail) {
+    els.nodeDetail.classList.add('hidden');
+    els.nodeDetail.textContent = '';
   }
+  setMapCaption(DEFAULT_MAP_CAPTION);
+}
 
-  const sequence = ['review', 'fanout', 'inapp'];
-  if (email) sequence.push('email');
+function skipSteps(...steps) {
+  steps.forEach((step) => {
+    setMapConnector(step, 'off');
+    setMapChip(step, 'off');
+  });
+}
 
-  for (const name of sequence) {
-    const node = document.querySelector(`.flow-node[data-node="${name}"]`);
-    if (!node) continue;
-    node.classList.add('active');
-    await sleep(420);
-    node.classList.remove('active');
-    node.classList.add('ok');
+function markRestingMap() {
+  setMapNode('browser', 'ok');
+  setMapNode('api', 'ok');
+  setMapNode('mysql', 'ok');
+  setMapConnector(1, 'ok');
+  setMapConnector(2, 'ok');
+  setMapChip(1, 'ok');
+  setMapChip(2, 'ok');
+}
+
+async function waitForNewNotification(previousIds, timeoutMs) {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    await refreshAll({ silent: true });
+    const found = state.notifications.find((item) => !previousIds.has(String(item.id)));
+    if (found) return found;
+    await sleep(1000);
   }
-
-  await sleep(2200);
-  resetFlow();
-  if (!email && emailNode) emailNode.classList.add('off');
+  return null;
 }
 
 // ---------------------------------------------------------------------------
@@ -525,12 +574,17 @@ async function simulate() {
     auth.openModal('login');
     return;
   }
+  if (state.simulating) return;
 
   const movieId = Math.max(1, Number.parseInt(els.simMovie?.value ?? '', 10) || DEFAULT_MOVIE);
   if (els.simMovie) els.simMovie.value = String(movieId);
   const wantEmail = !!els.simEmail?.checked;
 
+  state.simulating = true;
   els.btnSimulate.disabled = true;
+  resetMap();
+  const before = new Set(state.notifications.map((item) => String(item.id)));
+
   try {
     if (!DEMO) {
       els.simStatus.textContent = `Actualizando notify_email = ${wantEmail}…`;
@@ -544,23 +598,109 @@ async function simulate() {
       els.simStatus.textContent = `[demo] notify_email = ${wantEmail}`;
     }
 
+    // Paso 1: navegador -> API
+    setMapNode('browser', 'active');
+    setMapConnector(1, 'active');
+    setMapChip(1, 'active');
+    setMapCaption('① El navegador envía el <code>POST</code> con el token del usuario.');
     els.simStatus.textContent = `POST /movies/${movieId}/reviews…`;
+
     const first = await postReview(movieId);
     if (!first) {
+      setMapNode('browser', 'error');
+      setMapConnector(1, 'error');
+      setMapChip(1, 'error');
+      setMapCaption('El <code>POST</code> falló. Mirá el log de peticiones.');
       els.simStatus.textContent = 'La review falló. Mirá el log de peticiones.';
       return;
     }
+    setMapNode('browser', 'ok');
+    setMapNode('api', 'ok');
+    setMapConnector(1, 'ok');
+    setMapChip(1, 'ok');
 
-    await animateFlow({ email: wantEmail });
-    els.simStatus.textContent = first.data?.isNew === true
-      ? `${describePost(first)} — review nueva, se emite el evento`
-      : `${describePost(first)} — la review ya existía, no se emite evento`;
+    // Paso 2: API -> MySQL
+    const isNew = first.data?.isNew === true;
+    setMapNode('api', 'active');
+    setMapConnector(2, 'active');
+    setMapChip(2, 'active');
+    setMapCaption(isNew
+      ? '② El service hace upsert de la review. <code>isNew=true</code>.'
+      : '② La review ya existía: el upsert devuelve <code>isNew=false</code>.');
+    els.simStatus.textContent = describePost(first);
+    await sleep(360);
+    setMapNode('api', 'ok');
+    setMapNode('mysql', 'ok');
+    setMapConnector(2, 'ok');
+    setMapChip(2, 'ok');
 
-    await sleep(700);
-    await refreshAll({ silent: true });
+    if (!isNew) {
+      skipSteps(3, 4, 5);
+      setMapNode('redis', 'off');
+      setMapNode('workers', 'off');
+      setMapNode('resend', 'off');
+      setMapCaption('La review ya existía: <code>isNew=false</code>, así que no se emite el evento ni se encola nada.');
+      els.simStatus.textContent = `${describePost(first)} — la review ya existía, no se emite evento`;
+      return;
+    }
+
+    // Paso 3: API -> Redis
+    setMapNode('api', 'active');
+    setMapConnector(3, 'active');
+    setMapChip(3, 'active');
+    setMapCaption('③ El productor encola el evento en <code>notification-fanout</code>. El service no conoce canales.');
+    await sleep(360);
+    setMapNode('api', 'ok');
+    setMapNode('redis', 'ok');
+    setMapConnector(3, 'ok');
+    setMapChip(3, 'ok');
+
+    // Pasos 4 y 5: esperar la notificación nueva (hasta 10 s)
+    setMapNode('redis', 'active');
+    setMapConnector(4, 'active');
+    setMapChip(4, 'active');
+    setMapCaption('③ Job encolado en <code>notification-fanout</code>. Esperando que el worker lo consuma (hasta 10 s)...');
+    els.simStatus.textContent = `${describePost(first)} — esperando la notificación...`;
+
+    const fresh = await waitForNewNotification(before, 10_000);
+
+    if (fresh) {
+      setMapNode('redis', 'ok');
+      setMapNode('workers', 'ok');
+      setMapConnector(4, 'ok');
+      setMapChip(4, 'ok');
+      setMapNode('mysql', 'active');
+      setMapConnector(5, 'active');
+      setMapChip(5, 'active');
+      setMapCaption('④⑤ El worker consume el job e inserta la notificación (<code>INSERT IGNORE</code>).');
+      await sleep(320);
+      setMapNode('mysql', 'ok');
+      setMapConnector(5, 'ok');
+      setMapChip(5, 'ok');
+
+      if (wantEmail) {
+        setMapNode('resend', 'ok');
+        setMapCaption('④⑤ Notificación in-app creada. El email va por <code>email-transactional</code> → Resend (entrega no verificable desde la API).');
+      } else {
+        setMapNode('resend', 'off');
+        setMapCaption('④⑤ Notificación in-app creada. El email se omite porque <code>notify_email=false</code>.');
+      }
+      els.simStatus.textContent = `${describePost(first)} — la notificación ya está en la lista`;
+    } else {
+      setMapConnector(4, 'waiting');
+      setMapChip(4, 'waiting');
+      setMapConnector(5, 'waiting');
+      setMapChip(5, 'waiting');
+      setMapNode('redis', 'waiting');
+      setMapNode('workers', 'waiting');
+      setMapNode('resend', wantEmail ? 'waiting' : 'off');
+      setMapCaption('④ La API respondió <code>201</code> y el job quedó encolado, pero la notificación no apareció en 10 s: <strong>posible worker apagado</strong>. Corré <code>npm run worker:notifications:dev</code>.');
+      els.simStatus.textContent = `${describePost(first)} — sin notificación nueva: revisá el worker`;
+      toast('La notificación no apareció en 10 s: posible worker apagado.', true);
+    }
 
     if (els.simRepeat?.checked) {
-      els.simStatus.textContent = 'Repitiendo el POST (update)…';
+      els.simStatus.textContent = 'Repitiendo el POST (update)...';
       const second = await postReview(movieId);
       if (second) {
         els.simStatus.textContent = `primero: ${describePost(first)} · segundo: ${describePost(second)}`;
@@ -569,10 +709,9 @@ async function simulate() {
           : 'Segundo POST idempotente: isNew=false, sin notificación nueva.');
         await refreshAll({ silent: true });
       }
-    } else if (first.data?.isNew === true) {
-      toast('Review creada. La notificación aparece por polling.');
     }
   } finally {
+    state.simulating = false;
     els.btnSimulate.disabled = false;
   }
 }
@@ -725,7 +864,7 @@ function applyStep(step) {
   if (!section) return;
   document.querySelectorAll('.step-highlight').forEach((el) => el.classList.remove('step-highlight'));
   section.classList.add('step-highlight');
-  section.scrollIntoView({ behavior: 'auto', block: 'start' });
+  section.scrollIntoView({ behavior: 'instant', block: 'start' });
   if (step === 2) refreshAll({ silent: true });
 }
 
@@ -734,6 +873,15 @@ function bindEvents() {
   els.btnReadAll?.addEventListener('click', markAllRead);
   els.btnSimulate?.addEventListener('click', simulate);
   els.btnLoginInline?.addEventListener('click', () => auth.openModal('login'));
+
+  els.map?.addEventListener('click', (event) => {
+    const node = event.target.closest('.map-node');
+    if (!node || !els.nodeDetail) return;
+    const detail = NODE_DETAILS[node.dataset.node];
+    if (!detail) return;
+    els.nodeDetail.textContent = `${node.dataset.node}: ${detail}`;
+    els.nodeDetail.classList.remove('hidden');
+  });
 
   els.btnClearLog?.addEventListener('click', () => {
     state.log = [];
