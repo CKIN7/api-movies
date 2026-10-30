@@ -35,6 +35,11 @@ Specs funcionales y técnicas agrupadas por historia de usuario.
 | — | [Laboratorio frontend F4/F5](./hu-12-user-profiles-2.0/frontend-lab.md) | Implementado |
 | — | [Contrato de autor en reviews](./hu-12-user-profiles-2.0/review-author-contract.md) | Implementado |
 
+## Cierre de features
+
+- Guía: [Demo y laboratorio frontend por feature](../cross-cutting/frontend-lab-guideline.md).
+- Propuesta futura: [Mapa global de arquitectura con overlay](../proposals/2026-10-30-global-architecture-map.md).
+
 ## Otros documentos
 
 - [Cross-cutting](../cross-cutting/)
