@@ -57,5 +57,24 @@ module.exports = {
       kill_timeout: 30000,
       listen_timeout: 10000,
     },
+    {
+      // F3: procesa notification-fanout / notification-inapp.
+      name: 'worker-notifications',
+      script: 'dist/workers/notificationWorker.js',
+      instances: 1,
+      exec_mode: 'fork',
+      env: {
+        NODE_ENV: 'production',
+      },
+      env_development: {
+        NODE_ENV: 'development',
+      },
+      error_file: 'logs/worker-notifications-error.log',
+      out_file: 'logs/worker-notifications-out.log',
+      log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
+      // BullMQ drena el job en curso antes de salir.
+      kill_timeout: 30000,
+      listen_timeout: 10000,
+    },
   ],
 };

@@ -5,6 +5,7 @@ import {
     emailTransactionalQueue,
 } from './queueFactory'
 import { emailEnqueueTimeoutMs } from '../config/bullmq'
+import { withTimeout } from '../utils/withTimeout'
 import type { EmailMessage } from '../services/EmailService'
 import type { EmailJobPayload } from '../types/bullmq'
 
@@ -40,27 +41,6 @@ const queues: Record<EmailCategory, Queue<EmailJobPayload>> = {
     marketing: emailMarketingQueue as unknown as Queue<EmailJobPayload>,
 }
 
-function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
-    if (!Number.isFinite(ms) || ms <= 0) return promise
-
-    return new Promise<T>((resolve, reject) => {
-        const timer = setTimeout(
-            () => reject(new Error(`El encolado de email excedio ${ms} ms`)),
-            ms,
-        )
-        promise.then(
-            (value) => {
-                clearTimeout(timer)
-                resolve(value)
-            },
-            (error) => {
-                clearTimeout(timer)
-                reject(error)
-            },
-        )
-    })
-}
-
 export async function enqueueEmail(
     category: EmailCategory,
     message: EmailMessage,
@@ -73,11 +53,13 @@ export async function enqueueEmail(
     }
 
     const queue = queues[category]
+    const timeoutMs = options.timeoutMs ?? emailEnqueueTimeoutMs
     const job = await withTimeout(
         queue.add(`${category}:${message.template}`, message as EmailJobPayload, {
             ...(options.jobId ? { jobId: options.jobId } : {}),
         }),
-        options.timeoutMs ?? emailEnqueueTimeoutMs,
+        timeoutMs,
+        `El encolado de email excedio ${timeoutMs} ms`,
     )
 
     return job.id ?? ''

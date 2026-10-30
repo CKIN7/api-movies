@@ -1,6 +1,6 @@
 # HU-13: BullMQ Job Queue System
 
-> **Tipo:** Feature · **HU:** HU-13 · **Estado:** En progreso (F1 y F2 implementadas) · **Revisión:** 2026-10-28
+> **Tipo:** Feature · **HU:** HU-13 · **Estado:** En progreso (F1, F2 y F3 implementadas) · **Revisión:** 2026-10-29
 
 Como equipo de desarrollo,
 quiero una infraestructura de colas de trabajos asíncronos (BullMQ + Redis)
@@ -45,7 +45,7 @@ Actualmente la API ejecuta tareas pesadas en el request HTTP:
 |------|------|---------------------|
 | **F1** | `feature/bullmq-infra` | Infra base: queues, workers, Bull Board, Testcontainers, PM2 |
 | **F2** | `feature/bullmq-emails` | Colas email (critical/transactional/marketing), Resend adapter, templates |
-| **F3** | `feature/bullmq-notifications` | Notificaciones in-app, fan-out, endpoints CRUD, integración review/watchlist/recs |
+| **F3** | `feature/bullmq-notifications` | Notificaciones in-app, fan-out, endpoints CRUD, integración review/watchlist/recs · [contrato cerrado](./hu-13-f3-notifications.md) |
 | **F4** | `feature/bullmq-recs-recompute` | Migración `recs:compute` a worker + cron nocturno + on-demand |
 
 ### Queda fuera
@@ -124,11 +124,11 @@ Actualmente la API ejecuta tareas pesadas en el request HTTP:
 - [x] CA-6: Registro atómico: `users` + `email_verifications` se persisten en una transacción; si el encolado falla, la respuesta sigue siendo `201` (fail-open) con `logger.error`
 
 ### F3: Notificaciones In-App + Fan-out
-- [ ] CA-1: Crear review → notificación in-app creada + email si `notify_email=true`
-- [ ] CA-2: `GET /users/me/notifications` → paginación, filtro `unread_only`
-- [ ] CA-3: `PATCH /:id/read` → marca leída, `PATCH /read-all` → marca todas
-- [ ] CA-4: Fan-out respeta `user_settings.notify_email` (true/false)
-- [ ] CA-5: Evento `recs.ready` opcional → notificación "Nuevas recomendaciones"
+- [x] CA-1: Crear review → notificación in-app creada + email si `notify_email=true`
+- [x] CA-2: `GET /users/me/notifications` → paginación, filtro `unread_only`
+- [x] CA-3: `PATCH /:id/read` → marca leída, `PATCH /read-all` → marca todas
+- [x] CA-4: Fan-out respeta `user_settings.notify_email` (true/false)
+- [ ] CA-5: Evento `recs.ready` opcional → notificación "Nuevas recomendaciones" *(pendiente de F4: depende del recompute, que todavía no existe)*
 
 ### F4: Recs Recompute
 - [ ] CA-1: `npm run recs:compute` → encola job `recs-recompute-all` (no bloquea)
@@ -392,6 +392,24 @@ best-effort, el error se silenciaba y **ningún email se encolaba**.
 El *nombre* del job (`critical:verification`) sigue llevando `:` a propósito: BullMQ
 solo valida `jobId`, y el prefijo sirve para filtrar en Bull Board.
 
+### Resultado F3 (2026-10-29)
+
+Rama `feature/bullmq-notifications`. El contrato cerrado está en
+[`hu-13-f3-notifications.md`](./hu-13-f3-notifications.md).
+
+* Tabla `notifications` (migración `202610240001_notifications.sql` + `db/schema.sql`) con
+  `UNIQUE (user_id, type, dedupe_key)` y `INSERT IGNORE` como idempotencia.
+* Endpoints `GET /users/me/notifications`, `GET /users/me/notifications/unread-count`,
+  `PATCH /users/me/notifications/:id/read`, `PATCH /users/me/notifications/read-all`.
+* Colas `notification-fanout` y `notification-inapp`; worker `worker-notifications`
+  (`npm run worker:notifications:dev`), concurrencia 5, sin limiter.
+* `reviewService.createReview` emite el evento solo cuando `isNew === true`, best-effort
+  (`logger.error` y la respuesta `201`/`200` no cambia).
+* CA-1..CA-4 en verde. **CA-5 (`recs.ready`) queda fuera de F3**: depende del recompute de F4.
+* `npm run build` y `npm run typecheck` → sin errores.
+* `npm run test:queues` → 9 suites / 40 tests en verde.
+* `npm test` completo → **101 suites / 932 tests** en verde.
+
 ### CI/CD
 - Tests de integración usan Redis real (REDIS_URL_TEST o Testcontainers)
 - `npm run build` + `npm test` deben pasar en `develop` antes de merge
@@ -411,7 +429,8 @@ solo valida `jobId`, y el prefijo sirve para filtrar en Bull Board.
 | **Migración `recs:compute` gradual** | F4 puede coexistir con script antiguo temporalmente |
 | **Limiter de email por cola (F2)** | Los 3 limiters (uno por cola) no representan el límite global de Resend. F2+ necesita cupo diario compartido (`INCR emails:sent:YYYY-MM-DD`) y una métrica de fallos de enqueue |
 | **Prioridad solo intra-cola (F2)** | La prioridad ordena jobs dentro de una cola; entre `email-critical` y `email-marketing` el orden lo dan los workers/concurrencia, no el número |
-| **Bull Board sin auth (F1/F2)** | `GET /admin/queues` está montado en todos los entornos; proteger tras auth/rol antes de producción |
+| **Bull Board sin auth (F1/F2/F3)** | `GET /admin/queues` está montado en todos los entornos; proteger tras auth/rol antes de producción |
+| **Sin retención/TTL de notificaciones (F3)** | Las filas de `notifications` no se purgan; falta un cron de borrado a 90 días |
 
 ---
 
@@ -419,7 +438,7 @@ solo valida `jobId`, y el prefijo sirve para filtrar en Bull Board.
 
 1. **F1:** Hecha. Correcciones de `fix/bullmq-f1-corrections` integradas en `develop` (`92fb4d4`).
 2. **F2:** Hecha en `feature/bullmq-emails` (emails críticos/transaccionales/marketing + registro atómico).
-3. **F3:** Implementar `feature/bullmq-notifications`
+3. **F3:** Hecha en `feature/bullmq-notifications` (notificaciones in-app + fan-out; CA-5 queda para F4).
 4. **F4:** Implementar `feature/bullmq-recs-recompute`
 5. Actualizar este doc a **Estado: Implementado** al completar cada fase
 

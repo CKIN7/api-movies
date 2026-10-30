@@ -66,6 +66,11 @@ import { createUserSettingsRoutes } from './routes/userSettingsRoutes'
 import { OnboardingService } from './services/onboardingService'
 import { OnboardingController } from './controllers/onboardingController'
 import { createOnboardingRoutes } from './routes/onboardingRoutes'
+import NotificationRepository from './repositories/NotificationRepository'
+import NotificationService from './services/NotificationService'
+import NotificationController from './controllers/notificationController'
+import { createNotificationRoutes } from './routes/notificationRoutes'
+import QueuedReviewPublishedNotifier from './notifiers/QueuedReviewPublishedNotifier'
 import { createBullBoard } from '@bull-board/api'
 import { BullMQAdapter } from '@bull-board/api/bullMQAdapter'
 import { ExpressAdapter } from '@bull-board/express'
@@ -135,7 +140,8 @@ export function createApp(
     const userPreferencesService = new UserPreferencesService(userPreferencesRepository)
 
     const reviewRepository = new ReviewRepository(conn)
-    const reviewService = new ReviewService(reviewRepository, movieRepo, userPreferencesService)
+    const reviewPublishedNotifier = new QueuedReviewPublishedNotifier()
+    const reviewService = new ReviewService(reviewRepository, movieRepo, userPreferencesService, reviewPublishedNotifier)
     const reviewController = new ReviewController(reviewService)
     const reviewRouter = createReviewRoutes(reviewController)
 
@@ -172,6 +178,11 @@ const recommendationService = new RecommendationService(recommendationRepository
 const recommendationController = new RecommendationController(recommendationService, recommendationFeedbackService)
 const recommendationRouter = createRecommendationRoutes(recommendationController)
 
+const notificationRepository = new NotificationRepository(conn)
+const notificationService = new NotificationService(notificationRepository)
+const notificationController = new NotificationController(notificationService)
+const notificationRouter = createNotificationRoutes(notificationController)
+
     app.use('/movies/search', searchRouter)
     app.use('/movies', exportRouter)
     app.use('/movies', router)
@@ -183,6 +194,7 @@ const recommendationRouter = createRecommendationRoutes(recommendationController
     app.use('/users', userRouter)
     app.use('/users', userPreferencesRouter)
     app.use('/users', recommendationRouter)
+    app.use('/users', notificationRouter)
     app.use('/auth', authRouter)
     app.use('/metrics', metricsRouter)
 

@@ -22,7 +22,9 @@
     "worker:dev": "tsx watch workers/index.ts",
     "worker:prod": "node dist/workers/index.js",
     "worker:email:dev": "tsx watch workers/emailWorker.ts",
-    "worker:email:prod": "node dist/workers/emailWorker.js"
+    "worker:email:prod": "node dist/workers/emailWorker.js",
+    "worker:notifications:dev": "tsx watch workers/notificationWorker.ts",
+    "worker:notifications:prod": "node dist/workers/notificationWorker.js"
   },
   "dependencies": {
     "@bull-board/api": "^9.10.5",
