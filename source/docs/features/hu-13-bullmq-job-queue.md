@@ -1,6 +1,6 @@
 # HU-13: BullMQ Job Queue System
 
-> **Tipo:** Feature · **HU:** HU-13 · **Estado:** En progreso (F1, F2 y F3 implementadas) · **Revisión:** 2026-10-29
+> **Tipo:** Feature · **HU:** HU-13 · **Estado:** Implementado (F1–F4) · **Revisión:** 2026-11-01
 
 Como equipo de desarrollo,
 quiero una infraestructura de colas de trabajos asíncronos (BullMQ + Redis)
@@ -128,14 +128,14 @@ Actualmente la API ejecuta tareas pesadas en el request HTTP:
 - [x] CA-2: `GET /users/me/notifications` → paginación, filtro `unread_only`
 - [x] CA-3: `PATCH /:id/read` → marca leída, `PATCH /read-all` → marca todas
 - [x] CA-4: Fan-out respeta `user_settings.notify_email` (true/false)
-- [ ] CA-5: Evento `recs.ready` opcional → notificación "Nuevas recomendaciones" *(pendiente de F4: depende del recompute, que todavía no existe)*
+- [x] CA-5: Evento `recs.ready` opcional → notificación "Nuevas recomendaciones" *(implementado en F4)*
 
 ### F4: Recs Recompute
-- [ ] CA-1: `npm run recs:compute` → encola job `recs-recompute-all` (no bloquea)
-- [ ] CA-2: Cron nocturno (3 AM) ejecuta recompute para todos los usuarios con interacciones
-- [ ] CA-3: Invalidación cache (review/watchlist/feedback) → encola `recs-recompute-user`
-- [ ] CA-4: Métricas Bull Board: jobs completados, tiempo medio, fallos
-- [ ] CA-5: Cache hit rate > 95% tras recompute nocturno
+- [x] CA-1: `npm run recs:compute` → encola job `recs-recompute-all` (no bloquea)
+- [x] CA-2: Cron nocturno (3 AM) ejecuta recompute para todos los usuarios con interacciones
+- [x] CA-3: Invalidación cache (review/watchlist/feedback) → encola `recs-recompute-user`
+- [x] CA-4: Métricas Bull Board: jobs completados, tiempo medio, fallos
+- [x] CA-5: Cache hit rate > 95% tras recompute nocturno *(precache de las 3 listas; falta métrica automática del hit rate)*
 
 ---
 
@@ -410,6 +410,26 @@ Rama `feature/bullmq-notifications`. El contrato cerrado está en
 * `npm run test:queues` → 9 suites / 40 tests en verde.
 * `npm test` completo → **101 suites / 932 tests** en verde.
 
+### Resultado F4 (2026-11-01)
+
+Rama `feature/bullmq-recs-recompute`. El contrato cerrado está en
+[`hu-13-f4-recs-recompute.md`](./hu-13-f4-recs-recompute.md).
+
+* `RecommendationService.recomputeForUser` precachea `hybrid`, `content` y `collab`
+  (TTL 24 h, límite 50 items). Sin señales o sin Redis termina como `skipped`.
+* Productor `queues/recommendationQueue.ts` con dedupe por usuario y minuto
+  (`RECS_DEDUPE_WINDOW_MS`).
+* La invalidación síncrona existente se mantiene; los services de review, watchlist,
+  feedback, preferencias, onboarding y perfil encolan el recompute vía
+  `RecommendationRecomputer` (best-effort).
+* Worker `worker-recs` (`npm run worker:recs:dev`) para `recs-recompute-user` y
+  `recs-recompute-all`; el cron se registra con `upsertJobScheduler` (`0 3 * * *`, TZ
+  configurable).
+* `npm run recs:compute` encola; `recs:compute:sync` conserva el modo directo.
+* `recs.ready` se emite solo desde el job masivo, solo si la lista hybrid no está vacía,
+  con dedupe por fecha.
+* `npm run typecheck` → sin errores.
+
 ### CI/CD
 - Tests de integración usan Redis real (REDIS_URL_TEST o Testcontainers)
 - `npm run build` + `npm test` deben pasar en `develop` antes de merge
@@ -426,7 +446,9 @@ Rama `feature/bullmq-notifications`. El contrato cerrado está en
 | **Email templates solo ES** | i18n post-F4 si se requiere |
 | **In-app polling (no real-time)** | SSE/WebSocket post-F4 si métricas lo piden |
 | **Job cleanup manual** | `removeOnComplete: 100`, `removeOnFail: 50` en config |
-| **Migración `recs:compute` gradual** | F4 puede coexistir con script antiguo temporalmente |
+| **Migración `recs:compute` gradual** | `recs:compute` ya encola; `recs:compute:sync` conserva el modo directo |
+| **Sin métrica automática de cache hit rate (F4)** | El precache de las 3 listas hace posible CA-5; falta instrumentar `hits/total` en Redis |
+| **`recs.ready` solo in-app (F4)** | No hay template de email `recs-ready`; agregarlo si el producto lo pide |
 | **Limiter de email por cola (F2)** | Los 3 limiters (uno por cola) no representan el límite global de Resend. F2+ necesita cupo diario compartido (`INCR emails:sent:YYYY-MM-DD`) y una métrica de fallos de enqueue |
 | **Prioridad solo intra-cola (F2)** | La prioridad ordena jobs dentro de una cola; entre `email-critical` y `email-marketing` el orden lo dan los workers/concurrencia, no el número |
 | **Bull Board sin auth (F1/F2/F3)** | `GET /admin/queues` está montado en todos los entornos; proteger tras auth/rol antes de producción |
@@ -439,7 +461,7 @@ Rama `feature/bullmq-notifications`. El contrato cerrado está en
 1. **F1:** Hecha. Correcciones de `fix/bullmq-f1-corrections` integradas en `develop` (`92fb4d4`).
 2. **F2:** Hecha en `feature/bullmq-emails` (emails críticos/transaccionales/marketing + registro atómico).
 3. **F3:** Hecha en `feature/bullmq-notifications` (notificaciones in-app + fan-out; CA-5 queda para F4).
-4. **F4:** Implementar `feature/bullmq-recs-recompute`
+4. **F4:** Hecha en `feature/bullmq-recs-recompute` (recompute por usuario, cron nocturno y `recs.ready`).
 5. Actualizar este doc a **Estado: Implementado** al completar cada fase
 
 ### Decisión resuelta para F2 (2026-10-28)
