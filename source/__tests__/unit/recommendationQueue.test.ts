@@ -42,7 +42,7 @@ describe('recommendationQueue', () => {
 
         test('dedupe: dos eventos del mismo minuto comparten jobId', async () => {
             await enqueueRecsRecomputeUser('user-1', { now: 1_700_000_000_000 })
-            await enqueueRecsRecomputeUser('user-1', { now: 1_700_000_050_000 })
+            await enqueueRecsRecomputeUser('user-1', { now: 1_700_000_039_000 })
 
             const first = factory.__userAdd.mock.calls[0][2].jobId
             const second = factory.__userAdd.mock.calls[1][2].jobId
