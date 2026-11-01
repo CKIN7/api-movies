@@ -7,6 +7,7 @@ import { Review } from "../domain/Review";
 import { UserPreferencesService } from "./userPreferencesService";
 import { invalidateUserRecommendations } from "../utils/cache";
 import type ReviewPublishedNotifier from "../notifiers/ReviewPublishedNotifier";
+import type RecommendationRecomputer from "../notifiers/RecommendationRecomputer";
 // import { UpdateReviewDTO } from "../schemas/reviews";
 
 function ratingDelta(rating: number): number {
@@ -19,7 +20,8 @@ class ReviewService {
         private movieRepository: MovieRepository,
         private userPreferencesService: UserPreferencesService,
         // Opcional para que los tests unitarios no dependan de Redis.
-        private reviewPublishedNotifier?: ReviewPublishedNotifier
+        private reviewPublishedNotifier?: ReviewPublishedNotifier,
+        private recommendationRecomputer?: RecommendationRecomputer
     ) {}
 
     async getReviews(movieId: number, page: number, limit: number): Promise<PaginatedReviewsResponse>{
@@ -72,6 +74,7 @@ class ReviewService {
             }
 
             await invalidateUserRecommendations(userId)
+            await this.recommendationRecomputer?.scheduleRecompute(userId)
 
             return {
                 review: Review.fromRow(review).toResponse(),
@@ -158,6 +161,7 @@ class ReviewService {
             }
 
             await invalidateUserRecommendations(userId)
+            await this.recommendationRecomputer?.scheduleRecompute(userId)
 
             return Review.fromRow(updatedReview).toResponse();
             
@@ -184,6 +188,7 @@ class ReviewService {
             }
 
             await invalidateUserRecommendations(userId)
+            await this.recommendationRecomputer?.scheduleRecompute(userId)
 
         } catch (error) {
             if (error instanceof AppError) throw error;
