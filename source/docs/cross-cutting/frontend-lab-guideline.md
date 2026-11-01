@@ -180,6 +180,7 @@ Agregar al documento de la feature:
 
 ## Referencias
 
+- [Guía interactiva](../../public/lab-guide.html): la misma guía en formato demo, con mapa y checklist.
 - [Laboratorio frontend F4/F5](../features/hu-12-user-profiles-2.0/frontend-lab.md): primer laboratorio del proyecto.
 - [Laboratorio frontend F3](../features/hu-13-f3-notifications-lab.md): demo, contratos, casos borde y log.
 - [Plantilla de feature](../_template-feature.md): incluye la sección de cierre.
