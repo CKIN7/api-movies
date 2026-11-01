@@ -32,8 +32,11 @@ export interface JobPayloadMap {
   };
   [QueueNames.RECS_RECOMPUTE_USER]: {
     userId: string;
+    reason?: string;
   };
-  [QueueNames.RECS_RECOMPUTE_ALL]: Record<string, never>;
+  [QueueNames.RECS_RECOMPUTE_ALL]: {
+    reason?: string;
+  };
 }
 
 export type JobPayload<T extends QueueName> = JobPayloadMap[T];
@@ -56,6 +59,14 @@ export type NotificationQueueName =
 
 export type NotificationFanoutPayload = JobPayloadMap[typeof QueueNames.NOTIFICATION_FANOUT];
 export type NotificationInAppPayload = JobPayloadMap[typeof QueueNames.NOTIFICATION_INAPP];
+
+/** Colas de recomendaciones (F4). */
+export type RecsQueueName =
+  | typeof QueueNames.RECS_RECOMPUTE_USER
+  | typeof QueueNames.RECS_RECOMPUTE_ALL;
+
+export type RecsRecomputeUserPayload = JobPayloadMap[typeof QueueNames.RECS_RECOMPUTE_USER];
+export type RecsRecomputeAllPayload = JobPayloadMap[typeof QueueNames.RECS_RECOMPUTE_ALL];
 
 export type TypedJob<T extends QueueName> = Job<JobPayload<T>, void, string>;
 

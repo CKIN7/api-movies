@@ -6,6 +6,7 @@ import type { AddToWatchlistDTO, WatchlistQueryDTO, PaginatedWatchlistResponse, 
 import { WatchlistEntry } from '../domain/WatchlistEntry'
 import { UserPreferencesService } from './userPreferencesService'
 import { invalidateUserRecommendations } from '../utils/cache'
+import type RecommendationRecomputer from '../notifiers/RecommendationRecomputer'
 
 function priorityDelta(priority: number | null | undefined): number {
     // Si no se define una prioridad, usamos 3 por defecto
@@ -23,7 +24,8 @@ class WatchlistService {
     constructor(
         private watchlistRepo: WatchlistRepository,
         private movieRepo: MovieRepository,
-        private userPreferencesService: UserPreferencesService
+        private userPreferencesService: UserPreferencesService,
+        private recommendationRecomputer?: RecommendationRecomputer
     ) {}
 
     async add(userId: string, dto: AddToWatchlistDTO): Promise<WatchlistEntryResponse> {
@@ -43,6 +45,7 @@ class WatchlistService {
         const delta = priorityDelta(dto.priority)
         await this.updateGenreAffinityForMovie(userId, dto.movieId, delta)
         await invalidateUserRecommendations(userId)
+        await this.recommendationRecomputer?.scheduleRecompute(userId)
 
         const entry = await this.watchlistRepo.findByUserAndMovie(userId, dto.movieId)
         if (!entry) throw new AppError('Error al crear entrada', 500)
@@ -106,6 +109,7 @@ class WatchlistService {
         }
 
         await invalidateUserRecommendations(userId)
+        await this.recommendationRecomputer?.scheduleRecompute(userId)
     }
 }
 

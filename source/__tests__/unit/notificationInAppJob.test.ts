@@ -37,6 +37,14 @@ describe('dedupeKeyFor', () => {
         expect(() => dedupeKeyFor('review.published', {})).toThrow('requiere reviewId')
     })
 
+    test('usa la fecha para recs.ready (una notificacion por dia)', () => {
+        expect(dedupeKeyFor('recs.ready', { date: '2026-11-01', count: 12 })).toBe('2026-11-01')
+    })
+
+    test('lanza si recs.ready no trae date', () => {
+        expect(() => dedupeKeyFor('recs.ready', { count: 12 })).toThrow('requiere date')
+    })
+
     test('lanza con un tipo sin dedupe_key', () => {
         expect(() => dedupeKeyFor('watchlist.added' as NotificationType, {})).toThrow(
             'Tipo de notificación sin dedupe_key',

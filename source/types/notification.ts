@@ -4,9 +4,10 @@
 //  El contrato cerrado vive en docs/features/hu-13-f3-notifications.md
 // ═══════════════════════════════════════════════════════════════
 
-// Solo 'review.published' tiene emisor en F3. 'watchlist.added' y
-// 'recs.ready' quedan reservados (sin emisor ni payload definido).
-export const NOTIFICATION_TYPES = ['review.published'] as const
+// 'review.published' lo emite F3; 'recs.ready' se suma en F4 cuando el
+// recompute nocturno deja recomendaciones disponibles. 'watchlist.added'
+// sigue reservado (sin emisor ni payload definido).
+export const NOTIFICATION_TYPES = ['review.published', 'recs.ready'] as const
 export type NotificationType = (typeof NOTIFICATION_TYPES)[number]
 
 // Fila cruda de la tabla `notifications`.
@@ -25,6 +26,13 @@ export interface ReviewPublishedPayload {
     movieId: number;
     movieTitle: string;
     reviewId: string;
+}
+
+// Payload de recs.ready. `date` (YYYY-MM-DD) es la clave de dedupe:
+// una sola notificacion por usuario por corrida nocturna.
+export interface RecsReadyPayload {
+    count: number;
+    date: string;
 }
 
 // DTO público de una notificación. `id` viaja como string para no

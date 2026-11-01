@@ -4,6 +4,7 @@ import { UserSettingsService } from './userSettingsService'
 import AppError from '../utils/AppError'
 import logger from '../utils/logger'
 import { invalidateUserRecommendations } from '../utils/cache'
+import type RecommendationRecomputer from '../notifiers/RecommendationRecomputer'
 
 export const ONBOARDING_GENRE_AFFINITY = 5
 
@@ -11,6 +12,7 @@ export class OnboardingService {
     constructor(
         private userPreferencesService: UserPreferencesService,
         private userSettingsService: UserSettingsService,
+        private recommendationRecomputer?: RecommendationRecomputer,
     ) {}
 
     async completeOnboarding(userId: string, dto: OnboardingDTO): Promise<OnboardingResult> {
@@ -35,6 +37,7 @@ export class OnboardingService {
 
             await this.userSettingsService.completeOnboarding(userId)
             await invalidateUserRecommendations(userId)
+            await this.recommendationRecomputer?.scheduleRecompute(userId)
 
             const prefs = await this.userPreferencesService.getPreferences(userId)
 

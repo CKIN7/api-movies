@@ -14,6 +14,14 @@ export function dedupeKeyFor(type: NotificationType, payload: Record<string, unk
         return String(reviewId)
     }
 
+    if (type === 'recs.ready') {
+        const date = payload.date
+        if (typeof date !== 'string' || date.length === 0) {
+            throw new Error('El payload de recs.ready requiere date (YYYY-MM-DD) para deduplicar')
+        }
+        return date
+    }
+
     throw new Error(`Tipo de notificación sin dedupe_key: "${type}"`)
 }
 

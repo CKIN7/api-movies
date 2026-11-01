@@ -5,6 +5,7 @@ import type MovieRepository from '../repositories/MovieRepository'
 import AppError from '../utils/AppError'
 import logger from '../utils/logger'
 import { invalidateUserRecommendations } from '../utils/cache'
+import type RecommendationRecomputer from '../notifiers/RecommendationRecomputer'
 
 export const FEEDBACK_AFFINITY_DELTA: Record<FeedbackAction, number> = {
     view: 0,
@@ -18,6 +19,7 @@ export class RecommendationFeedbackService {
         private feedbackRepository: RecommendationFeedbackRepository,
         private userPreferencesService: UserPreferencesService,
         private movieRepository: MovieRepository,
+        private recommendationRecomputer?: RecommendationRecomputer,
     ) {}
 
     async recordFeedback(userId: string, dto: RecommendationFeedbackDTO): Promise<RecommendationFeedbackResult> {
@@ -38,6 +40,7 @@ export class RecommendationFeedbackService {
 
         if (applied && dto.action !== 'view') {
             await invalidateUserRecommendations(userId)
+            await this.recommendationRecomputer?.scheduleRecompute(userId)
         }
 
         return { ...dto, applied }

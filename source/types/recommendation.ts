@@ -32,6 +32,17 @@ export interface RecommendationQueryDTO {
     limit: number
 }
 
+// Resultado de un recompute offline (F4). `cachedTypes` cuenta las listas
+// que quedaron en Redis; `recommendations` es el tamano de la lista hybrid,
+// que decide si corresponde emitir `recs.ready`.
+export interface RecomputeUserResult {
+    userId: string
+    cachedTypes: number
+    recommendations: number
+    skipped: boolean
+    durationMs: number
+}
+
 export interface UserInteraction {
     movieId: number
     weight: number

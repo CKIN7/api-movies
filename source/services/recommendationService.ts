@@ -4,12 +4,14 @@ import { RecommendationFeedbackService } from './recommendationFeedbackService'
 import MovieRepository from '../repositories/MovieRepository'
 import { getCached, setCached, invalidatePattern } from '../utils/cache'
 import { getRedisClient, isRedisHealthy } from '../utils/redisClient'
+import { recsPrecomputeLimit } from '../config/bullmq'
 import logger from '../utils/logger'
 import AppError from '../utils/AppError'
 import type {
     RecommendationCandidateRow,
     RecommendationItem,
     RecommendationQueryDTO,
+    RecomputeUserResult,
     UserInteraction,
 } from '../types/recommendation'
 import type { ContentFilters, GenreAffinity, GenreAffinityEntry } from '../types/user'
@@ -474,6 +476,74 @@ export class RecommendationService {
         if (dominant === parts.collab) return 'Usuarios como tú también la vieron'
         if (dominant === parts.pref) return 'Coincide con tus géneros y artistas favoritos'
         return seed && seed.shared > 0 ? `Similar a "${seed.title}"` : 'Basado en tu historial de visualización'
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    //  F4: recompute offline
+    // ═══════════════════════════════════════════════════════════════
+    //  Precaches las tres listas (hybrid, content, collab) para que el
+    //  proximo GET sea un hit. Se invalida primero para no leer la
+    //  matriz collab vieja. Sin senales o sin Redis no hay nada que
+    //  precachear: se evita el costo de MySQL.
+    async recomputeForUser(userId: string): Promise<RecomputeUserResult> {
+        const startedAt = Date.now()
+
+        await this.invalidate(userId)
+
+        const [interactions, prefs] = await Promise.all([
+            this.recRepo.getUserInteractions(userId),
+            this.prefsService.getPreferences(userId),
+        ])
+
+        const hasSignals =
+            interactions.length > 0 ||
+            prefs.favoriteGenres.length > 0 ||
+            Object.keys(prefs.genreAffinity ?? {}).length > 0
+
+        if (!hasSignals) {
+            return {
+                userId,
+                cachedTypes: 0,
+                recommendations: 0,
+                skipped: true,
+                durationMs: Date.now() - startedAt,
+            }
+        }
+
+        if (!this.redisReady()) {
+            logger.warn(`[Recs] Redis no disponible, se omite el recompute de ${userId}`)
+            return {
+                userId,
+                cachedTypes: 0,
+                recommendations: 0,
+                skipped: true,
+                durationMs: Date.now() - startedAt,
+            }
+        }
+
+        // hybrid primero: calienta `collab:scores`, que despues reusan
+        // content y collab.
+        const types = ['hybrid', 'content', 'collab'] as const
+        let cachedTypes = 0
+        let recommendations = 0
+
+        for (const type of types) {
+            const items = await this.compute(userId, { type, limit: recsPrecomputeLimit })
+            await setCached(getRedisClient(), this.cacheKey(userId, type), items, CACHE_TTL_SECONDS)
+            cachedTypes++
+            if (type === 'hybrid') recommendations = items.length
+        }
+
+        const result: RecomputeUserResult = {
+            userId,
+            cachedTypes,
+            recommendations,
+            skipped: false,
+            durationMs: Date.now() - startedAt,
+        }
+
+        logger.info(`[Recs] Recompute user ${userId}`, result)
+        return result
     }
 
     async invalidate(userId: string): Promise<void> {
