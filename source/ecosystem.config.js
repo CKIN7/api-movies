@@ -76,5 +76,24 @@ module.exports = {
       kill_timeout: 30000,
       listen_timeout: 10000,
     },
+    {
+      // F4: procesa recs-recompute-user / recs-recompute-all y registra el cron nocturno.
+      name: 'worker-recs',
+      script: 'dist/workers/recommendationWorker.js',
+      instances: 1,
+      exec_mode: 'fork',
+      env: {
+        NODE_ENV: 'production',
+      },
+      env_development: {
+        NODE_ENV: 'development',
+      },
+      error_file: 'logs/worker-recs-error.log',
+      out_file: 'logs/worker-recs-out.log',
+      log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
+      // El recompute masivo puede tardar: drenar antes de salir.
+      kill_timeout: 60000,
+      listen_timeout: 10000,
+    },
   ],
 };
