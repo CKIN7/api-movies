@@ -1,6 +1,6 @@
 # Demo y laboratorio frontend por feature
 
-> **Tipo:** Guía · **Alcance:** Frontend / QA · **Estado:** Guía · **Revisión:** 2026-10-30
+> **Tipo:** Guía · **Alcance:** Frontend / QA · **Estado:** Guía · **Revisión:** 2026-11-01
 
 ## Contexto
 
@@ -183,6 +183,7 @@ Agregar al documento de la feature:
 - [Guía interactiva](../../public/lab-guide.html): la misma guía en formato demo, con mapa y checklist.
 - [Laboratorio frontend F4/F5](../features/hu-12-user-profiles-2.0/frontend-lab.md): primer laboratorio del proyecto.
 - [Laboratorio frontend F3](../features/hu-13-f3-notifications-lab.md): demo, contratos, casos borde y log.
+- [Laboratorio frontend F4](../features/hu-13-f4-recs-recompute-lab.md): invalidación síncrona y recompute asíncrono.
 - [Plantilla de feature](../_template-feature.md): incluye la sección de cierre.
 - [Propuesta: mapa global compartido](../proposals/2026-10-30-global-architecture-map.md).
 
