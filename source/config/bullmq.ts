@@ -95,6 +95,37 @@ export const notificationWorkerConcurrency = Number(process.env.NOTIFICATION_WOR
 // el aviso se pierde pero la review responde igual (ver contrato de F3).
 export const notificationEnqueueTimeoutMs = Number(process.env.NOTIFICATION_ENQUEUE_TIMEOUT_MS ?? 3000)
 
+// ═══════════════════════════════════════════════════════════════
+//  Recomendaciones (F4)
+// ═══════════════════════════════════════════════════════════════
+//  `recs-recompute-user` corre por invalidacion (review/watchlist/
+//  feedback/preferencias). `recs-recompute-all` corre por cron o por
+//  `npm run recs:compute`. La concurrencia es baja a proposito: cada
+//  job recalcula listas y pega contra MySQL.
+export const recsWorkerConcurrency = Number(process.env.RECS_WORKER_CONCURRENCY ?? 2)
+
+// Mismo criterio best-effort que email/notificaciones: si Redis no
+// responde, la escritura de negocio ya esta persistida y no se cuelga.
+export const recsEnqueueTimeoutMs = Number(process.env.RECS_ENQUEUE_TIMEOUT_MS ?? 3000)
+
+// Cantidad de usuarios por lote en el recompute masivo. Entre lotes se
+// reporta progreso a Bull Board y se libera el event loop.
+export const recsRecomputeBatchSize = Number(process.env.RECS_RECOMPUTE_BATCH_SIZE ?? 25)
+
+// Limite de items precacheados por tipo. Coincide con el maximo que
+// acepta `GET /users/me/recommendations` (50).
+export const recsPrecomputeLimit = Number(process.env.RECS_PRECOMPUTE_LIMIT ?? 50)
+
+// Cron nocturno. `upsertJobScheduler` lo registra el worker de recs;
+// la TZ es configurable porque "3 AM" es hora local del negocio.
+export const recsCronPattern = process.env.RECS_CRON_PATTERN ?? '0 3 * * *'
+export const recsCronTimezone = process.env.RECS_CRON_TZ ?? 'UTC'
+export const recsSchedulerId = 'recs-recompute-nightly'
+
+// Dedupe de invalidaciones: eventos dentro del mismo minuto comparten
+// jobId y generan un solo recompute.
+export const recsDedupeWindowMs = Number(process.env.RECS_DEDUPE_WINDOW_MS ?? 60_000)
+
 export const queueOptions: Record<QueueName, Partial<QueueOptions>> = {
   [QueueNames.EMAIL_CRITICAL]: {
     defaultJobOptions: { ...defaultJobOptions, priority: 1 },
