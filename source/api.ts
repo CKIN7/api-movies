@@ -71,6 +71,7 @@ import NotificationService from './services/NotificationService'
 import NotificationController from './controllers/notificationController'
 import { createNotificationRoutes } from './routes/notificationRoutes'
 import QueuedReviewPublishedNotifier from './notifiers/QueuedReviewPublishedNotifier'
+import QueuedRecommendationRecomputer from './notifiers/QueuedRecommendationRecomputer'
 import { createBullBoard } from '@bull-board/api'
 import { BullMQAdapter } from '@bull-board/api/bullMQAdapter'
 import { ExpressAdapter } from '@bull-board/express'
@@ -137,16 +138,17 @@ export function createApp(
     const authRouter = createAuthRoutes(authController)
 
     const userPreferencesRepository = new UserPreferencesRepository(conn)
-    const userPreferencesService = new UserPreferencesService(userPreferencesRepository)
+    const recommendationRecomputer = new QueuedRecommendationRecomputer()
+    const userPreferencesService = new UserPreferencesService(userPreferencesRepository, recommendationRecomputer)
 
     const reviewRepository = new ReviewRepository(conn)
     const reviewPublishedNotifier = new QueuedReviewPublishedNotifier()
-    const reviewService = new ReviewService(reviewRepository, movieRepo, userPreferencesService, reviewPublishedNotifier)
+    const reviewService = new ReviewService(reviewRepository, movieRepo, userPreferencesService, reviewPublishedNotifier, recommendationRecomputer)
     const reviewController = new ReviewController(reviewService)
     const reviewRouter = createReviewRoutes(reviewController)
 
     const watchlistRepository = new WatchlistRepository(conn)
-    const watchlistService = new WatchlistService(watchlistRepository, movieRepo, userPreferencesService)
+    const watchlistService = new WatchlistService(watchlistRepository, movieRepo, userPreferencesService, recommendationRecomputer)
     const watchlistController = new WatchlistController(watchlistService)
     const watchlistRouter = createWatchlistRoutes(watchlistController)
 
@@ -158,7 +160,7 @@ export function createApp(
     const userPreferencesRouter = createUserPreferencesRoutes(userPreferencesController)
 
     const userProfileRepository = new UserProfileRepository(conn)
-    const userProfileService = new UserProfileService(userProfileRepository, userRepository, userPreferencesService)
+    const userProfileService = new UserProfileService(userProfileRepository, userRepository, userPreferencesService, recommendationRecomputer)
     const userProfileController = new UserProfileController(userProfileService)
     const userProfileRouter = createUserProfileRoutes(userProfileController)
 
@@ -167,13 +169,13 @@ export function createApp(
 const userSettingsController = new UserSettingsController(userSettingsService)
 const userSettingsRouter = createUserSettingsRoutes(userSettingsController)
 
-const onboardingService = new OnboardingService(userPreferencesService, userSettingsService)
+const onboardingService = new OnboardingService(userPreferencesService, userSettingsService, recommendationRecomputer)
 const onboardingController = new OnboardingController(onboardingService)
 const onboardingRouter = createOnboardingRoutes(onboardingController)
 
 const recommendationRepository = new RecommendationRepository(conn)
 const recommendationFeedbackRepository = new RecommendationFeedbackRepository(conn)
-const recommendationFeedbackService = new RecommendationFeedbackService(recommendationFeedbackRepository, userPreferencesService, movieRepo)
+const recommendationFeedbackService = new RecommendationFeedbackService(recommendationFeedbackRepository, userPreferencesService, movieRepo, recommendationRecomputer)
 const recommendationService = new RecommendationService(recommendationRepository, userPreferencesService, movieRepo, recommendationFeedbackService)
 const recommendationController = new RecommendationController(recommendationService, recommendationFeedbackService)
 const recommendationRouter = createRecommendationRoutes(recommendationController)
