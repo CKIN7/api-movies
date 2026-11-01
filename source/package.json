@@ -19,12 +19,15 @@
     "seed:append": "tsx db/seed.ts --keep-data",
     "reindex": "tsx scripts/reindex.ts",
     "recs:compute": "tsx scripts/recomputeRecommendations.ts",
+    "recs:compute:sync": "tsx scripts/recomputeRecommendations.ts --sync",
     "worker:dev": "tsx watch workers/index.ts",
     "worker:prod": "node dist/workers/index.js",
     "worker:email:dev": "tsx watch workers/emailWorker.ts",
     "worker:email:prod": "node dist/workers/emailWorker.js",
     "worker:notifications:dev": "tsx watch workers/notificationWorker.ts",
-    "worker:notifications:prod": "node dist/workers/notificationWorker.js"
+    "worker:notifications:prod": "node dist/workers/notificationWorker.js",
+    "worker:recs:dev": "tsx watch workers/recommendationWorker.ts",
+    "worker:recs:prod": "node dist/workers/recommendationWorker.js"
   },
   "dependencies": {
     "@bull-board/api": "^9.10.5",
