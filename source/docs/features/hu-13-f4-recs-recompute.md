@@ -124,6 +124,24 @@ Bull Board (`/admin/queues`) muestra los jobs, el progreso por lote y los fallos
 
 ---
 
+## Frontend, demo y laboratorio
+
+La página [`public/recommendations.html`](../../public/recommendations.html) recorre el flujo con
+mapa embebido, contratos, casos borde y log. Detalle en
+[`hu-13-f4-recs-recompute-lab.md`](./hu-13-f4-recs-recompute-lab.md).
+
+Decisión **Opción A (sin endpoints nuevos)**:
+
+- Modo real: ejecuta feedback, review y watchlist; verifica la invalidación síncrona y deja los
+  pasos 3–5 como “verificar en Bull Board”, con link a `/admin/queues`.
+- Modo demo: anima encolado, worker, precache y `recs.ready`, incluido el cron y el worker caído.
+
+```text
+/recommendations.html?lab=1
+/recommendations.html?demo=1
+/recommendations.html?demo=1&worker=off
+```
+
 ## Pruebas
 
 - `__tests__/unit/recommendationQueue.test.ts`: payloads, jobId y dedupe por minuto.
