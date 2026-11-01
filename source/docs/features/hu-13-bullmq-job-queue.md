@@ -429,6 +429,7 @@ Rama `feature/bullmq-recs-recompute`. El contrato cerrado está en
 * `recs.ready` se emite solo desde el job masivo, solo si la lista hybrid no está vacía,
   con dedupe por fecha.
 * `npm run typecheck` → sin errores.
+* `npm test` completo → **104 suites / 951 tests** en verde.
 
 ### CI/CD
 - Tests de integración usan Redis real (REDIS_URL_TEST o Testcontainers)
