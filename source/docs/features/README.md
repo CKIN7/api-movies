@@ -1,6 +1,6 @@
 # Features
 
-> **Revisión:** 2026-10-22
+> **Revisión:** 2026-11-01
 
 Specs funcionales y técnicas agrupadas por historia de usuario.
 
@@ -20,6 +20,7 @@ Specs funcionales y técnicas agrupadas por historia de usuario.
 | F3 | [Contrato de notificaciones in-app](./hu-13-f3-notifications.md) | Implementada |
 | F4 | [Contrato de recompute de recomendaciones](./hu-13-f4-recs-recompute.md) | Implementada |
 | — | [Laboratorio frontend F3](./hu-13-f3-notifications-lab.md) | Implementado |
+| — | [Laboratorio frontend F4](./hu-13-f4-recs-recompute-lab.md) | Implementado |
 
 ## HU-12 — User Profiles & Preferences 2.0
 
