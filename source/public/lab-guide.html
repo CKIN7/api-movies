@@ -275,8 +275,9 @@
 <header class="top-bar container">
   <a class="back-link" href="/">Volver a la landing</a>
   <div class="top-links">
-    <a href="/notifications.html?lab=1">Lab F3</a>
-    <a href="/preferences.html?lab=1">Lab F4/F5</a>
+    <a href="/notifications.html?lab=1">Lab HU-13 F3</a>
+    <a href="/recommendations.html?lab=1">Lab HU-13 F4</a>
+    <a href="/preferences.html?lab=1">Lab HU-12 F4/F5</a>
   </div>
 </header>
 
@@ -358,8 +359,8 @@
   <section id="mapa">
     <h2>3 · Mapa de convergencia</h2>
     <p class="section-sub">
-      Esta demo usa el flujo de F3 como ejemplo. Movés los toggles y ves cómo cambia el recorrido.
-      Hacé click en un nodo para ver qué lo implementa.
+      Esta demo usa el flujo de F3 como ejemplo de anatomía. Movés los toggles y ves cómo cambia el recorrido.
+      El mapa real de cada fase vive en su propia página; acá no se duplica.
     </p>
 
     <div class="panel">
@@ -425,6 +426,28 @@
         <button class="btn" id="btn-simulate">Simular POST</button>
         <button class="btn btn-outline" id="btn-reset">Reiniciar</button>
       </div>
+    </div>
+
+    <div class="panel">
+      <h3>Mapas por feature</h3>
+      <p class="section-sub" style="margin:8px 0 12px;">
+        Cada página embebe su propio mapa, sus modos y su guion E2E. La guía solo explica el patrón.
+      </p>
+      <table>
+        <thead><tr><th>Feature</th><th>Página</th><th>Qué muestra</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>HU-13 F3</td>
+            <td><a href="/notifications.html?lab=1">/notifications.html?lab=1</a></td>
+            <td>Fan-out de <code>review.published</code> y notificación in-app.</td>
+          </tr>
+          <tr>
+            <td>HU-13 F4</td>
+            <td><a href="/recommendations.html?lab=1">/recommendations.html?lab=1</a></td>
+            <td>Invalidación síncrona, recompute en BullMQ y <code>recs.ready</code>.</td>
+          </tr>
+        </tbody>
+      </table>
     </div>
   </section>
 
