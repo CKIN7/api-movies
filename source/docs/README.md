@@ -1,6 +1,6 @@
 # Documentación
 
-> **Revisión:** 2026-10-22
+> **Revisión:** 2026-11-02
 
 Índice de la documentación técnica y funcional del proyecto.
 
@@ -28,7 +28,7 @@ docs/
 | HU-10 | [User Profiles & Preferences](./features/hu-10-user-profiles-preferences.md) | Implementado |
 | HU-11 | [Motor de recomendaciones](./features/hu-11-recommendation-engine.md) | Implementado |
 | HU-12 | [User Profiles & Preferences 2.0](./features/hu-12-user-profiles-2.0/README.md) | F0–F5 implementadas |
-| HU-13 | [BullMQ Job Queue System](./features/hu-13-bullmq-job-queue.md) | F1–F3 implementadas (F4 planificada) |
+| HU-13 | [BullMQ Job Queue System](./features/hu-13-bullmq-job-queue.md) | F1–F4 implementadas |
 
 Herramientas de desarrollo: [Laboratorio frontend F4/F5](./features/hu-12-user-profiles-2.0/frontend-lab.md) y [Laboratorio frontend F3](./features/hu-13-f3-notifications-lab.md).
 
