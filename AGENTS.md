@@ -11,7 +11,7 @@ API REST MVC para un catalogo de peliculas. Expone endpoints para autenticacion 
 - Arquitectura: `api.ts` actua como composition root; routes -> controllers -> services -> repositories -> domain/schemas.
 - Validacion: Zod. Autenticacion: JWT. Logs: Winston.
 - Tests: Jest + Supertest, con `maxWorkers: 1`.
-- Ultima version publicada: `v1.0.0`. La version vigente esta en `source/package.json`.
+- Ultima version publicada: `v1.1.0`. La version vigente esta en `source/package.json`.
 - Documentacion funcional y tecnica: `source/docs/README.md`.
 
 ## Estructura
