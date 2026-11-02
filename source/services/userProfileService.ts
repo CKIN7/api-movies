@@ -5,6 +5,7 @@ import { UserProfile } from '../domain/UserProfile'
 import AppError from '../utils/AppError'
 import logger from '../utils/logger'
 import { invalidateUserRecommendations } from '../utils/cache'
+import type RecommendationRecomputer from '../notifiers/RecommendationRecomputer'
 import type { PublicProfileResponse, UpdateUserProfileDTO, UserProfileResponse } from '../types/user'
 
 const EMPTY_PROFILE: UserProfileResponse = {
@@ -31,6 +32,7 @@ export class UserProfileService {
         private profileRepo: UserProfileRepository,
         private userRepo: UserRepository,
         private prefsService: UserPreferencesService,
+        private recommendationRecomputer?: RecommendationRecomputer,
     ) {}
 
     async getMyProfile(userId: string): Promise<UserProfileResponse> {
@@ -74,6 +76,7 @@ export class UserProfileService {
 
             if (demographicsChanged) {
                 await invalidateUserRecommendations(userId)
+                await this.recommendationRecomputer?.scheduleRecompute(userId)
             }
 
             return this.getMyProfile(userId)

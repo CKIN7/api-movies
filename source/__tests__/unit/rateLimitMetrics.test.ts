@@ -87,6 +87,22 @@ describe('rateLimitMetrics', () => {
     })
   })
 
+  describe('best-effort', () => {
+    it('no propaga el error de Redis (si no, rompe el fail-open del limiter)', async () => {
+      const { incrementMetric } = require('../../services/rateLimitMetrics')
+      jest.spyOn(redis, 'incr').mockRejectedValueOnce(new Error('Connection is closed.'))
+
+      await expect(incrementMetric('totalHits')).resolves.toBeUndefined()
+    })
+
+    it('recordRedisError tampoco propaga el error', async () => {
+      const { recordRedisError } = require('../../services/rateLimitMetrics')
+      jest.spyOn(redis, 'incr').mockRejectedValueOnce(new Error('Connection is closed.'))
+
+      await expect(recordRedisError()).resolves.toBeUndefined()
+    })
+  })
+
   describe('getRateLimitMetrics', () => {
     it('should return zeroed metrics for empty state', async () => {
       const { getRateLimitMetrics } = require('../../services/rateLimitMetrics')

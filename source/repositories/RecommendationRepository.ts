@@ -43,6 +43,17 @@ export class RecommendationRepository {
         }))
     }
 
+    async listUsersWithInteractions(): Promise<string[]> {
+        const [rows] = await this.query(
+            `SELECT DISTINCT user_id AS userId FROM (
+                SELECT user_id FROM reviews
+                UNION ALL
+                SELECT user_id FROM user_watchlists
+             ) AS interactions`
+        )
+        return (rows as any[]).map(r => String(r.userId))
+    }
+
     async getCandidates(): Promise<RecommendationCandidateRow[]> {
         const [rows] = await this.query(
             `SELECT m.id, m.title, m.year, m.rating, m.duration, m.age_rating, m.id_director,

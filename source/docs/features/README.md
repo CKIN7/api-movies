@@ -1,6 +1,6 @@
 # Features
 
-> **Revisión:** 2026-10-21
+> **Revisión:** 2026-11-01
 
 Specs funcionales y técnicas agrupadas por historia de usuario.
 
@@ -10,6 +10,17 @@ Specs funcionales y técnicas agrupadas por historia de usuario.
 | HU-10 | [User Profiles & Preferences](./hu-10-user-profiles-preferences.md) | Implementado |
 | HU-11 | [Motor de recomendaciones](./hu-11-recommendation-engine.md) | Implementado |
 | HU-12 | [User Profiles & Preferences 2.0](./hu-12-user-profiles-2.0/README.md) | F0–F5 implementadas |
+| HU-13 | [BullMQ Job Queue System](./hu-13-bullmq-job-queue.md) | F1–F4 implementadas |
+
+## HU-13 — BullMQ Job Queue System
+
+| Fase | Documento | Estado |
+|------|-----------|--------|
+| F1–F2 | [BullMQ Job Queue System](./hu-13-bullmq-job-queue.md) | Implementado |
+| F3 | [Contrato de notificaciones in-app](./hu-13-f3-notifications.md) | Implementada |
+| F4 | [Contrato de recompute de recomendaciones](./hu-13-f4-recs-recompute.md) | Implementada |
+| — | [Laboratorio frontend F3](./hu-13-f3-notifications-lab.md) | Implementado |
+| — | [Laboratorio frontend F4](./hu-13-f4-recs-recompute-lab.md) | Implementado |
 
 ## HU-12 — User Profiles & Preferences 2.0
 
@@ -21,7 +32,15 @@ Specs funcionales y técnicas agrupadas por historia de usuario.
 | F3 | [Configuración](./hu-12-user-profiles-2.0/f3-settings.md) | Implementado |
 | F4 | [Feedback de recomendaciones](./hu-12-user-profiles-2.0/f4-recommendation-feedback.md) | Implementado |
 | F5 | [Onboarding & cold-start](./hu-12-user-profiles-2.0/f5-onboarding.md) | Implementado |
+| — | [Perfil de usuario frontend](./hu-12-user-profiles-2.0/frontend-profile.md) | Implementado |
+| — | [Configuración de usuario frontend](./hu-12-user-profiles-2.0/frontend-settings.md) | Implementado |
+| — | [Laboratorio frontend F4/F5](./hu-12-user-profiles-2.0/frontend-lab.md) | Implementado |
 | — | [Contrato de autor en reviews](./hu-12-user-profiles-2.0/review-author-contract.md) | Implementado |
+
+## Cierre de features
+
+- Guía: [Demo y laboratorio frontend por feature](../cross-cutting/frontend-lab-guideline.md).
+- Propuesta futura: [Mapa global de arquitectura con overlay](../proposals/2026-10-30-global-architecture-map.md).
 
 ## Otros documentos
 

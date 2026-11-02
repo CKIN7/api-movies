@@ -27,6 +27,8 @@ import { createAuthRoutes } from './routes/authRoutes'
 import EmailVerificationRepository from './repositories/EmailVerificationRepository'
 import DevEmailVerificationNotifier from './notifiers/DevEmailVerificationNotifier'
 import DevPasswordResetNotifier from './notifiers/DevPasswordResetNotifier'
+import QueuedEmailVerificationNotifier from './notifiers/QueuedEmailVerificationNotifier'
+import QueuedPasswordResetNotifier from './notifiers/QueuedPasswordResetNotifier'
 import ReviewRepository from './repositories/ReviewRepository'
 import ReviewService from './services/reviewService'
 import ReviewController from './controllers/reviewController'
@@ -64,6 +66,16 @@ import { createUserSettingsRoutes } from './routes/userSettingsRoutes'
 import { OnboardingService } from './services/onboardingService'
 import { OnboardingController } from './controllers/onboardingController'
 import { createOnboardingRoutes } from './routes/onboardingRoutes'
+import NotificationRepository from './repositories/NotificationRepository'
+import NotificationService from './services/NotificationService'
+import NotificationController from './controllers/notificationController'
+import { createNotificationRoutes } from './routes/notificationRoutes'
+import QueuedReviewPublishedNotifier from './notifiers/QueuedReviewPublishedNotifier'
+import QueuedRecommendationRecomputer from './notifiers/QueuedRecommendationRecomputer'
+import { createBullBoard } from '@bull-board/api'
+import { BullMQAdapter } from '@bull-board/api/bullMQAdapter'
+import { ExpressAdapter } from '@bull-board/express'
+import { allQueues, closeAllQueues } from './queues'
 
 // ═══════════════════════════════════════════════════════════════
 //  Patrones: Dependency Injection + Factory + Chain of Resp.
@@ -110,8 +122,11 @@ export function createApp(
     const searchController = new SearchController(searchServiceInstance)
     const searchRouter = createSearchRoutes(searchController)
 
-    const notifier = new DevEmailVerificationNotifier()
-    const resetNotifier = new DevPasswordResetNotifier()
+    // F2: el API es productor, no entrega. Dev* queda disponible para
+    // entornos sin Redis; el default encola en email-critical.
+    const useQueuedNotifiers = process.env.EMAIL_DELIVERY_MODE !== 'dev'
+    const notifier = useQueuedNotifiers ? new QueuedEmailVerificationNotifier() : new DevEmailVerificationNotifier()
+    const resetNotifier = useQueuedNotifiers ? new QueuedPasswordResetNotifier() : new DevPasswordResetNotifier()
 
 
     const exportService = new ExportService(movieRepo)
@@ -123,15 +138,17 @@ export function createApp(
     const authRouter = createAuthRoutes(authController)
 
     const userPreferencesRepository = new UserPreferencesRepository(conn)
-    const userPreferencesService = new UserPreferencesService(userPreferencesRepository)
+    const recommendationRecomputer = new QueuedRecommendationRecomputer()
+    const userPreferencesService = new UserPreferencesService(userPreferencesRepository, recommendationRecomputer)
 
     const reviewRepository = new ReviewRepository(conn)
-    const reviewService = new ReviewService(reviewRepository, movieRepo, userPreferencesService)
+    const reviewPublishedNotifier = new QueuedReviewPublishedNotifier()
+    const reviewService = new ReviewService(reviewRepository, movieRepo, userPreferencesService, reviewPublishedNotifier, recommendationRecomputer)
     const reviewController = new ReviewController(reviewService)
     const reviewRouter = createReviewRoutes(reviewController)
 
     const watchlistRepository = new WatchlistRepository(conn)
-    const watchlistService = new WatchlistService(watchlistRepository, movieRepo, userPreferencesService)
+    const watchlistService = new WatchlistService(watchlistRepository, movieRepo, userPreferencesService, recommendationRecomputer)
     const watchlistController = new WatchlistController(watchlistService)
     const watchlistRouter = createWatchlistRoutes(watchlistController)
 
@@ -143,7 +160,7 @@ export function createApp(
     const userPreferencesRouter = createUserPreferencesRoutes(userPreferencesController)
 
     const userProfileRepository = new UserProfileRepository(conn)
-    const userProfileService = new UserProfileService(userProfileRepository, userRepository, userPreferencesService)
+    const userProfileService = new UserProfileService(userProfileRepository, userRepository, userPreferencesService, recommendationRecomputer)
     const userProfileController = new UserProfileController(userProfileService)
     const userProfileRouter = createUserProfileRoutes(userProfileController)
 
@@ -152,16 +169,21 @@ export function createApp(
 const userSettingsController = new UserSettingsController(userSettingsService)
 const userSettingsRouter = createUserSettingsRoutes(userSettingsController)
 
-const onboardingService = new OnboardingService(userPreferencesService, userSettingsService)
+const onboardingService = new OnboardingService(userPreferencesService, userSettingsService, recommendationRecomputer)
 const onboardingController = new OnboardingController(onboardingService)
 const onboardingRouter = createOnboardingRoutes(onboardingController)
 
 const recommendationRepository = new RecommendationRepository(conn)
 const recommendationFeedbackRepository = new RecommendationFeedbackRepository(conn)
-const recommendationFeedbackService = new RecommendationFeedbackService(recommendationFeedbackRepository, userPreferencesService, movieRepo)
+const recommendationFeedbackService = new RecommendationFeedbackService(recommendationFeedbackRepository, userPreferencesService, movieRepo, recommendationRecomputer)
 const recommendationService = new RecommendationService(recommendationRepository, userPreferencesService, movieRepo, recommendationFeedbackService)
 const recommendationController = new RecommendationController(recommendationService, recommendationFeedbackService)
 const recommendationRouter = createRecommendationRoutes(recommendationController)
+
+const notificationRepository = new NotificationRepository(conn)
+const notificationService = new NotificationService(notificationRepository)
+const notificationController = new NotificationController(notificationService)
+const notificationRouter = createNotificationRoutes(notificationController)
 
     app.use('/movies/search', searchRouter)
     app.use('/movies', exportRouter)
@@ -174,8 +196,17 @@ const recommendationRouter = createRecommendationRoutes(recommendationController
     app.use('/users', userRouter)
     app.use('/users', userPreferencesRouter)
     app.use('/users', recommendationRouter)
+    app.use('/users', notificationRouter)
     app.use('/auth', authRouter)
     app.use('/metrics', metricsRouter)
+
+    const bullBoardAdapter = new ExpressAdapter()
+    bullBoardAdapter.setBasePath('/admin/queues')
+    createBullBoard({
+      queues: allQueues.map((q) => new BullMQAdapter(q)),
+      serverAdapter: bullBoardAdapter,
+    })
+    app.use('/admin/queues', bullBoardAdapter.getRouter())
 
     app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
         const statusCode = err instanceof AppError ? err.statusCode : err instanceof ZodError ? 400 : 500
@@ -207,6 +238,7 @@ if (require.main === module) {
 
     process.on('SIGTERM', async () => {
         logger.info('SIGTERM received, shutting down gracefully')
+        await closeAllQueues()
         await disconnectRedis()
         await closeDb()
         process.exit(0)
@@ -214,6 +246,7 @@ if (require.main === module) {
 
     process.on('SIGINT', async () => {
         logger.info('SIGINT received, shutting down gracefully')
+        await closeAllQueues()
         await disconnectRedis()
         await closeDb()
         process.exit(0)

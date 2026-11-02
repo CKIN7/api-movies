@@ -3,6 +3,7 @@ import { UserPreferences } from '../domain/UserPreferences'
 import AppError from '../utils/AppError'
 import logger from '../utils/logger'
 import { invalidateUserRecommendations } from '../utils/cache'
+import type RecommendationRecomputer from '../notifiers/RecommendationRecomputer'
 import type { ContentFilters, GenreAffinity, UpdateUserPreferencesDTO } from '../types/user'
 
 function intersection(a: number[], b: number[]): number[] {
@@ -13,6 +14,7 @@ function intersection(a: number[], b: number[]): number[] {
 export class UserPreferencesService {
     constructor(
         private userPreferencesRepository: UserPreferencesRepository,
+        private recommendationRecomputer?: RecommendationRecomputer,
     ) {}
 
     async getPreferences(userId: string) {
@@ -74,6 +76,7 @@ export class UserPreferencesService {
             }
 
             await invalidateUserRecommendations(userId)
+            await this.recommendationRecomputer?.scheduleRecompute(userId)
 
             return this.getPreferences(userId)
         } catch (error) {

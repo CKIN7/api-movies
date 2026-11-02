@@ -1,6 +1,6 @@
 # Documentación
 
-> **Revisión:** 2026-10-21
+> **Revisión:** 2026-11-02
 
 Índice de la documentación técnica y funcional del proyecto.
 
@@ -28,6 +28,9 @@ docs/
 | HU-10 | [User Profiles & Preferences](./features/hu-10-user-profiles-preferences.md) | Implementado |
 | HU-11 | [Motor de recomendaciones](./features/hu-11-recommendation-engine.md) | Implementado |
 | HU-12 | [User Profiles & Preferences 2.0](./features/hu-12-user-profiles-2.0/README.md) | F0–F5 implementadas |
+| HU-13 | [BullMQ Job Queue System](./features/hu-13-bullmq-job-queue.md) | F1–F4 implementadas |
+
+Herramientas de desarrollo: [Laboratorio frontend F4/F5](./features/hu-12-user-profiles-2.0/frontend-lab.md) y [Laboratorio frontend F3](./features/hu-13-f3-notifications-lab.md).
 
 ## Cross-cutting
 
@@ -37,18 +40,27 @@ docs/
 | [Pool de conexiones MySQL](./cross-cutting/db-connection-pool.md) | Infra DB | Implementado |
 | [Aislamiento del rate limiter en tests](./cross-cutting/rate-limiter-test-isolation.md) | Tests | Implementado |
 | [Fallos de test pre-existentes](./cross-cutting/pre-existing-test-failures.md) | Tests | Implementado |
+| [Omitir CI en develop para docs](./cross-cutting/skip-ci-develop.md) | Tests / CI | Guía |
+| [Demo y laboratorio frontend por feature](./cross-cutting/frontend-lab-guideline.md) | Frontend / QA | Guía |
+
+Guía interactiva: [`public/lab-guide.html`](../public/lab-guide.html) — se sirve con la API en `http://localhost:8089/lab-guide.html` y demuestra modos, mapa de convergencia, guion E2E y checklist de QA.
 
 ## Fixes
 
 | Documento | Estado |
 |-----------|--------|
-| [Registro atómico (`users` + `email_verifications`)](./fixes/register-atomicity.md) | Spec (no implementado) |
+| [Registro atómico (`users` + `email_verifications`)](./fixes/register-atomicity.md) | Implementado en F2 de HU-13 |
+| [Correcciones de la infraestructura BullMQ (F1)](./fixes/bullmq-f1-corrections.md) | Implementado |
+| [Fail-open del rate limiter con Redis caído](./fixes/rate-limiter-fail-open.md) | Implementado |
 
 ## Propuestas
 
 | Documento | Fecha |
 |-----------|-------|
 | [Propuestas para el Domain Model](./proposals/2026-07-29-domain-model.md) | 2026-07-29 |
+| [Dislikes de F2 y labels de feedback F4](./proposals/2026-10-22-f2-dislikes-y-labels-feedback.md) | 2026-10-22 |
+| [Otros casos de uso para BullMQ](./proposals/2026-10-24-bullmq-use-cases.md) | 2026-10-24 |
+| [Mapa global de arquitectura con overlay por feature](./proposals/2026-10-30-global-architecture-map.md) | 2026-10-30 |
 
 ## Convenciones
 

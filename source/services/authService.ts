@@ -64,25 +64,38 @@ class AuthService {
             if(existingUser) throw new AppError('El email ya está registrado', 409);
 
             const passwordHash = await bcrypt.hash(password, 10);
-            
-            // El valor emailVerified lo define la BD (DEFAULT 0): todo usuario nuevo nace sin verificar.
-            const newUser = await this.userRepository.create({email, passwordHash, role: DEFAULT_ROLE });
-
             const verificationToken = randomUUID();
             const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000)   // 24 horas (TTL verificación)
 
-            await this.emailVerificationRepository.create({
-                userId: newUser.id, 
-                token: verificationToken, 
-                expiresAt
+            // S1: los dos INSERT comparten transacción. Si falla el token,
+            // rollback deja el email libre para reintentar.
+            // El valor emailVerified lo define la BD (DEFAULT 0): todo usuario nuevo nace sin verificar.
+            const newUser = await this.emailVerificationRepository.transaction(async () => {
+                const user = await this.userRepository.create({email, passwordHash, role: DEFAULT_ROLE });
+                await this.emailVerificationRepository.create({
+                    userId: user.id, 
+                    token: verificationToken, 
+                    expiresAt
+                })
+                return user
             })
 
-            await this.emailVerificationNotifier.sendVerificationEmail(newUser.email, verificationToken)
+            // S2: el encolado va después del COMMIT y su fallo no es fatal
+            // (best-effort): el usuario ya existe y /auth/resend es la recuperación.
+            try {
+                await this.emailVerificationNotifier.sendVerificationEmail(newUser.email, verificationToken)
+            } catch (error) {
+                logger.error(`No se pudo enviar verificación a ${newUser.id}: ${(error as Error).message}`)
+            }
 
             return newUser
 
         } catch (error) {
             if (error instanceof AppError) throw error
+            // S3: carrera de emails → el INSERT choca con el UNIQUE → 409, no 500.
+            if ((error as { code?: string }).code === 'ER_DUP_ENTRY') {
+                throw new AppError('El email ya está registrado', 409)
+            }
             logger.error(`Error en register: ${(error as Error).message}`)
             throw new AppError('Error interno', 500)
         }
@@ -212,7 +225,13 @@ class AuthService {
 
             await this.emailVerificationRepository.create({userId: user.id, token: verificationToken, expiresAt})
 
-            await this.emailVerificationNotifier.sendVerificationEmail(user.email, verificationToken)
+            // Best-effort, igual que register: si el encolado falla, la
+            // respuesta genérica no cambia (evita user enumeration por timing).
+            try {
+                await this.emailVerificationNotifier.sendVerificationEmail(user.email, verificationToken)
+            } catch (error) {
+                logger.error(`No se pudo reenviar verificación a ${user.id}: ${(error as Error).message}`)
+            }
 
             return {message: RESEND_GENERIC_MESSAGE}
 
@@ -250,7 +269,11 @@ class AuthService {
                 expiresAt: passwordResetTokenExpiresAt
             })
 
-            await this.passwordResetNotifier.sendResetEmail(user.email, passwordResetToken)
+            try {
+                await this.passwordResetNotifier.sendResetEmail(user.email, passwordResetToken)
+            } catch (error) {
+                logger.error(`No se pudo encolar el reset de contraseña de ${user.id}: ${(error as Error).message}`)
+            }
 
             return {message: FORGOT_GENERIC_MESSAGE}
 

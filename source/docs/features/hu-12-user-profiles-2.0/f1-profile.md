@@ -199,3 +199,7 @@ GET /users/:id/profile
 * `npm run build`
 
 El contrato de autor en reviews se documenta aparte: [`review-author-contract.md`](./review-author-contract.md).
+
+## Frontend
+
+La implementación visual de F1 se documenta en [`frontend-profile.md`](./frontend-profile.md).

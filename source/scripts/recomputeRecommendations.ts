@@ -1,22 +1,45 @@
-import connection from '../db/connection'
-import { connectRedis, disconnectRedis } from '../utils/redisClient'
-import { RecommendationRepository } from '../repositories/RecommendationRepository'
-import { RecommendationFeedbackRepository } from '../repositories/RecommendationFeedbackRepository'
-import { RecommendationService } from '../services/recommendationService'
-import { RecommendationFeedbackService } from '../services/recommendationFeedbackService'
-import MovieRepository from '../repositories/MovieRepository'
-import { UserPreferencesService } from '../services/userPreferencesService'
-import { UserPreferencesRepository } from '../repositories/UserPreferencesRepository'
 import logger from '../utils/logger'
 
 // ═══════════════════════════════════════════════════════════════
-//  Job offline: recalcula las recomendaciones collaborative
-//  para todos los usuarios y las guarda en Redis (TTL 24h).
-//  Uso: npm run recs:compute
+//  F4: recompute de recomendaciones
+// ═══════════════════════════════════════════════════════════════
+//  Uso:
+//    npm run recs:compute        -> encola `recs-recompute-all` (no bloquea)
+//    npm run recs:compute:sync   -> corre el recompute en este proceso
+//
+//  El modo encolado es el recomendado: el worker `worker-recs` hace el
+//  trabajo y Bull Board muestra progreso. El modo sync queda para
+//  operaciones puntuales y para reproducir el comportamiento previo.
 // ═══════════════════════════════════════════════════════════════
 
-async function recompute(): Promise<void> {
-    logger.info('[Recs] Starting collaborative recompute...')
+async function enqueue(): Promise<void> {
+    const { enqueueRecsRecomputeAll } = await import('../queues/recommendationQueue')
+    const { closeAllQueues } = await import('../queues/queueFactory')
+
+    try {
+        const jobId = await enqueueRecsRecomputeAll({
+            jobId: `recs-all-manual-${Date.now()}`,
+        })
+        logger.info(
+            `[Recs] Job recs-recompute-all encolado (${jobId}). Seguilo en /admin/queues o en los logs de worker-recs.`,
+        )
+    } finally {
+        await closeAllQueues()
+    }
+}
+
+async function runSync(): Promise<void> {
+    const { default: connection } = await import('../db/connection')
+    const { connectRedis, disconnectRedis } = await import('../utils/redisClient')
+    const { RecommendationRepository } = await import('../repositories/RecommendationRepository')
+    const { RecommendationFeedbackRepository } = await import('../repositories/RecommendationFeedbackRepository')
+    const { RecommendationService } = await import('../services/recommendationService')
+    const { RecommendationFeedbackService } = await import('../services/recommendationFeedbackService')
+    const { default: MovieRepository } = await import('../repositories/MovieRepository')
+    const { UserPreferencesService } = await import('../services/userPreferencesService')
+    const { UserPreferencesRepository } = await import('../repositories/UserPreferencesRepository')
+
+    logger.info('[Recs] Starting synchronous recompute...')
 
     await connectRedis()
 
@@ -28,15 +51,29 @@ async function recompute(): Promise<void> {
     const feedbackService = new RecommendationFeedbackService(feedbackRepo, prefsService, movieRepo)
     const service = new RecommendationService(recRepo, prefsService, movieRepo, feedbackService)
 
-    const processed = await service.recomputeCollabForAllUsers()
+    const users = await recRepo.listUsersWithInteractions()
+    let processed = 0
+    let failed = 0
 
-    logger.info(`[Recs] Done. Recomputed collab recommendations for ${processed} user(s).`)
+    for (const userId of users) {
+        try {
+            const result = await service.recomputeForUser(userId)
+            if (!result.skipped) processed++
+        } catch (error) {
+            failed++
+            logger.error(`[Recs] Fallo el recompute de ${userId}: ${(error as Error).message}`)
+        }
+    }
+
+    logger.info(`[Recs] Done. ${processed} user(s) recomputed, ${failed} failed.`)
 
     await disconnectRedis()
     await connection.end()
 }
 
-recompute().catch(err => {
-    logger.error(`[Recs] Failed: ${err.message}`)
+const run = process.argv.includes('--sync') ? runSync : enqueue
+
+run().catch((error) => {
+    logger.error(`[Recs] Failed: ${(error as Error).message}`)
     process.exit(1)
 })

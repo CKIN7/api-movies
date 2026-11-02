@@ -183,3 +183,7 @@ PATCH /users/me/settings
 * `npm run migrate` (aplica la migración en la BD de la app)
 * `npm test -- userSettings` · `npm test -- user-settings`
 * `npm run build`
+
+## Frontend
+
+La implementación visual de F3 se documenta en [`frontend-settings.md`](./frontend-settings.md).

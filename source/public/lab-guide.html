@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Movies API - Demo y laboratorio por feature</title>
+<style>
+  :root {
+    --bg: #111;
+    --panel: #1a1a1a;
+    --panel-soft: #151515;
+    --border: #333;
+    --border-strong: #444;
+    --input-bg: #111;
+    --text: #eee;
+    --text-soft: #ccc;
+    --muted: #888;
+    --muted-soft: #666;
+    --accent: #0066cc;
+    --accent-hover: #0052a3;
+    --link: #8ab4f8;
+    --error: #f28b82;
+    --error-border: #8b2e2e;
+    --ok: #81c995;
+    --ok-bg: #1e4620;
+    --warn: #fdd835;
+    --warn-bg: #2a2610;
+    --idle: #666;
+  }
+
+  [data-theme="light"] {
+    --bg: #f4f5f7;
+    --panel: #fff;
+    --panel-soft: #f0f1f3;
+    --border: #d8dbe0;
+    --border-strong: #c3c7ce;
+    --input-bg: #fff;
+    --text: #17181a;
+    --text-soft: #333;
+    --muted: #666;
+    --muted-soft: #888;
+    --accent: #0057b8;
+    --accent-hover: #00448f;
+    --link: #0057b8;
+    --error: #b3261e;
+    --error-border: #b3261e;
+    --ok: #146c2e;
+    --ok-bg: #d7f2dd;
+    --warn: #7a5b00;
+    --warn-bg: #fff2c2;
+    --idle: #999;
+  }
+
+  @media (prefers-color-scheme: light) {
+    :root:not([data-theme]) {
+      --bg: #f4f5f7;
+      --panel: #fff;
+      --panel-soft: #f0f1f3;
+      --border: #d8dbe0;
+      --border-strong: #c3c7ce;
+      --input-bg: #fff;
+      --text: #17181a;
+      --text-soft: #333;
+      --muted: #666;
+      --muted-soft: #888;
+      --accent: #0057b8;
+      --accent-hover: #00448f;
+      --link: #0057b8;
+      --error: #b3261e;
+      --error-border: #b3261e;
+      --ok: #146c2e;
+      --ok-bg: #d7f2dd;
+      --warn: #7a5b00;
+      --warn-bg: #fff2c2;
+      --idle: #999;
+    }
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--bg); color: var(--text);
+    min-height: 100vh; padding-bottom: 60px;
+  }
+  .container { width: 1000px; max-width: 100%; margin: 0 auto; padding: 0 16px; }
+  code { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; color: var(--link); font-size: 0.85em; }
+  .hidden { display: none !important; }
+  .muted { color: var(--muted); font-size: 0.78rem; }
+
+  .top-bar {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 16px 0; border-bottom: 1px solid var(--border); margin-bottom: 24px;
+    gap: 12px; flex-wrap: wrap;
+  }
+  .back-link { color: var(--link); text-decoration: none; font-size: 0.9rem; }
+  .back-link:hover { text-decoration: underline; }
+  .top-links { display: flex; gap: 14px; }
+  .top-links a { color: var(--muted); text-decoration: none; font-size: 0.82rem; }
+  .top-links a:hover { color: var(--text); }
+
+  .hero { text-align: center; margin-bottom: 22px; }
+  h1 { font-size: 1.5rem; margin-bottom: 6px; }
+  .subtitle { color: var(--muted); font-size: 0.88rem; }
+  .chips { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-top: 14px; }
+  .chip {
+    font-size: 0.72rem; color: var(--text-soft); background: var(--panel-soft);
+    border: 1px solid var(--border); border-radius: 999px; padding: 4px 12px;
+  }
+
+  .tabbar {
+    position: sticky; top: 0; z-index: 20; display: flex; gap: 6px; flex-wrap: wrap;
+    background: var(--bg); padding: 10px 0; margin-bottom: 20px; border-bottom: 1px solid var(--border);
+  }
+  .tabbar button {
+    background: transparent; border: 1px solid var(--border-strong); color: var(--muted);
+    border-radius: 999px; padding: 6px 14px; cursor: pointer; font-size: 0.78rem;
+  }
+  .tabbar button:hover { color: var(--text); border-color: var(--muted); }
+  .tabbar button.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+  section { margin-bottom: 34px; scroll-margin-top: 70px; }
+  h2 { font-size: 1.05rem; color: var(--text-soft); margin-bottom: 6px; }
+  .section-sub { color: var(--muted); font-size: 0.82rem; margin-bottom: 16px; }
+  .step-highlight { outline: 2px solid var(--accent); outline-offset: 4px; border-radius: 10px; }
+
+  .panel {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 20px;
+  }
+  .panel + .panel { margin-top: 16px; }
+
+  .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  @media (max-width: 760px) { .cards { grid-template-columns: 1fr; } }
+  .card {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 16px;
+  }
+  .card h3 { font-size: 0.9rem; margin-bottom: 6px; color: var(--text); }
+  .card p { font-size: 0.8rem; color: var(--muted); margin-bottom: 10px; }
+  .card .tag {
+    display: inline-block; font-size: 0.68rem; border: 1px solid var(--border-strong);
+    border-radius: 6px; padding: 2px 8px; color: var(--text-soft); margin-bottom: 10px;
+  }
+
+  .rules { list-style: none; margin-top: 14px; }
+  .rules li { font-size: 0.82rem; color: var(--text-soft); padding: 6px 0 6px 22px; position: relative; }
+  .rules li::before { content: "✓"; position: absolute; left: 0; color: var(--ok); }
+
+  .anatomy { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  @media (max-width: 760px) { .anatomy { grid-template-columns: 1fr; } }
+  .anatomy .item {
+    background: var(--panel-soft); border: 1px solid var(--border); border-radius: 8px;
+    padding: 12px; font-size: 0.8rem; color: var(--text-soft);
+  }
+  .anatomy .item strong { display: block; margin-bottom: 4px; color: var(--text); font-size: 0.82rem; }
+  .anatomy .item span { color: var(--muted); font-size: 0.74rem; }
+
+  /* Mapa */
+  .map { display: flex; flex-direction: column; gap: 0; }
+  .map-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .map-branch { display: flex; flex-direction: column; gap: 8px; flex: 1; min-width: 260px; }
+  .map-connector {
+    display: flex; align-items: center; gap: 8px; padding: 6px 0 6px 22px;
+    color: var(--muted); font-size: 0.72rem;
+  }
+  .map-connector .line { width: 2px; height: 18px; background: var(--border-strong); }
+  .map-connector .badge-step {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 20px; height: 20px; border-radius: 50%; font-size: 0.68rem;
+    border: 1px solid var(--border-strong); color: var(--muted); background: var(--panel-soft);
+  }
+  .map-connector.ok .badge-step { border-color: var(--ok); color: var(--ok); }
+  .map-connector.active .badge-step { border-color: var(--accent); color: var(--accent); }
+  .map-connector.waiting .badge-step { border-color: var(--warn); color: var(--warn); }
+  .map-connector.off .badge-step { border-color: var(--idle); color: var(--idle); }
+  .map-connector.off .label { color: var(--muted-soft); }
+
+  .map-node {
+    text-align: left; background: var(--panel-soft); border: 1px solid var(--border);
+    border-left: 3px solid var(--idle); border-radius: 8px; padding: 10px 14px;
+    color: var(--text-soft); cursor: pointer; transition: border-color .15s, box-shadow .15s, transform .15s;
+    font-family: inherit; font-size: 0.84rem; min-width: 150px;
+  }
+  .map-node small { display: block; color: var(--muted); font-size: 0.7rem; margin-top: 3px; }
+  .map-node:hover { border-color: var(--muted); }
+  .map-node:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .map-node.active { border-left-color: var(--accent); box-shadow: 0 0 0 2px rgba(0, 102, 204, .25); transform: translateY(-1px); }
+  .map-node.ok { border-left-color: var(--ok); }
+  .map-node.waiting { border-left-color: var(--warn); background: var(--warn-bg); }
+  .map-node.off { opacity: .45; border-left-color: var(--idle); }
+  .map-node.error { border-left-color: var(--error); }
+
+  .map-controls { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin: 18px 0 14px; }
+  .switch-row {
+    display: flex; align-items: center; gap: 8px; font-size: 0.8rem; color: var(--text-soft);
+    background: var(--panel-soft); border: 1px solid var(--border); border-radius: 8px; padding: 7px 12px; cursor: pointer;
+  }
+  .switch-row input { accent-color: var(--accent); }
+
+  .btn {
+    background: var(--accent); color: #fff; border: none; border-radius: 6px;
+    padding: 8px 18px; cursor: pointer; font-size: 0.84rem; transition: background .15s; white-space: nowrap;
+  }
+  .btn:hover { background: var(--accent-hover); }
+  .btn:disabled { opacity: .5; cursor: not-allowed; }
+  .btn-outline { background: transparent; border: 1px solid var(--border-strong); color: var(--muted); }
+  .btn-outline:hover { border-color: var(--muted); color: var(--text); }
+  .btn-sm { padding: 4px 12px; font-size: 0.74rem; }
+
+  .steps-chips { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+  .step-chip {
+    font-size: 0.72rem; border: 1px solid var(--border-strong); border-radius: 999px;
+    padding: 4px 10px; color: var(--muted); background: var(--panel-soft);
+  }
+  .step-chip.ok { border-color: var(--ok); color: var(--ok); }
+  .step-chip.active { border-color: var(--accent); color: var(--accent); }
+  .step-chip.waiting { border-color: var(--warn); color: var(--warn); }
+  .step-chip.off { opacity: .5; }
+
+  #map-caption {
+    margin-top: 14px; font-size: 0.82rem; color: var(--text-soft);
+    background: var(--panel-soft); border: 1px dashed var(--border-strong); border-radius: 8px; padding: 10px 12px;
+  }
+
+  #node-detail {
+    margin-top: 12px; font-size: 0.8rem; color: var(--muted);
+    border-left: 3px solid var(--accent); padding: 4px 0 4px 10px;
+  }
+
+  table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th { color: var(--muted); font-size: 0.7rem; text-transform: uppercase; font-weight: 500; }
+  tr.row-ok td:first-child { border-left: 3px solid var(--ok); }
+  tr.row-fail td:first-child { border-left: 3px solid var(--error); }
+  tr.row-skip td:first-child { border-left: 3px solid var(--idle); }
+  tr.row-wait td:first-child { border-left: 3px solid var(--warn); }
+
+  .log {
+    background: var(--panel-soft); border: 1px solid var(--border); border-radius: 8px;
+    padding: 10px 12px; font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+    font-size: 0.72rem; color: var(--text-soft); max-height: 220px; overflow: auto;
+  }
+  .log-line { padding: 2px 0; border-bottom: 1px dashed var(--border); }
+  .log-line:last-child { border-bottom: none; }
+  .log-line .ok { color: var(--ok); }
+  .log-line .warn { color: var(--warn); }
+  .log-line .err { color: var(--error); }
+  .log-empty { color: var(--muted-soft); }
+  .toolbar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+  .toolbar .spacer { flex: 1; }
+
+  .checklist { list-style: none; display: grid; grid-template-columns: 1fr 1fr; gap: 8px 18px; }
+  @media (max-width: 760px) { .checklist { grid-template-columns: 1fr; } }
+  .checklist li { font-size: 0.82rem; color: var(--text-soft); }
+  .checklist label { display: flex; align-items: flex-start; gap: 8px; cursor: pointer; }
+  .checklist input { margin-top: 3px; accent-color: var(--accent); }
+  .progress { font-size: 0.78rem; color: var(--muted); margin-bottom: 12px; }
+
+  pre.snippet {
+    background: var(--panel-soft); border: 1px solid var(--border); border-radius: 8px;
+    padding: 14px; font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+    font-size: 0.76rem; color: var(--text-soft); overflow: auto; white-space: pre-wrap;
+  }
+
+  .toast-container { position: fixed; bottom: 20px; right: 20px; display: flex; flex-direction: column; gap: 8px; z-index: 1000; }
+  .toast {
+    background: var(--panel); border: 1px solid var(--border-strong); color: var(--text);
+    padding: 10px 16px; border-radius: 8px; font-size: 0.82rem;
+    box-shadow: 0 4px 12px rgba(0,0,0,.25);
+  }
+  .toast.error { border-color: var(--error-border); color: var(--error); }
+</style>
+</head>
+<body>
+
+<header class="top-bar container">
+  <a class="back-link" href="/">Volver a la landing</a>
+  <div class="top-links">
+    <a href="/notifications.html?lab=1">Lab HU-13 F3</a>
+    <a href="/recommendations.html?lab=1">Lab HU-13 F4</a>
+    <a href="/preferences.html?lab=1">Lab HU-12 F4/F5</a>
+  </div>
+</header>
+
+<div class="container">
+  <div class="hero">
+    <h1>Demo y laboratorio por feature</h1>
+    <p class="subtitle">Cómo cerrar una feature con demo, lab interactivo y mapa de convergencia.</p>
+    <div class="chips">
+      <span class="chip">?demo=1 sin backend</span>
+      <span class="chip">?lab=1 acciones reales</span>
+      <span class="chip">guion E2E</span>
+      <span class="chip">mapa de convergencia</span>
+      <span class="chip">evidencia para QA</span>
+    </div>
+  </div>
+
+  <nav class="tabbar" id="tabbar" aria-label="Secciones de la guía">
+    <button type="button" data-target="modos" class="active">1 · Modos</button>
+    <button type="button" data-target="anatomia">2 · Anatomía</button>
+    <button type="button" data-target="mapa">3 · Mapa</button>
+    <button type="button" data-target="e2e">4 · Guion E2E</button>
+    <button type="button" data-target="qa">5 · QA</button>
+    <button type="button" data-target="plantilla">6 · Plantilla</button>
+  </nav>
+
+  <!-- 1. Modos -->
+  <section id="modos">
+    <h2>1 · Los tres modos de una página</h2>
+    <p class="section-sub">La misma página sirve al usuario, al equipo y a QA. Lo que cambia es el parámetro y los datos.</p>
+    <div class="cards">
+      <div class="card">
+        <span class="tag">sin parámetros</span>
+        <h3>Producto</h3>
+        <p>La vista real, con datos reales. Es la que ve el usuario final.</p>
+        <small class="muted">Backend real · datos reales</small>
+      </div>
+      <div class="card">
+        <span class="tag">?lab=1</span>
+        <h3>Laboratorio</h3>
+        <p>Agrega contratos, casos borde, mapa y log. Ejecuta acciones reales contra la API.</p>
+        <small class="muted">Backend real · acciones de prueba</small>
+      </div>
+      <div class="card">
+        <span class="tag">?demo=1</span>
+        <h3>Demo</h3>
+        <p>Datos mock en memoria. Funciona sin API, sin Redis y sin MySQL, con el mismo contrato.</p>
+        <small class="muted">Sin backend · determinista</small>
+      </div>
+    </div>
+    <div class="panel">
+      <ul class="rules">
+        <li>El modo demo no llama a la API, ni a Redis, ni a MySQL.</li>
+        <li>El modo demo parte del mismo estado en cada carga.</li>
+        <li>El laboratorio se marca visualmente como tal.</li>
+        <li><code>?lab=1</code> es una convención de UI, no un mecanismo de seguridad.</li>
+        <li>La autorización sigue en <code>requireAuth</code> y en el <code>user_id</code> del token.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- 2. Anatomía -->
+  <section id="anatomia">
+    <h2>2 · Anatomía del laboratorio</h2>
+    <p class="section-sub">Nueve secciones. Las cuatro primeras y el log son el mínimo para que sea útil.</p>
+    <div class="anatomy">
+      <div class="item"><strong>1 · Flujo de la fase</strong><span>El evento y sus efectos en 3 a 6 nodos.</span></div>
+      <div class="item"><strong>2 · Estado real</strong><span>Lo que ve el usuario: lista, badge, formulario.</span></div>
+      <div class="item"><strong>3 · Acciones</strong><span>Crear, ejecutar, reintentar, limpiar.</span></div>
+      <div class="item"><strong>4 · Contratos</strong><span>Tabla de endpoints con botón “Probar”.</span></div>
+      <div class="item"><strong>5 · Casos borde</strong><span>400, 404, idempotencia, permisos, límites.</span></div>
+      <div class="item"><strong>6 · Mapa de convergencia</strong><span>Cómo la fase se conecta con la API completa.</span></div>
+      <div class="item"><strong>7 · Guion E2E</strong><span>Pasos numerados con resultado esperado.</span></div>
+      <div class="item"><strong>8 · Qué se construyó</strong><span>Sub-fases, archivos y criterios de aceptación.</span></div>
+      <div class="item"><strong>9 · Log de peticiones</strong><span>Método, ruta, status, latencia y body.</span></div>
+    </div>
+  </section>
+
+  <!-- 3. Mapa -->
+  <section id="mapa">
+    <h2>3 · Mapa de convergencia</h2>
+    <p class="section-sub">
+      Esta demo usa el flujo de F3 como ejemplo de anatomía. Movés los toggles y ves cómo cambia el recorrido.
+      El mapa real de cada fase vive en su propia página; acá no se duplica.
+    </p>
+
+    <div class="panel">
+      <div class="map" id="map">
+        <div class="map-row">
+          <button class="map-node" data-node="browser">
+            Navegador
+            <small>página + Auth + polling</small>
+          </button>
+        </div>
+        <div class="map-connector" data-step="1"><span class="line"></span><span class="badge-step">1</span><span class="label">HTTP (fetch)</span></div>
+        <div class="map-row">
+          <button class="map-node" data-node="api">
+            API Express
+            <small>route → controller → service → repository</small>
+          </button>
+        </div>
+        <div class="map-row" style="align-items:flex-start;">
+          <div class="map-branch">
+            <div class="map-connector" data-step="2"><span class="line"></span><span class="badge-step">2</span><span class="label">SQL (review)</span></div>
+            <button class="map-node" data-node="mysql">
+              MySQL
+              <small>reviews · notifications</small>
+            </button>
+          </div>
+          <div class="map-branch">
+            <div class="map-connector" data-step="3"><span class="line"></span><span class="badge-step">3</span><span class="label">encola fan-out</span></div>
+            <button class="map-node" data-node="redis">
+              Redis · BullMQ
+              <small>notification-fanout · notification-inapp</small>
+            </button>
+            <div class="map-connector" data-step="4"><span class="line"></span><span class="badge-step">4</span><span class="label">consume</span></div>
+            <button class="map-node" data-node="workers">
+              Workers
+              <small>notificationWorker.ts</small>
+            </button>
+            <div class="map-connector" data-step="5"><span class="line"></span><span class="badge-step">5</span><span class="label">insert in-app</span></div>
+            <button class="map-node" data-node="resend">
+              Resend
+              <small>email transaccional (opcional)</small>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="steps-chips" id="steps-chips">
+        <span class="step-chip" data-step-chip="1">1 HTTP</span>
+        <span class="step-chip" data-step-chip="2">2 SQL</span>
+        <span class="step-chip" data-step-chip="3">3 encolado</span>
+        <span class="step-chip" data-step-chip="4">4 consumo</span>
+        <span class="step-chip" data-step-chip="5">5 in-app / email</span>
+      </div>
+
+      <p id="map-caption">Elegí los toggles y simulá un `POST /movies/1/reviews`.</p>
+      <p id="node-detail" class="hidden"></p>
+    </div>
+
+    <div class="panel">
+      <div class="map-controls">
+        <label class="switch-row"><input type="checkbox" id="toggle-worker" checked> worker encendido</label>
+        <label class="switch-row"><input type="checkbox" id="toggle-email" checked> notify_email = true</label>
+        <label class="switch-row"><input type="checkbox" id="toggle-repeat"> repetir review</label>
+        <button class="btn" id="btn-simulate">Simular POST</button>
+        <button class="btn btn-outline" id="btn-reset">Reiniciar</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h3>Mapas por feature</h3>
+      <p class="section-sub" style="margin:8px 0 12px;">
+        Cada página embebe su propio mapa, sus modos y su guion E2E. La guía solo explica el patrón.
+      </p>
+      <table>
+        <thead><tr><th>Feature</th><th>Página</th><th>Qué muestra</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>HU-13 F3</td>
+            <td><a href="/notifications.html?lab=1">/notifications.html?lab=1</a></td>
+            <td>Fan-out de <code>review.published</code> y notificación in-app.</td>
+          </tr>
+          <tr>
+            <td>HU-13 F4</td>
+            <td><a href="/recommendations.html?lab=1">/recommendations.html?lab=1</a></td>
+            <td>Invalidación síncrona, recompute en BullMQ y <code>recs.ready</code>.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- 4. E2E -->
+  <section id="e2e">
+    <h2>4 · Guion E2E manual</h2>
+    <p class="section-sub">
+      Complementa a Jest + Supertest, no los reemplaza. Los pasos cambian según los toggles del mapa.
+    </p>
+    <div class="panel">
+      <div class="toolbar">
+        <button class="btn btn-outline btn-sm" id="btn-run-e2e">Ejecutar guion</button>
+        <span class="spacer"></span>
+        <span class="muted" id="e2e-summary">Sin ejecutar</span>
+      </div>
+      <table>
+        <thead>
+          <tr><th>#</th><th>Origen → destino</th><th>Resultado esperado</th><th>Estado</th></tr>
+        </thead>
+        <tbody id="e2e-body"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- 5. QA -->
+  <section id="qa">
+    <h2>5 · Qué le ofrece a QA</h2>
+    <p class="section-sub">Y el checklist que conviene completar antes de cerrar la feature.</p>
+    <div class="panel">
+      <table>
+        <thead><tr><th>Necesidad de QA</th><th>Qué aporta el laboratorio</th></tr></thead>
+        <tbody>
+          <tr><td>Reproducir un bug</td><td>Log con método, ruta, status, latencia y body; botón para copiar</td></tr>
+          <tr><td>Validar contrato</td><td>Botón “Probar” por endpoint con respuesta real</td></tr>
+          <tr><td>Probar negativos</td><td>Acciones para 404, 400, límites, idempotencia y permisos</td></tr>
+          <tr><td>Verificar asincronía</td><td>Estado del job y aviso de worker apagado</td></tr>
+          <tr><td>Evidencia para el ticket</td><td>Log exportable y captura del mapa recorrido</td></tr>
+          <tr><td>Probar sin entorno</td><td><code>?demo=1</code> para humo visual; <code>?lab=1</code> para integración</td></tr>
+          <tr><td>Saber qué probar</td><td>Guion E2E con resultado esperado por paso</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="panel">
+      <p class="progress" id="checklist-progress">0 de 10 completados</p>
+      <ul class="checklist" id="checklist"></ul>
+      <div class="toolbar" style="margin-top:14px; margin-bottom:0;">
+        <button class="btn btn-outline btn-sm" id="btn-copy-checklist">Copiar checklist</button>
+        <button class="btn btn-outline btn-sm" id="btn-clear-checklist">Limpiar</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6. Plantilla -->
+  <section id="plantilla">
+    <h2>6 · Sección para el doc de la feature</h2>
+    <p class="section-sub">Se pega en el documento de la feature, después de “Implementación”.</p>
+    <div class="panel">
+      <pre class="snippet" id="template-snippet">## Frontend, demo y laboratorio
+
+- Página: `public/&lt;feature&gt;.html` (+ `.js`).
+- Modo demo (`?demo=1`): datos en memoria, sin backend.
+- Modo laboratorio (`?lab=1`): acciones reales, contratos, casos borde y log.
+- Mapa de convergencia embebido: capas y nodos que toca la fase.
+- Guion E2E: pasos numerados con resultado esperado, coincidentes con el mapa.
+- Escenarios QA: ...
+- Enlace en el menú: ...
+- Decisión sobre `?lab=1` en producción: ...
+- Deuda: ...</pre>
+      <div class="toolbar" style="margin-top:12px; margin-bottom:0;">
+        <button class="btn btn-outline btn-sm" id="btn-copy-template">Copiar sección</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Log -->
+  <section id="log-section">
+    <h2>Log de evidencia</h2>
+    <p class="section-sub">Todo lo que se ejecuta en esta guía queda acá. Se puede copiar para adjuntar a un ticket.</p>
+    <div class="panel">
+      <div class="toolbar">
+        <span class="muted" id="log-count">0 eventos</span>
+        <span class="spacer"></span>
+        <button class="btn btn-outline btn-sm" id="btn-copy-log">Copiar log</button>
+        <button class="btn btn-outline btn-sm" id="btn-clear-log">Limpiar</button>
+      </div>
+      <div class="log" id="log"><div class="log-empty">Todavía no hay eventos.</div></div>
+    </div>
+  </section>
+</div>
+
+<div class="toast-container" id="toast-container"></div>
+
+<script type="module" src="./lab-guide.js"></script>
+
+</body>
+</html>
