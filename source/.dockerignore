@@ -1,0 +1,17 @@
+.git
+.gitignore
+node_modules
+dist
+logs
+coverage
+__tests__
+docs
+postman
+spikes
+.env
+.env.*
+!.env.example
+**/*.md
+api.http
+test_exact.js
+ecosystem.config.js
