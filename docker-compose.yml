@@ -1,0 +1,124 @@
+name: api-movies
+
+# Una sola imagen, varios procesos (api y workers). El servicio `migrate`
+# es un one-shot que aplica db/migrations antes de arrancar la app.
+x-app: &app
+  build:
+    context: ./source
+    dockerfile: Dockerfile
+  image: api-movies:local
+  env_file:
+    - .env
+  environment:
+    DB_HOST: mysql
+    DB_PORT: "3306"
+    REDIS_URL: redis://redis:6379
+    MEILISEARCH_HOST: http://meilisearch:7700
+  restart: unless-stopped
+
+services:
+  mysql:
+    image: mysql:8.0
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_0900_ai_ci
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
+      MYSQL_DATABASE: ${DB_NAME:-api_movies}
+    ports:
+      - "${DB_PORT:-3306}:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test:
+        - CMD
+        - mysqladmin
+        - ping
+        - -h
+        - 127.0.0.1
+        - -uroot
+        - -p${MYSQL_ROOT_PASSWORD:-root}
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  meilisearch:
+    image: getmeili/meilisearch:v1.10
+    profiles: ["search"]
+    environment:
+      MEILI_MASTER_KEY: ${MEILISEARCH_API_KEY:-masterKey}
+      MEILI_NO_ANALYTICS: "true"
+    ports:
+      - "7700:7700"
+    volumes:
+      - meili-data:/meili_data
+
+  migrate:
+    <<: *app
+    command: ["node", "dist/db/migrate.js"]
+    restart: "no"
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  api:
+    <<: *app
+    command: ["node", "dist/api.js"]
+    ports:
+      - "${PORT:-8089}:8089"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    stop_grace_period: 35s
+
+  worker-email:
+    <<: *app
+    command: ["node", "dist/workers/emailWorker.js"]
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    stop_grace_period: 35s
+
+  worker-notifications:
+    <<: *app
+    command: ["node", "dist/workers/notificationWorker.js"]
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    stop_grace_period: 35s
+
+  worker-recs:
+    <<: *app
+    command: ["node", "dist/workers/recommendationWorker.js"]
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    # El recompute masivo puede tardar; dar tiempo a drenar el job en curso.
+    stop_grace_period: 65s
+
+volumes:
+  mysql-data:
+  redis-data:
+  meili-data:
