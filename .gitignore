@@ -1,0 +1,10 @@
+# Entorno local / secretos
+.env
+.env.*
+!.env.docker.example
+
+# Artefactos de despliegue local
+.deploy-env
+
+# Logs y datos montados por Compose
+logs/
