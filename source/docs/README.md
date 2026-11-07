@@ -62,6 +62,13 @@ Guía interactiva: [`public/lab-guide.html`](../public/lab-guide.html) — se si
 | [Otros casos de uso para BullMQ](./proposals/2026-10-24-bullmq-use-cases.md) | 2026-10-24 |
 | [Mapa global de arquitectura con overlay por feature](./proposals/2026-10-30-global-architecture-map.md) | 2026-10-30 |
 
+## Decisiones
+
+| Documento | Fecha |
+|-----------|-------|
+| [Ramas develop/main y CI sin CD](./decisions/0001-branching-and-ci.md) | 2026-10-21 |
+| [Contenerización y CD sobre un host único](./decisions/0002-containerization-and-cd.md) | 2026-11-07 |
+
 ## Convenciones
 
 - Un documento por feature, fix o propuesta; nombre en `kebab-case`.
