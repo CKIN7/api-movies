@@ -5,7 +5,9 @@ import mysql from 'mysql2/promise'
 
 dotenv.config({ path: path.resolve(__dirname, '../.env') })
 
-const MIGRATIONS_DIR = path.join(__dirname, 'migrations')
+// En la imagen Docker los .sql se copian a dist/db/migrations; en local
+// viven junto a este archivo. MIGRATIONS_DIR permite apuntar a otra ruta.
+const MIGRATIONS_DIR = process.env.MIGRATIONS_DIR ?? path.join(__dirname, 'migrations')
 
 function listMigrationFiles(): string[] {
     if (!fs.existsSync(MIGRATIONS_DIR)) return []

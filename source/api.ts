@@ -76,6 +76,7 @@ import { createBullBoard } from '@bull-board/api'
 import { BullMQAdapter } from '@bull-board/api/bullMQAdapter'
 import { ExpressAdapter } from '@bull-board/express'
 import { allQueues, closeAllQueues } from './queues'
+import { healthRouter } from './routes/healthRoutes'
 
 // ═══════════════════════════════════════════════════════════════
 //  Patrones: Dependency Injection + Factory + Chain of Resp.
@@ -99,6 +100,8 @@ export function createApp(
 
     app.disable('x-powered-by')
     app.use(express.json())
+    // Healthchecks fuera del rate limiter: el sondeo no debe consumir cuota.
+    app.use('/health', healthRouter)
     app.use(rateLimiterMiddleware ?? (isRateLimitEnabled() ? rateLimiter : noopRateLimiter))
     app.use(requestLogger)
     app.use(express.static('public'))
@@ -226,7 +229,7 @@ if (require.main === module) {
 
     connectRedis()
         .then(() => {
-            const PORT = 8089
+            const PORT = Number(process.env.PORT) || 8089
             app.listen(PORT, () => {
                 logger.info(`Servidor escuchando en http://localhost:${PORT}`)
             })
