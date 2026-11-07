@@ -1,0 +1,109 @@
+name: Release
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+defaults:
+  run:
+    working-directory: source
+
+jobs:
+  docker:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set lowercase image name
+        run: echo "IMAGE_NAME=ghcr.io/${GITHUB_REPOSITORY,,}" >> "$GITHUB_ENV"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGE_NAME }}
+          tags: |
+            type=sha,format=long,prefix=sha-
+            type=semver,pattern={{version}}
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build and push image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./source
+          file: ./source/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          provenance: true
+          sbom: true
+
+  # Corre en un runner self-hosted instalado en la PC del host (Windows +
+  # Docker Desktop). No requiere abrir puertos entrantes ni SSH.
+  # El directorio DEPLOY_PATH debe contener docker-compose.prod.yml y .env.
+  deploy:
+    needs: docker
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    runs-on: [self-hosted, windows]
+    environment: production
+    timeout-minutes: 30
+    steps:
+      - name: Deploy on the host
+        shell: pwsh
+        env:
+          IMAGE_TAG: sha-${{ github.sha }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+          GHCR_USER: ${{ secrets.GHCR_USER }}
+          GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
+        run: |
+          if (-not $env:DEPLOY_PATH) { throw "DEPLOY_PATH secret is required" }
+          if (-not $env:GHCR_TOKEN) { throw "GHCR_TOKEN secret is required" }
+          Set-Location $env:DEPLOY_PATH
+
+          $env:GHCR_TOKEN | docker login ghcr.io -u $env:GHCR_USER --password-stdin
+          if ($LASTEXITCODE -ne 0) { throw "GHCR login failed" }
+
+          docker compose -f docker-compose.prod.yml pull
+          if ($LASTEXITCODE -ne 0) { throw "docker compose pull failed" }
+
+          docker compose -f docker-compose.prod.yml run --rm migrate
+          if ($LASTEXITCODE -ne 0) { throw "migrations failed" }
+
+          docker compose -f docker-compose.prod.yml up -d --remove-orphans
+          if ($LASTEXITCODE -ne 0) { throw "docker compose up failed" }
+
+          $ready = $false
+          for ($i = 0; $i -lt 30; $i++) {
+            try {
+              $response = Invoke-WebRequest -UseBasicParsing -Uri "http://localhost:8089/health/ready" -TimeoutSec 3
+              if ($response.StatusCode -eq 200) { $ready = $true; break }
+            } catch {
+              Start-Sleep -Seconds 2
+            }
+          }
+          if (-not $ready) { throw "Readiness check failed for $env:IMAGE_TAG" }
+
+          Write-Host "Deployed $env:IMAGE_TAG successfully"
