@@ -6,7 +6,9 @@ import fs from 'fs'
 
 dotenv.config({ path: path.resolve(__dirname, '../.env') })
 
-const SCHEMA_PATH = path.join(__dirname, 'schema.sql')
+// SCHEMA_PATH permite reutilizar el esquema base desde otra ruta (p. ej. la
+// copia que el Dockerfile deja en dist/db/schema.sql).
+const SCHEMA_PATH = process.env.SCHEMA_PATH ?? path.join(__dirname, 'schema.sql')
 
 function env(name: string): string {
     const value = process.env[name]
