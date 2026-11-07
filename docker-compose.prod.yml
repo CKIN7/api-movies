@@ -1,0 +1,121 @@
+name: api-movies
+
+# Stack de produccion para un host unico (la PC del autor con Docker Desktop).
+# Consume la imagen publicada en GHCR; no compila. `IMAGE_NAME` e `IMAGE_TAG`
+# salen del .env del host (el deploy los sobreescribe por el tag inmutable).
+x-app: &app
+  image: ${IMAGE_NAME:-ghcr.io/ckin7/api-movies}:${IMAGE_TAG:-latest}
+  env_file:
+    - .env
+  environment:
+    DB_HOST: mysql
+    DB_PORT: "3306"
+    REDIS_URL: redis://redis:6379
+    MEILISEARCH_HOST: http://meilisearch:7700
+  restart: unless-stopped
+  logging:
+    driver: json-file
+    options:
+      max-size: "10m"
+      max-file: "3"
+
+services:
+  mysql:
+    image: mysql:8.0
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_0900_ai_ci
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
+      MYSQL_DATABASE: ${DB_NAME:-api_movies}
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test:
+        - CMD
+        - mysqladmin
+        - ping
+        - -h
+        - 127.0.0.1
+        - -uroot
+        - -p${MYSQL_ROOT_PASSWORD:-root}
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  meilisearch:
+    image: getmeili/meilisearch:v1.10
+    profiles: ["search"]
+    environment:
+      MEILI_MASTER_KEY: ${MEILISEARCH_API_KEY:-masterKey}
+      MEILI_NO_ANALYTICS: "true"
+    volumes:
+      - meili-data:/meili_data
+
+  migrate:
+    <<: *app
+    command: ["node", "dist/db/migrate.js"]
+    restart: "no"
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  api:
+    <<: *app
+    command: ["node", "dist/api.js"]
+    ports:
+      - "${PORT:-8089}:8089"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    stop_grace_period: 35s
+
+  worker-email:
+    <<: *app
+    command: ["node", "dist/workers/emailWorker.js"]
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    stop_grace_period: 35s
+
+  worker-notifications:
+    <<: *app
+    command: ["node", "dist/workers/notificationWorker.js"]
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    stop_grace_period: 35s
+
+  worker-recs:
+    <<: *app
+    command: ["node", "dist/workers/recommendationWorker.js"]
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    # Una sola replica: registra el cron nocturno en BullMQ.
+    stop_grace_period: 65s
+
+volumes:
+  mysql-data:
+  redis-data:
+  meili-data:

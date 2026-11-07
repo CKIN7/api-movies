@@ -42,6 +42,7 @@ Herramientas de desarrollo: [Laboratorio frontend F4/F5](./features/hu-12-user-p
 | [Fallos de test pre-existentes](./cross-cutting/pre-existing-test-failures.md) | Tests | Implementado |
 | [Omitir CI en develop para docs](./cross-cutting/skip-ci-develop.md) | Tests / CI | Guía |
 | [Demo y laboratorio frontend por feature](./cross-cutting/frontend-lab-guideline.md) | Frontend / QA | Guía |
+| [Contenerización y CD](./cross-cutting/containerization.md) | Infra / CI-CD | Guía |
 
 Guía interactiva: [`public/lab-guide.html`](../public/lab-guide.html) — se sirve con la API en `http://localhost:8089/lab-guide.html` y demuestra modos, mapa de convergencia, guion E2E y checklist de QA.
 
